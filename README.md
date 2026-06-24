@@ -150,3 +150,7 @@ don't propagate through git dependencies).
 cargo run -p gallery     # launch the component gallery
 cargo test -p guise      # run the library's unit tests
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
