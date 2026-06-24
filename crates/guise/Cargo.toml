@@ -1,0 +1,9 @@
+[package]
+name = "guise"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "A Mantine-inspired component library for gpui."
+
+[dependencies]
+gpui.workspace = true

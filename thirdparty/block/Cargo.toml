@@ -1,0 +1,13 @@
+# Vendored copy of block 0.1.6 (MIT, Steven Sheldon) with a single fix for a
+# future-incompatibility lint (uninhabited extern static). Patched in via the
+# workspace `[patch.crates-io]` section. The dev-dependency on the path-based
+# `objc_test_utils` helper is dropped since we never build this crate's tests.
+[package]
+name = "block"
+version = "0.1.6"
+authors = ["Steven Sheldon"]
+description = "Rust interface for Apple's C language extension of blocks."
+keywords = ["blocks", "osx", "ios", "objective-c"]
+readme = "README.md"
+repository = "http://github.com/SSheldon/rust-block"
+license = "MIT"

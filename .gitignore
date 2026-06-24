@@ -1,0 +1,177 @@
+# ---------------------------------------------------------------------------
+# Rust / Cargo
+# ---------------------------------------------------------------------------
+/target/
+**/target/
+# Cargo.lock IS committed for this workspace (it ships binaries), so it is
+# intentionally NOT ignored.
+**/*.rs.bk
+*.pdb
+*.rlib
+*.rmeta
+# Criterion / benchmark output
+/criterion/
+**/criterion/
+# cargo-flamegraph / profiling
+flamegraph.svg
+perf.data
+perf.data.old
+*.profraw
+*.profdata
+# cargo-tarpaulin / coverage
+/coverage/
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+# sccache local cache
+.sccache/
+
+# ---------------------------------------------------------------------------
+# macOS
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.apdisk
+Icon?
+
+# ---------------------------------------------------------------------------
+# Linux
+# ---------------------------------------------------------------------------
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ---------------------------------------------------------------------------
+# Windows
+# ---------------------------------------------------------------------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------------------------------------------------------------------------
+# Editors & IDEs
+# ---------------------------------------------------------------------------
+# VS Code (keep shared config opt-in; ignore local noise)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# JetBrains (IntelliJ, CLion, RustRover, …)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Zed
+.zed/
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+Session.vim
+.netrwhist
+[._]*.un~
+
+# Emacs
+\#*\#
+.\#*
+.emacs.desktop
+.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Helix
+.helix/
+
+# ctags / cscope
+tags
+.tags
+cscope.*
+
+# ---------------------------------------------------------------------------
+# Environment, secrets & local config
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+*.local
+secrets.*
+*.pem
+*.key
+*.p12
+*.keystore
+
+# ---------------------------------------------------------------------------
+# Logs, temp & runtime
+# ---------------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swap
+.cache/
+tmp/
+temp/
+
+# ---------------------------------------------------------------------------
+# Build artifacts & packaging (macOS app bundles, installers, archives)
+# ---------------------------------------------------------------------------
+*.app/
+*.dmg
+*.pkg
+dist/
+build/
+release/
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# ---------------------------------------------------------------------------
+# Misc tooling that may appear alongside the workspace
+# ---------------------------------------------------------------------------
+# Node (only if web tooling is ever added)
+node_modules/
+npm-debug.log*
+yarn-error.log
+bun.lockb
+# Python (scripts / tooling)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+# OS thumbnail / preview caches
+.thumbnails/
+CLAUDE.md
