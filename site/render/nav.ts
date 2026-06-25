@@ -74,6 +74,36 @@ export function docPages(): { src: string; out: string; title: string }[] {
   return pages;
 }
 
+// Reading order across all groups, as { title, out, group }.
+export function flatNav(): { title: string; out: string; group: string }[] {
+  const flat: { title: string; out: string; group: string }[] = [];
+  for (const group of groups) {
+    for (const item of group.items) {
+      const out = outFor(item.slug === "docs" ? "readme" : item.slug);
+      flat.push({ title: item.title, out, group: group.title });
+    }
+  }
+  return flat;
+}
+
+// The group (section) title a page belongs to — used for the breadcrumb.
+export function groupOf(out: string): string {
+  return flatNav().find((p) => p.out === out)?.group ?? "Docs";
+}
+
+// Previous / next page in reading order.
+export function prevNext(out: string): {
+  prev?: { title: string; out: string };
+  next?: { title: string; out: string };
+} {
+  const flat = flatNav();
+  const i = flat.findIndex((p) => p.out === out);
+  return {
+    prev: i > 0 ? flat[i - 1] : undefined,
+    next: i >= 0 && i < flat.length - 1 ? flat[i + 1] : undefined,
+  };
+}
+
 // Sidebar HTML, with the current page's link marked active.
 export function sidebar(currentOut: string): string {
   const sections = groups
