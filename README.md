@@ -1,5 +1,10 @@
 # guise
 
+[![crates.io](https://img.shields.io/crates/v/guise-ui.svg)](https://crates.io/crates/guise-ui)
+[![docs.rs](https://img.shields.io/docsrs/guise-ui)](https://docs.rs/guise-ui)
+[![CI](https://github.com/wess/guise/actions/workflows/ci.yml/badge.svg)](https://github.com/wess/guise/actions/workflows/ci.yml)
+[![license](https://img.shields.io/crates/l/guise-ui.svg)](https://github.com/wess/guise/blob/main/LICENSE)
+
 A [Mantine](https://mantine.dev)-inspired component library for
 [gpui](https://github.com/zed-industries/zed) — the GPU-accelerated Rust UI
 framework that powers Zed.

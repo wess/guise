@@ -17,6 +17,11 @@ readme = "README.md"
 [lib]
 name = "guise"
 
+# docs.rs builds on Linux, where the default `webview` feature would need system
+# WebKitGTK. Build the docs without it (the WebView API still appears).
+[package.metadata.docs.rs]
+no-default-features = true
+
 [features]
 default = ["webview"]
 # Embed a native OS web view via `wry`. On Linux this needs the system
