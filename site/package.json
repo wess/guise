@@ -1,0 +1,14 @@
+{
+  "name": "guise-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.ts",
+    "serve": "bun run build.ts && bun --bun serve dist"
+  },
+  "dependencies": {
+    "marked": "12.0.2",
+    "marked-highlight": "2.1.1",
+    "highlight.js": "11.9.0"
+  }
+}
