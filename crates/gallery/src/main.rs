@@ -731,7 +731,7 @@ impl Render for Gallery {
                     .color(if is_dark { ColorName::Grape } else { ColorName::Yellow }),
             )
             .center(Text::new("Ready").size(Size::Xs).dimmed())
-            .right(Text::new("v0.2.0").size(Size::Xs).dimmed());
+            .right(Text::new("v0.2.1").size(Size::Xs).dimmed());
 
         let mut root = div()
             .relative()
