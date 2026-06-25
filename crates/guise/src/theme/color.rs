@@ -45,6 +45,13 @@ impl Color {
         }
     }
 
+    /// Build an opaque `Color` from a gpui `Hsla`, dropping any alpha. Used so a
+    /// CSS color (which parses to `Hsla`) can populate the opaque theme fields.
+    pub fn from_hsla(c: Hsla) -> Color {
+        let (r, g, b) = hsl_to_rgb(c.h, c.s, c.l);
+        Color::new(r, g, b)
+    }
+
     /// As an opaque gpui `Rgba`.
     pub fn rgba(self) -> Rgba {
         Rgba {
@@ -87,6 +94,39 @@ impl From<Color> for Hsla {
     fn from(c: Color) -> Hsla {
         c.hsla()
     }
+}
+
+/// HSL (h,s,l all in `0.0..=1.0`, the gpui convention) to 8-bit RGB.
+fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (u8, u8, u8) {
+    let to_u8 = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    if s <= 0.0 {
+        let v = to_u8(l);
+        return (v, v, v);
+    }
+    let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
+    let p = 2.0 * l - q;
+    let hue = |mut t: f32| {
+        if t < 0.0 {
+            t += 1.0;
+        }
+        if t > 1.0 {
+            t -= 1.0;
+        }
+        if t < 1.0 / 6.0 {
+            p + (q - p) * 6.0 * t
+        } else if t < 1.0 / 2.0 {
+            q
+        } else if t < 2.0 / 3.0 {
+            p + (q - p) * (2.0 / 3.0 - t) * 6.0
+        } else {
+            p
+        }
+    };
+    (
+        to_u8(hue(h + 1.0 / 3.0)),
+        to_u8(hue(h)),
+        to_u8(hue(h - 1.0 / 3.0)),
+    )
 }
 
 const fn split_at(bytes: &[u8], at: usize) -> &[u8] {

@@ -3,15 +3,15 @@
 use gpui::prelude::*;
 use gpui::{div, px, App, FontWeight, IntoElement, SharedString, Window};
 
-use crate::style::{surface, Variant};
-use crate::theme::{theme, ColorName, Size};
+use crate::style::{surface, ColorValue, Variant};
+use crate::theme::{theme, Size};
 
 /// A compact status pill. The Mantine `Badge`.
 #[derive(IntoElement)]
 pub struct Badge {
     label: SharedString,
     variant: Variant,
-    color: ColorName,
+    color: ColorValue,
     size: Size,
 }
 
@@ -20,7 +20,7 @@ impl Badge {
         Badge {
             label: label.into(),
             variant: Variant::Light,
-            color: ColorName::Blue,
+            color: ColorValue::default(),
             size: Size::Md,
         }
     }
@@ -30,8 +30,8 @@ impl Badge {
         self
     }
 
-    pub fn color(mut self, color: ColorName) -> Self {
-        self.color = color;
+    pub fn color(mut self, color: impl Into<ColorValue>) -> Self {
+        self.color = color.into();
         self
     }
 

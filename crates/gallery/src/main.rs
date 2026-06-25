@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, size, App, Bounds, Context, Entity, IntoElement, SharedString, TitlebarOptions,
-    Window, WindowBounds, WindowOptions,
+    div, px, size, App, Application, Bounds, Context, Entity, IntoElement, SharedString,
+    TitlebarOptions, Window, WindowBounds, WindowOptions,
 };
 
 use guise::flex::{Container, EdgeInsets, Expanded, Row, SizedBox, Spacer};
@@ -77,6 +77,8 @@ struct Gallery {
     pagination: Entity<Pagination>,
     segmented: Entity<SegmentedControl>,
     counter: Entity<Counter>,
+    webview: Entity<WebView>,
+    webview_title: SharedString,
     count: Signal<i32>,
     nav_active: usize,
     /// Section keys whose "view source" panel is currently expanded.
@@ -92,6 +94,7 @@ struct Gallery {
 /// Each snippet carries both a plain and a macro variant.
 const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
     ("buttons", code::BUTTONS),
+    ("webview", code::WEBVIEW),
     ("badges", code::BADGES),
     ("inputs", code::INPUTS),
     ("overlays", code::OVERLAYS),
@@ -105,6 +108,24 @@ const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
     ("typography", code::TYPOGRAPHY),
     ("palette", code::PALETTE),
 ];
+
+/// Inline page rendered by the WebView demo — keeps the showcase offline.
+const WEBVIEW_DEMO_HTML: &str = r#"<!doctype html>
+<html><head><meta charset="utf-8"><title>guise · WebView</title>
+<style>
+  html,body{margin:0;height:100%;font-family:-apple-system,system-ui,sans-serif}
+  body{display:flex;align-items:center;justify-content:center;
+       background:linear-gradient(135deg,#4c6ef5,#9775fa);color:#fff}
+  .card{text-align:center}
+  h1{font-size:34px;margin:0 0 8px}
+  p{opacity:.85;margin:0 0 18px}
+  a{color:#fff;text-decoration:underline}
+</style></head>
+<body><div class="card">
+  <h1>Native WebView</h1>
+  <p>Real WKWebView / WebView2 / WebKitGTK, embedded by <code>wry</code>.</p>
+  <a href="https://example.com">Navigate to example.com →</a>
+</div></body></html>"#;
 
 /// The snippet pair for a section key.
 fn snippet(key: &str) -> code::Snippet {
@@ -213,6 +234,21 @@ impl Gallery {
         })
         .detach();
 
+        // A native web view loading an inline page (no network needed). Its
+        // title updates flow back through `WebViewEvent` into the status text.
+        let webview = cx.new(|cx| {
+            WebView::new(cx)
+                .html(WEBVIEW_DEMO_HTML)
+                .height(320.0)
+        });
+        cx.subscribe(&webview, |this, _view, event: &WebViewEvent, cx| {
+            if let WebViewEvent::TitleChanged(title) = event {
+                this.webview_title = title.clone();
+                cx.notify();
+            }
+        })
+        .detach();
+
         Gallery {
             agree: false,
             notifications: true,
@@ -227,6 +263,8 @@ impl Gallery {
             pagination,
             segmented,
             counter,
+            webview,
+            webview_title: SharedString::from("(loading…)"),
             count,
             nav_active: 1,
             code_open: HashSet::new(),
@@ -405,6 +443,42 @@ impl Gallery {
                             .on_click(cx.listener(|this, _, _, cx| this.count.set(cx, 0))),
                     ),
             )
+    }
+
+    fn webview_demo(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let view = self.webview.clone();
+        let reset = WEBVIEW_DEMO_HTML;
+        Stack::new()
+            .gap(Size::Sm)
+            .child(
+                Group::new()
+                    .align(Align::Center)
+                    .child(
+                        Button::new("wv-go", "Load example.com")
+                            .variant(Variant::Light)
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.webview.update(cx, |wv, cx| {
+                                    wv.load_url("https://example.com", cx)
+                                });
+                            })),
+                    )
+                    .child(
+                        Button::new("wv-home", "Reset")
+                            .variant(Variant::Subtle)
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.webview.update(cx, |wv, cx| wv.load_html(reset, cx));
+                            })),
+                    )
+                    .child(
+                        Text::new(SharedString::from(format!(
+                            "title: {}",
+                            self.webview_title
+                        )))
+                        .size(Size::Sm)
+                        .dimmed(),
+                    ),
+            )
+            .child(view)
     }
 
     fn navigation(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -587,6 +661,8 @@ impl Render for Gallery {
         // Build each section (body + "view source" toggle). Bodies that need
         // `cx` are bound first so `self.section(cx, …)` doesn't double-borrow it.
         let buttons = self.section(cx, "buttons", "Buttons", sections::buttons());
+        let webview_body = self.webview_demo(cx);
+        let webview = self.section(cx, "webview", "WebView (native)", webview_body);
         let badges = self.section(cx, "badges", "Badges", sections::badges());
         let inputs_body = self.inputs(cx);
         let inputs = self.section(cx, "inputs", "Inputs", inputs_body);
@@ -632,6 +708,7 @@ impl Render for Gallery {
                             .child(self.code_style.clone()),
                     )
                     .child(buttons)
+                    .child(webview)
                     .child(badges)
                     .child(inputs)
                     .child(overlays)
@@ -654,7 +731,7 @@ impl Render for Gallery {
                     .color(if is_dark { ColorName::Grape } else { ColorName::Yellow }),
             )
             .center(Text::new("Ready").size(Size::Xs).dimmed())
-            .right(Text::new("v0.1.0").size(Size::Xs).dimmed());
+            .right(Text::new("v0.2.0").size(Size::Xs).dimmed());
 
         let mut root = div()
             .relative()
@@ -682,14 +759,13 @@ pub fn toggle_theme(window: &mut Window, cx: &mut App) {
 }
 
 fn main() {
-    gpui_platform::application().run(|cx: &mut App| {
+    Application::new().run(|cx: &mut App| {
         Theme::dark().init(cx);
 
         // The native window menu. Actions dispatch to the global handlers below.
         cx.set_menus(vec![
             gpui::Menu {
                 name: SharedString::new_static("guise gallery"),
-                disabled: false,
                 items: vec![
                     gpui::MenuItem::action("Toggle Theme", ToggleThemeAction),
                     gpui::MenuItem::separator(),
@@ -698,7 +774,6 @@ fn main() {
             },
             gpui::Menu {
                 name: SharedString::new_static("View"),
-                disabled: false,
                 items: vec![gpui::MenuItem::action("Toggle Theme", ToggleThemeAction)],
             },
         ]);

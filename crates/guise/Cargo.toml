@@ -3,7 +3,22 @@ name = "guise"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "A Mantine-inspired component library for gpui."
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "A Mantine-inspired component library for gpui, Zed's GPU-accelerated UI framework."
+readme = "README.md"
+
+[features]
+default = ["webview"]
+# Embed a native OS web view via `wry`. On Linux this needs the system
+# WebKitGTK dev libs (`libwebkit2gtk-4.1-dev`). Disable for headless/docs-only
+# builds; `WebView` then renders a themed placeholder with the same API.
+webview = ["dep:wry"]
 
 [dependencies]
 gpui.workspace = true
+wry = { version = "0.55", optional = true }

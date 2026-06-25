@@ -3,6 +3,7 @@ name = "gallery"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [[bin]]
 name = "gallery"
@@ -10,5 +11,4 @@ path = "src/main.rs"
 
 [dependencies]
 gpui.workspace = true
-gpui_platform.workspace = true
 guise.workspace = true

@@ -5,7 +5,7 @@
 
 use gpui::prelude::*;
 use gpui::{
-    deferred, div, px, App, Context, FocusHandle, IntoElement, SharedString, Window,
+    deferred, div, px, App, Context, FocusHandle, IntoElement, KeyDownEvent, SharedString, Window,
 };
 
 use crate::input::control_metrics;
@@ -31,6 +31,8 @@ pub struct Menu {
     open: bool,
     focus: FocusHandle,
     size: Size,
+    /// Entry index of the keyboard-highlighted item.
+    highlight: usize,
 }
 
 impl Menu {
@@ -41,7 +43,53 @@ impl Menu {
             open: false,
             focus: cx.focus_handle(),
             size: Size::Sm,
+            highlight: 0,
         }
+    }
+
+    /// Entry indices that are actionable items (skipping sections/dividers).
+    fn item_indices(&self) -> Vec<usize> {
+        self.entries
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| matches!(e, Entry::Item { .. }))
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    fn move_highlight(&mut self, delta: isize) {
+        let items = self.item_indices();
+        if items.is_empty() {
+            return;
+        }
+        let pos = items.iter().position(|&i| i == self.highlight).unwrap_or(0);
+        let len = items.len() as isize;
+        let next = (((pos as isize + delta) % len) + len) % len;
+        self.highlight = items[next as usize];
+    }
+
+    fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if !self.open {
+            return;
+        }
+        match event.keystroke.key.as_str() {
+            "escape" => self.open = false,
+            "down" => self.move_highlight(1),
+            "up" => self.move_highlight(-1),
+            "enter" => {
+                self.open = false;
+                if let Some(Entry::Item {
+                    handler: Some(handler),
+                    ..
+                }) = self.entries.get(self.highlight)
+                {
+                    handler(_window, cx);
+                }
+            }
+            _ => return,
+        }
+        cx.notify();
+        cx.stop_propagation();
     }
 
     pub fn size(mut self, size: Size) -> Self {
@@ -124,8 +172,13 @@ impl Render for Menu {
                     .text_color(dimmed)
                     .child(SharedString::new_static("\u{25be}")),
             )
-            .on_click(cx.listener(|this, _ev, _window, cx| {
+            .on_key_down(cx.listener(Self::on_key))
+            .on_click(cx.listener(|this, _ev, window, cx| {
                 this.open = !this.open;
+                if this.open {
+                    this.highlight = this.item_indices().first().copied().unwrap_or(0);
+                    window.focus(&this.focus);
+                }
                 cx.notify();
             }));
         if let Some(b) = s.border {
@@ -153,28 +206,31 @@ impl Render for Menu {
             for (i, entry) in self.entries.iter().enumerate() {
                 match entry {
                     Entry::Item { label, danger: is_danger, .. } => {
-                        menu = menu.child(
-                            div()
-                                .id(("guise-menu-item", i))
-                                .px(px(10.0))
-                                .py(px(6.0))
-                                .rounded(px(4.0))
-                                .text_size(px(font))
-                                .text_color(if *is_danger { danger } else { text })
-                                .hover(move |s| s.bg(surface_hover))
-                                .child(label.clone())
-                                .on_click(cx.listener(move |this, _ev, window, cx| {
-                                    this.open = false;
-                                    if let Entry::Item {
-                                        handler: Some(handler),
-                                        ..
-                                    } = &this.entries[i]
-                                    {
-                                        handler(window, cx);
-                                    }
-                                    cx.notify();
-                                })),
-                        );
+                        let mut item = div()
+                            .id(("guise-menu-item", i))
+                            .px(px(10.0))
+                            .py(px(6.0))
+                            .rounded(px(4.0))
+                            .text_size(px(font))
+                            .text_color(if *is_danger { danger } else { text })
+                            .hover(move |s| s.bg(surface_hover))
+                            .child(label.clone());
+                        if i == self.highlight {
+                            item = item.bg(surface_hover);
+                        }
+                        menu = menu.child(item.on_click(cx.listener(
+                            move |this, _ev, window, cx| {
+                                this.open = false;
+                                if let Entry::Item {
+                                    handler: Some(handler),
+                                    ..
+                                } = &this.entries[i]
+                                {
+                                    handler(window, cx);
+                                }
+                                cx.notify();
+                            },
+                        )));
                     }
                     Entry::Section(label) => {
                         menu = menu.child(

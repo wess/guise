@@ -82,6 +82,61 @@ impl TextEdit {
             self.chars[self.cursor..].iter().collect(),
         )
     }
+
+    /// Move the cursor up one line, keeping the column where possible. Multiline
+    /// only (single-line text has nowhere to go).
+    pub fn up(&mut self) {
+        self.vmove(-1);
+    }
+
+    /// Move the cursor down one line, keeping the column where possible.
+    pub fn down(&mut self) {
+        self.vmove(1);
+    }
+
+    /// (line, column) of the cursor, counting `\n`-separated lines.
+    fn line_col(&self) -> (usize, usize) {
+        let mut line = 0;
+        let mut col = 0;
+        for &c in &self.chars[..self.cursor] {
+            if c == '\n' {
+                line += 1;
+                col = 0;
+            } else {
+                col += 1;
+            }
+        }
+        (line, col)
+    }
+
+    /// (start char index, length excluding newline) for each line.
+    fn line_bounds(&self) -> Vec<(usize, usize)> {
+        let mut out = Vec::new();
+        let mut start = 0;
+        let mut len = 0;
+        for (i, &c) in self.chars.iter().enumerate() {
+            if c == '\n' {
+                out.push((start, len));
+                start = i + 1;
+                len = 0;
+            } else {
+                len += 1;
+            }
+        }
+        out.push((start, len));
+        out
+    }
+
+    fn vmove(&mut self, dir: isize) {
+        let (line, col) = self.line_col();
+        let bounds = self.line_bounds();
+        let target = line as isize + dir;
+        if target < 0 || target as usize >= bounds.len() {
+            return;
+        }
+        let (start, len) = bounds[target as usize];
+        self.cursor = start + col.min(len);
+    }
 }
 
 #[cfg(test)]
@@ -124,5 +179,26 @@ mod tests {
         assert_eq!(e.text(), "caf");
         e.insert("é");
         assert_eq!(e.text(), "café");
+    }
+
+    #[test]
+    fn vertical_movement_keeps_column() {
+        // Two lines: "hello" / "hi". Cursor starts at end ("hi").
+        let mut e = TextEdit::new("hello\nhi");
+        // Column 2 on line 1.
+        e.up();
+        // Same column (2) on line 0 → between "he" and "llo".
+        assert_eq!(e.split().0, "he");
+        e.down();
+        // Back to line 1; column clamped to its length (2) → end.
+        assert_eq!(e.split(), ("hello\nhi".into(), "".into()));
+    }
+
+    #[test]
+    fn vertical_movement_stops_at_edges() {
+        let mut e = TextEdit::new("a\nb");
+        e.home(); // line 1 has only the final char; home goes to absolute start
+        e.up(); // already on first line, no-op
+        assert_eq!(e.split().0, "");
     }
 }

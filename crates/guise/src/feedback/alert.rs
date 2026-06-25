@@ -4,8 +4,8 @@ use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, FontWeight, IntoElement, SharedString, Window};
 
 use crate::input::ClickHandler;
-use crate::style::{surface, Variant};
-use crate::theme::{theme, ColorName, Size};
+use crate::style::{surface, ColorValue, Variant};
+use crate::theme::{theme, Size};
 
 /// A colored message callout. The Mantine `Alert`.
 #[derive(IntoElement)]
@@ -13,7 +13,7 @@ pub struct Alert {
     title: Option<SharedString>,
     message: SharedString,
     variant: Variant,
-    color: ColorName,
+    color: ColorValue,
     icon: Option<SharedString>,
     on_close: Option<ClickHandler>,
 }
@@ -24,7 +24,7 @@ impl Alert {
             title: None,
             message: message.into(),
             variant: Variant::Light,
-            color: ColorName::Blue,
+            color: ColorValue::default(),
             icon: None,
             on_close: None,
         }
@@ -40,8 +40,8 @@ impl Alert {
         self
     }
 
-    pub fn color(mut self, color: ColorName) -> Self {
-        self.color = color;
+    pub fn color(mut self, color: impl Into<ColorValue>) -> Self {
+        self.color = color.into();
         self
     }
 

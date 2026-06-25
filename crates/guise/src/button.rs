@@ -7,8 +7,8 @@ use gpui::{
 };
 
 use crate::input::ClickHandler;
-use crate::style::{surface, Variant};
-use crate::theme::{theme, ColorName, Size};
+use crate::style::{surface, ColorValue, Variant};
+use crate::theme::{theme, Size};
 
 /// A clickable button. The Mantine `Button`.
 #[derive(IntoElement)]
@@ -16,7 +16,7 @@ pub struct Button {
     id: ElementId,
     label: SharedString,
     variant: Variant,
-    color: ColorName,
+    color: ColorValue,
     size: Size,
     radius: Option<Size>,
     full_width: bool,
@@ -32,7 +32,7 @@ impl Button {
             id: id.into(),
             label: label.into(),
             variant: Variant::Filled,
-            color: ColorName::Blue,
+            color: ColorValue::default(),
             size: Size::Sm,
             radius: None,
             full_width: false,
@@ -48,9 +48,10 @@ impl Button {
         self
     }
 
-    /// Override the button color (defaults to the theme's primary color usage).
-    pub fn color(mut self, color: ColorName) -> Self {
-        self.color = color;
+    /// Override the button color. Accepts a palette `ColorName` or any explicit
+    /// color (e.g. `color!(rgba(34, 139, 230, 1))`).
+    pub fn color(mut self, color: impl Into<ColorValue>) -> Self {
+        self.color = color.into();
         self
     }
 

@@ -10,20 +10,34 @@
 //!   `cx.new(|cx| TextInput::new(cx))` and subscribe for changes.
 
 mod checkbox;
+mod checkboxgroup;
+mod combobox;
 mod edit;
+mod field;
+mod number;
 mod radio;
+mod radiogroup;
 mod segmented;
 mod select;
+mod slider;
 mod switch;
 mod text;
+mod textarea;
 
 pub use checkbox::Checkbox;
+pub use checkboxgroup::CheckboxGroup;
+pub use combobox::{Combobox, ComboboxEvent};
 pub use edit::TextEdit;
+pub use field::Field;
+pub use number::{NumberInput, NumberInputEvent};
 pub use radio::Radio;
+pub use radiogroup::RadioGroup;
 pub use segmented::{SegmentedControl, SegmentedControlEvent};
 pub use select::{Select, SelectEvent};
+pub use slider::{Slider, SliderEvent};
 pub use switch::Switch;
 pub use text::{TextInput, TextInputEvent};
+pub use textarea::{TextArea, TextAreaEvent};
 
 use gpui::{App, ClickEvent, Window};
 

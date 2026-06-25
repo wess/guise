@@ -3,6 +3,8 @@
 use gpui::prelude::*;
 use gpui::{div, px, relative, App, IntoElement, Window};
 
+use crate::style::FlexExt;
+
 /// Fills the available main-axis space inside a Row/Column, by `flex` weight.
 /// Flutter's `Expanded`.
 #[derive(IntoElement)]
@@ -30,8 +32,8 @@ impl RenderOnce for Expanded {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         // grow by weight, shrink, zero basis — the child takes its flex share.
         div()
-            .flex_grow(self.flex)
-            .flex_shrink(1.0)
+            .grow(self.flex)
+            .shrink(1.0)
             .flex_basis(relative(0.0))
             .child(self.child)
     }
@@ -61,7 +63,7 @@ impl Flexible {
 
 impl RenderOnce for Flexible {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        div().flex_grow(self.flex).child(self.child)
+        div().grow(self.flex).child(self.child)
     }
 }
 
@@ -90,7 +92,7 @@ impl Default for Spacer {
 
 impl RenderOnce for Spacer {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        div().flex_grow(self.flex).flex_basis(relative(0.0))
+        div().grow(self.flex).flex_basis(relative(0.0))
     }
 }
 

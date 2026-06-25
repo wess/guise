@@ -11,6 +11,7 @@ mod avatargroup;
 mod list;
 mod table;
 mod tabs;
+mod timeline;
 
 pub use accordion::Accordion;
 pub use avatar::Avatar;
@@ -18,6 +19,7 @@ pub use avatargroup::AvatarGroup;
 pub use list::List;
 pub use table::Table;
 pub use tabs::Tabs;
+pub use timeline::Timeline;
 
 use gpui::{AnyElement, App, Window};
 

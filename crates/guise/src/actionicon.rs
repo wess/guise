@@ -4,7 +4,7 @@ use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, ElementId, IntoElement, SharedString, Window};
 
 use crate::input::ClickHandler;
-use crate::style::{icon_size, surface, Variant};
+use crate::style::{icon_size, surface, ColorValue, Variant};
 use crate::theme::{theme, ColorName, Size};
 
 /// A compact, square icon button. The Mantine `ActionIcon`.
@@ -13,7 +13,7 @@ pub struct ActionIcon {
     id: ElementId,
     icon: SharedString,
     variant: Variant,
-    color: ColorName,
+    color: ColorValue,
     size: Size,
     radius: Option<Size>,
     disabled: bool,
@@ -26,7 +26,7 @@ impl ActionIcon {
             id: id.into(),
             icon: icon.into(),
             variant: Variant::Subtle,
-            color: ColorName::Gray,
+            color: ColorValue::Named(ColorName::Gray),
             size: Size::Md,
             radius: None,
             disabled: false,
@@ -39,8 +39,8 @@ impl ActionIcon {
         self
     }
 
-    pub fn color(mut self, color: ColorName) -> Self {
-        self.color = color;
+    pub fn color(mut self, color: impl Into<ColorValue>) -> Self {
+        self.color = color.into();
         self
     }
 

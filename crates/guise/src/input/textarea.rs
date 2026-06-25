@@ -1,7 +1,8 @@
-//! `TextInput` — a stateful single-line text field (gpui entity).
+//! `TextArea` — a multiline text field (gpui entity).
 //!
-//! Owns its buffer and focus; renders Mantine chrome (label, field,
-//! description/error) and emits [`TextInputEvent`] on edit and submit.
+//! Reuses the [`TextEdit`] char model (newline-aware), renders line-by-line with
+//! a caret on the active line, and emits [`TextAreaEvent`] on edit. Enter inserts
+//! a newline; up/down move between lines keeping the column.
 
 use gpui::prelude::*;
 use gpui::{
@@ -9,47 +10,49 @@ use gpui::{
     SharedString, Window,
 };
 
-use super::{control_metrics, edit::TextEdit};
+use super::{control_metrics, Field, TextEdit};
 use crate::theme::{theme, ColorName, Size};
 
-/// Emitted as the user edits or submits the field.
+/// Emitted as the user edits the field. Carries the full new value.
 #[derive(Debug, Clone)]
-pub enum TextInputEvent {
-    /// The text changed. Carries the full new value.
-    Change(String),
-    /// The user pressed Enter. Carries the current value.
-    Submit(String),
-}
+pub struct TextAreaEvent(pub String);
 
-/// A single-line text field. Create with `cx.new(|cx| TextInput::new(cx))`.
-pub struct TextInput {
+/// A multiline text field. Create with `cx.new(|cx| TextArea::new(cx))`.
+pub struct TextArea {
     edit: TextEdit,
     focus: FocusHandle,
     placeholder: SharedString,
     label: Option<SharedString>,
     description: Option<SharedString>,
     error: Option<SharedString>,
+    rows: usize,
     size: Size,
-    radius: Option<Size>,
     disabled: bool,
-    password: bool,
 }
 
-impl EventEmitter<TextInputEvent> for TextInput {}
+impl EventEmitter<TextAreaEvent> for TextArea {}
 
-impl TextInput {
+/// A line that renders with height even when empty.
+fn line(text: &str) -> SharedString {
+    if text.is_empty() {
+        SharedString::new_static(" ")
+    } else {
+        SharedString::from(text.to_string())
+    }
+}
+
+impl TextArea {
     pub fn new(cx: &mut Context<Self>) -> Self {
-        TextInput {
+        TextArea {
             edit: TextEdit::new(""),
             focus: cx.focus_handle(),
             placeholder: SharedString::default(),
             label: None,
             description: None,
             error: None,
+            rows: 3,
             size: Size::Sm,
-            radius: None,
             disabled: false,
-            password: false,
         }
     }
 
@@ -78,13 +81,14 @@ impl TextInput {
         self
     }
 
-    pub fn size(mut self, size: Size) -> Self {
-        self.size = size;
+    /// Minimum visible rows (sets the field's minimum height).
+    pub fn rows(mut self, rows: usize) -> Self {
+        self.rows = rows.max(1);
         self
     }
 
-    pub fn radius(mut self, radius: Size) -> Self {
-        self.radius = Some(radius);
+    pub fn size(mut self, size: Size) -> Self {
+        self.size = size;
         self
     }
 
@@ -93,17 +97,10 @@ impl TextInput {
         self
     }
 
-    pub fn password(mut self, password: bool) -> Self {
-        self.password = password;
-        self
-    }
-
-    /// The current text.
     pub fn text(&self) -> String {
         self.edit.text()
     }
 
-    /// Replace the text programmatically.
     pub fn set_text(&mut self, value: &str, cx: &mut Context<Self>) {
         self.edit = TextEdit::new(value);
         cx.notify();
@@ -118,12 +115,7 @@ impl TextInput {
             return;
         }
         match ks.key.as_str() {
-            "enter" => {
-                cx.emit(TextInputEvent::Submit(self.edit.text()));
-                cx.notify();
-                cx.stop_propagation();
-                return;
-            }
+            "enter" => self.edit.insert("\n"),
             "backspace" => {
                 self.edit.backspace();
             }
@@ -132,6 +124,8 @@ impl TextInput {
             }
             "left" => self.edit.left(),
             "right" => self.edit.right(),
+            "up" => self.edit.up(),
+            "down" => self.edit.down(),
             "home" => self.edit.home(),
             "end" => self.edit.end(),
             _ => {
@@ -144,71 +138,69 @@ impl TextInput {
                 }
             }
         }
-        cx.emit(TextInputEvent::Change(self.edit.text()));
+        cx.emit(TextAreaEvent(self.edit.text()));
         cx.notify();
         cx.stop_propagation();
     }
 }
 
-impl Render for TextInput {
+impl Render for TextArea {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let t = theme(cx);
-        let (height, pad_x, font) = control_metrics(self.size);
-        let radius = t.radius(self.radius.unwrap_or(t.default_radius));
+        let (_, pad_x, font) = control_metrics(self.size);
+        let radius = t.radius(t.default_radius);
         let focused = self.focus.is_focused(window) && !self.disabled;
-        let has_error = self.error.is_some();
+        let line_h = font * 1.5;
+        let pad_y = 8.0;
+        let min_h = self.rows as f32 * line_h + pad_y * 2.0;
 
-        let border = if has_error {
+        let border = if self.error.is_some() {
             t.color(ColorName::Red, 6)
         } else if focused {
             t.primary()
         } else {
             t.border()
-        };
+        }
+        .hsla();
         let text_color = t.text().hsla();
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
-        let caret_color = t.primary().hsla();
-        let error_color = t.color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 }).hsla();
-        let border = border.hsla();
-        let font_sm = t.font_size(Size::Sm);
-        let font_xs = t.font_size(Size::Xs);
+        let caret = t.primary().hsla();
 
-        let mask = |s: String| {
-            if self.password {
-                "\u{2022}".repeat(s.chars().count())
-            } else {
-                s
-            }
-        };
-
-        // The interior: caret split when focused, else value or placeholder.
-        let interior = if focused {
+        let mut body = div().flex().flex_col().text_color(text_color);
+        if focused {
             let (before, after) = self.edit.split();
-            div()
-                .flex()
-                .items_center()
-                .text_color(text_color)
-                .child(SharedString::from(mask(before)))
-                .child(
-                    div()
-                        .w(px(1.0))
-                        .h(px(font * 1.15))
-                        .bg(caret_color),
-                )
-                .child(SharedString::from(mask(after)))
+            let before_lines: Vec<&str> = before.split('\n').collect();
+            let after_lines: Vec<&str> = after.split('\n').collect();
+            let last = before_lines.len() - 1;
+            for l in &before_lines[..last] {
+                body = body.child(div().h(px(line_h)).child(line(l)));
+            }
+            // Caret line: tail of `before` + caret + head of `after`.
+            body = body.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .h(px(line_h))
+                    .child(SharedString::from(before_lines[last].to_string()))
+                    .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
+                    .child(SharedString::from(after_lines[0].to_string())),
+            );
+            for l in &after_lines[1..] {
+                body = body.child(div().h(px(line_h)).child(line(l)));
+            }
         } else if self.edit.is_empty() {
-            div()
+            body = body
                 .text_color(dimmed)
-                .child(self.placeholder.clone())
+                .child(div().h(px(line_h)).child(self.placeholder.clone()));
         } else {
-            div()
-                .text_color(text_color)
-                .child(SharedString::from(mask(self.edit.text())))
-        };
+            for l in self.edit.text().split('\n') {
+                body = body.child(div().h(px(line_h)).child(line(l)));
+            }
+        }
 
         let field = div()
-            .id("guise-textinput")
+            .id("guise-textarea")
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::on_key))
             .on_mouse_down(
@@ -219,46 +211,31 @@ impl Render for TextInput {
                 }),
             )
             .flex()
-            .items_center()
-            .h(px(height))
+            .items_start()
+            .min_h(px(min_h))
+            .w_full()
             .px(px(pad_x))
+            .py(px(pad_y))
             .rounded(px(radius))
             .border_1()
             .border_color(border)
             .bg(surface)
             .text_size(px(font))
-            .child(interior);
+            .child(body);
 
-        let mut column = div().flex().flex_col().gap(px(4.0));
-        if let Some(label) = self.label.clone() {
-            column = column.child(
-                div()
-                    .text_size(px(font_sm))
-                    .text_color(text_color)
-                    .child(label),
-            );
-        }
-        column = column.child(field);
-        if let Some(error) = self.error.clone() {
-            column = column.child(
-                div()
-                    .text_size(px(font_xs))
-                    .text_color(error_color)
-                    .child(error),
-            );
-        } else if let Some(description) = self.description.clone() {
-            column = column.child(
-                div()
-                    .text_size(px(font_xs))
-                    .text_color(dimmed)
-                    .child(description),
-            );
-        }
-
-        if self.disabled {
-            column.opacity(0.6)
+        let mut chrome = Field::new().child(if self.disabled {
+            field.opacity(0.6)
         } else {
-            column
+            field
+        });
+        if let Some(label) = self.label.clone() {
+            chrome = chrome.label(label);
         }
+        if let Some(error) = self.error.clone() {
+            chrome = chrome.error(error);
+        } else if let Some(description) = self.description.clone() {
+            chrome = chrome.description(description);
+        }
+        chrome
     }
 }

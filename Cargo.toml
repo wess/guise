@@ -2,24 +2,19 @@
 resolver = "2"
 members = ["crates/guise", "crates/gallery"]
 
-# Mirrored from zed's workspace — cargo patches don't propagate through git
-# dependencies. gpui is pulled from the zed repo at a pinned rev; these forks
-# are what that rev expects. See the `prompt` project's docs/gpui.md.
-[patch.crates-io]
-async-process = { git = "https://github.com/zed-industries/async-process.git", rev = "0b6d6713570af61806e1e5cb40e0f757cb93fd9d" }
-async-task = { git = "https://github.com/smol-rs/async-task.git", rev = "b4486cd71e4e94fbda54ce6302444de14f4d190e" }
-# Vendored copy of `block` (transitive via gpui -> cocoa) with a one-line fix
-# for a future-incompatibility lint (uninhabited extern static, #74840).
-block = { path = "thirdparty/block" }
-
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
+authors = ["Wess Cope <opensource@wess.io>"]
+repository = "https://github.com/wess/guise"
+homepage = "https://github.com/wess/guise"
+documentation = "https://docs.rs/guise"
+keywords = ["gpui", "ui", "components", "mantine"]
+categories = ["gui"]
 
 [workspace.dependencies]
-gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
-gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit", "wayland", "x11"] }
+gpui = "0.2.2"
 guise = { path = "crates/guise" }
 
 [profile.dev]

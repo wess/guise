@@ -33,6 +33,27 @@ pub const BUTTONS: Snippet = Snippet {
 ];"#,
 };
 
+pub const WEBVIEW: Snippet = Snippet {
+    plain: r#"// Stateful entity — owns a native OS web view via `wry`.
+let view = cx.new(|cx| {
+    WebView::new(cx)
+        .url("https://example.com")
+        .height(360.0)
+});
+
+// Subscribe for title / load events:
+cx.subscribe(&view, |_this, _view, event: &WebViewEvent, _cx| {
+    if let WebViewEvent::TitleChanged(title) = event {
+        println!("title: {title}");
+    }
+}).detach();"#,
+    macros: r#"let view = cx.new(|cx| {
+    WebView::new(cx)
+        .url("https://example.com")
+        .height(360.0)
+});"#,
+};
+
 pub const BADGES: Snippet = Snippet {
     plain: r#"Group::new().children([
     Badge::new("Blue").color(ColorName::Blue),

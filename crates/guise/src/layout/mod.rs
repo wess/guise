@@ -2,15 +2,19 @@
 //! These map Mantine's flex helpers onto gpui's flex container.
 
 mod center;
+mod grid;
 mod group;
 mod stack;
 
 pub use center::Center;
+pub use grid::SimpleGrid;
 pub use group::Group;
 pub use stack::Stack;
 
 use gpui::prelude::*;
 use gpui::Div;
+
+use crate::style::FlexExt;
 
 /// Cross-axis alignment of flex children.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
