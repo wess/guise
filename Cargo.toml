@@ -15,7 +15,7 @@ categories = ["gui"]
 
 [workspace.dependencies]
 gpui = "0.2.2"
-guise = { path = "crates/guise" }
+guise-ui = { path = "crates/guise" }
 
 [profile.dev]
 debug = "limited"

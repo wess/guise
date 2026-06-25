@@ -95,7 +95,7 @@ which pulls in `wry`. Two things to know:
 - For **headless or docs-only builds**, disable it:
 
   ```toml
-  guise = { version = "0.1", default-features = false }
+  guise-ui = { version = "0.2", default-features = false }
   ```
 
   With the feature off, `WebView` still exists and keeps the exact same API, but

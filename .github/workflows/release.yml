@@ -45,11 +45,11 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Publish guise to crates.io
+      - name: Publish guise-ui to crates.io
         if: ${{ env.HAS_TOKEN == 'true' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p guise --locked
+        run: cargo publish -p guise-ui --locked
       - name: Note when token is missing
         if: ${{ env.HAS_TOKEN != 'true' }}
         run: echo "::notice::CARGO_REGISTRY_TOKEN is not set — skipped crates.io publish."

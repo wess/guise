@@ -11,4 +11,4 @@ path = "src/main.rs"
 
 [dependencies]
 gpui.workspace = true
-guise.workspace = true
+guise-ui.workspace = true

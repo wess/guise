@@ -202,16 +202,20 @@ Colored components share Mantine's variant system: `Filled`, `Light`,
 ## Installation
 
 ```sh
-cargo add guise
+cargo add guise-ui
 ```
 
 or in `Cargo.toml`:
 
 ```toml
 [dependencies]
-guise = "0.1"
+guise-ui = "0.2"
 gpui = "0.2"
 ```
+
+> The crate is published on crates.io as **`guise-ui`** (the `guise` name was
+> taken), but its library is named `guise` — so you still write
+> `use guise::prelude::*;`.
 
 `guise` tracks the published [`gpui`](https://crates.io/crates/gpui) `0.2`
 release on crates.io.

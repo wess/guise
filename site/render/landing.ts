@@ -6,7 +6,7 @@ import { shell } from "./shell";
 import { ribbon, plate } from "./bits";
 
 const REPO = "https://github.com/wess/guise";
-const DEP = 'guise = { git = "https://github.com/wess/guise" }';
+const DEP = 'guise-ui = { git = "https://github.com/wess/guise" }';
 const DEP_HTML = DEP.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 // The annotated hero exhibit: a guise interface with callout labels.

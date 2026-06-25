@@ -1,5 +1,5 @@
 [package]
-name = "guise"
+name = "guise-ui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,6 +11,11 @@ keywords.workspace = true
 categories.workspace = true
 description = "A Mantine-inspired component library for gpui, Zed's GPU-accelerated UI framework."
 readme = "README.md"
+
+# Published to crates.io as `guise-ui` (the `guise` name was taken), but the
+# library is imported as `guise` — so `use guise::…` is unchanged for callers.
+[lib]
+name = "guise"
 
 [features]
 default = ["webview"]

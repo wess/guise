@@ -2073,7 +2073,7 @@ name = "gallery"
 version = "0.2.0"
 dependencies = [
  "gpui",
- "guise",
+ "guise-ui",
 ]
 
 [[package]]
@@ -2710,7 +2710,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "guise"
+name = "guise-ui"
 version = "0.2.0"
 dependencies = [
  "gpui",

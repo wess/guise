@@ -14,7 +14,7 @@ the workspace:
 
 ```toml
 [dependencies]
-guise = { path = "crates/guise" }
+guise-ui = { path = "crates/guise" }   # published as `guise-ui`, imported as `guise`
 gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
 gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit", "wayland", "x11"] }
 ```
