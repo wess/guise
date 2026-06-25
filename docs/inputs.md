@@ -2,10 +2,15 @@
 
 Two groups, by how they hold state:
 
-- **Controlled builders** — `Checkbox`, `Switch`, `Radio`, `Chip`. The parent
-  owns the value; wire changes with `cx.listener`.
-- **Stateful entities** — `TextInput`, `Select`, `SegmentedControl`. Created with
-  `cx.new`, they own their buffer/selection and emit events.
+- **Controlled builders** — `Checkbox`, `Switch`, `Radio`, `Chip`, plus the
+  group wrappers `RadioGroup` / `CheckboxGroup`. The parent owns the value; wire
+  changes with `cx.listener`.
+- **Stateful entities** — `TextInput`, `TextArea`, `NumberInput`, `Select`,
+  `Combobox`, `SegmentedControl`, `Slider`. Created with `cx.new`, they own their
+  buffer/selection and emit events.
+
+`Field` is the shared label/description/error chrome that wraps a control;
+`NumberInput`, `TextArea`, and `Combobox` compose it.
 
 ## Checkbox
 
@@ -150,3 +155,112 @@ let range = cx.new(|cx| {
 
 Methods: `new(cx)`, `data(iter)`, `selected(usize)`, `size`. Read with
 `selected_index()`. Emits `SegmentedControlEvent(usize)`.
+
+## RadioGroup
+
+A controlled set of mutually-exclusive radios — the ergonomic layer over bare
+`Radio`. The parent owns the selected index; the group wires exclusivity and
+reports the new index.
+
+```rust
+RadioGroup::new()
+    .label("Plan")
+    .options(["Free", "Pro", "Enterprise"])
+    .value(self.plan)
+    .on_change(cx.listener(|this, index, _w, cx| { this.plan = index; cx.notify(); }))
+```
+
+Methods: `new()`, `options(iter)`, `value(usize)`, `label`, `color`, `size`,
+`on_change(Fn(usize, &mut Window, &mut App))`.
+
+## CheckboxGroup
+
+A controlled set over a shared selection. The parent owns a sorted `Vec<usize>`;
+each toggle reports the *next* full selection.
+
+```rust
+CheckboxGroup::new()
+    .label("Notify me about")
+    .options(["Mentions", "Replies", "Releases"])
+    .value(self.notify.clone())
+    .on_change(cx.listener(|this, next, _w, cx| { this.notify = next; cx.notify(); }))
+```
+
+Methods: `new()`, `options(iter)`, `value(iter)`, `label`, `color`, `size`,
+`on_change(Fn(Vec<usize>, &mut Window, &mut App))`.
+
+## Field
+
+The label / description / error wrapper every input draws. Use it directly to
+give any control the same chrome.
+
+```rust
+Field::new()
+    .label("API key")
+    .description("Found in your account settings.")
+    .child(my_control)
+```
+
+Methods: `new()`, `label`, `description`, `error` (supersedes description),
+`child(impl IntoElement)`.
+
+## NumberInput (entity)
+
+A numeric field with stepper buttons. Constrains input to digits/`.`/`-`, clamps
+to `min`/`max`, and nudges by `step` (steppers or ↑/↓). Composes `Field`.
+
+```rust
+let qty = cx.new(|cx| {
+    NumberInput::new(cx).label("Quantity").min(0.0).max(99.0).step(1.0).value(1.0)
+});
+```
+
+Methods: `new(cx)`, `value(f64)`, `min`, `max`, `step`, `label`, `description`,
+`error`, `size`, `disabled`. Read with `value_f64() -> Option<f64>`. Emits
+`NumberInputEvent(f64)`.
+
+## TextArea (entity)
+
+A multiline field. Enter inserts a newline; ↑/↓ move between lines keeping the
+column. Reuses the unicode-correct `TextEdit` model and composes `Field`.
+
+```rust
+let bio = cx.new(|cx| {
+    TextArea::new(cx).label("Bio").placeholder("Tell us about yourself").rows(4)
+});
+```
+
+Methods: `new(cx)`, `value(&str)`, `placeholder`, `label`, `description`,
+`error`, `rows(usize)`, `size`, `disabled`. Read with `text()`; set with
+`set_text(value, cx)`. Emits `TextAreaEvent(String)`.
+
+## Combobox (entity)
+
+A searchable `Select`. The trigger is an editable query; the deferred list
+filters by case-insensitive substring. Single-select closes on choice;
+`multiple(true)` keeps a set and stays open. Type to filter, Enter picks the
+first match, Esc closes.
+
+```rust
+let city = cx.new(|cx| {
+    Combobox::new(cx).label("City").data(["Austin", "Boston", "Chicago", "Denver"])
+});
+```
+
+Methods: `new(cx)`, `data(iter)`, `multiple(bool)`, `selected(iter)`,
+`placeholder`, `label`, `size`, `disabled`. Read with `selected_indices()`.
+Emits `ComboboxEvent(usize)` (the toggled index).
+
+## Slider (entity)
+
+A horizontal value track in `min..=max` snapped to `step`. Click the track to
+set a value; arrow keys nudge by one step. (gpui doesn't hand elements their own
+bounds, so position is derived from discrete segment cells rather than the raw
+pointer x.)
+
+```rust
+let volume = cx.new(|cx| Slider::new(cx).min(0.0).max(100.0).step(5.0).value(40.0));
+```
+
+Methods: `new(cx)`, `value(f64)`, `min`, `max`, `step`, `color`, `disabled`.
+Read with `value_f64() -> f64`. Emits `SliderEvent(f64)`.

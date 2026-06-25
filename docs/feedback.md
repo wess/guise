@@ -1,6 +1,8 @@
 # Feedback
 
-`Alert`, `Loader`, `Progress`, `Notification`, `Skeleton`. All stateless builders.
+`Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `Skeleton` are
+stateless builders. `ToastStack` is a stateful entity that manages a positioned
+stack of toasts.
 
 ## Alert
 
@@ -61,6 +63,26 @@ Progress::new(60.0).color(ColorName::Teal).size(Size::Md)
 
 The bar is `w_full`; place it in a stretched container.
 
+## RingProgress
+
+A circular determinate gauge with a centered label.
+
+```rust
+RingProgress::new(72.0).size(96.0).color(ColorName::Teal)
+RingProgress::new(40.0).label("4/10")
+```
+
+| Method | Default |
+| --- | --- |
+| `new(value)` | clamped 0–100 |
+| `size(f32)` | `80.0` (diameter) |
+| `color(ColorName)` | `Blue` |
+| `label(impl Into<SharedString>)` | rounded percentage |
+
+> gpui has no arc/conic primitive, so the fill is rendered as a clipped column
+> rising from the bottom of the circle (a gauge), not a stroked ring. A true ring
+> would need a custom `canvas` paint pass.
+
 ## Notification
 
 An elevated toast card with an accent bar. Positioning/stacking is the host's
@@ -75,6 +97,27 @@ Notification::new("Deployment finished in 42s.")
 ```
 
 Methods: `new(message)`, `title`, `color` (default `Blue`), `icon`, `on_close`.
+
+## ToastStack (entity)
+
+A toast manager: holds a list of live toasts and paints them as a deferred,
+top-right stack above the page. Hold the entity, render it in a full-size root,
+and push from anywhere.
+
+```rust
+let toasts = cx.new(|_| ToastStack::new());
+// later, from a handler:
+toasts.update(cx, |t, cx| {
+    t.push_titled("Saved", "Your changes were saved.", ColorName::Teal, cx);
+});
+```
+
+Methods: `new()`, `push(message, cx) -> id`,
+`push_titled(title, message, color, cx) -> id`, `remove(id, cx)`, `clear(cx)`,
+`len()`, `is_empty()`.
+
+> Each card has a close button. Auto-dismiss is left to the host (call `remove`
+> from a timer), so the manager stays free of executor assumptions.
 
 ## Skeleton
 

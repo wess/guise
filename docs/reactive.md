@@ -66,6 +66,39 @@ watch(cx, &count);                 // re-render this view when `count` changes
 `watch` is the wiring behind a component "subscribing" to state. Call it once
 per signal in a view's constructor (where `cx` is the view's `Context`).
 
+## Forms
+
+`FormState` is a small, unit-testable store of field values, validators, and the
+errors from the last validation — keyed by field name. Make it reactive by
+holding it in a `Signal` (that's what `use_form` returns) and mutating through
+`signal.update`.
+
+```rust
+use guise::reactive::validators;
+
+let form = use_form(cx, FormState::new()
+    .field("email", "")
+    .validator("email", validators::email())
+    .field("name", "")
+    .validator("name", validators::required()));
+
+// in a submit handler:
+form.update(cx, |f| {
+    if f.validate() {
+        // f.value("email"), f.value("name") …
+    }
+});
+
+// reading errors while rendering:
+let email_error = form.read(cx).error("email"); // Option<&str>
+```
+
+`FormState` methods: `new()`, `field(name, initial)`, `validator(name, v)`,
+`value(name)`, `set(name, value)`, `validate_field(name)`, `validate()`,
+`error(name)`, `is_valid()`. Built-in `validators`: `required()`, `min_len(n)`,
+`email()`. A `Validator` is `Box<dyn Fn(&str) -> Option<String>>`, so custom
+rules are just closures.
+
 ## Worked example: two views, one shared Signal
 
 The pattern is exactly React's "lift state up, share via context": create a

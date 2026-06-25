@@ -31,16 +31,18 @@ it. This recipe is borrowed from the sibling `prompt` project.
 | --- | --- |
 | `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme` |
 | `style.rs` | the `Variant` system and `surface()` resolver |
-| `layout/` | themed `Stack`, `Group`, `Center` |
+| `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid` |
 | `flex/` | Flutter-style `Row`, `Column`, `Container`, `Expanded`, … |
-| `input/` | `TextInput`, `Select`, `Checkbox`, `Switch`, `Radio`, `SegmentedControl`, the `TextEdit` model |
-| `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `Tabs`, `Accordion` |
-| `feedback/` | `Alert`, `Loader`, `Progress`, `Notification` |
-| `overlay/` | `Modal`, `Menu`, `Tooltip` |
+| `input/` | `TextInput`, `TextArea`, `NumberInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `Field`, the `TextEdit` model |
+| `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `Timeline`, `Tabs`, `Accordion` |
+| `feedback/` | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
+| `overlay/` | `Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip` |
 | `nav/` | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
-| `reactive/` | `Signal`, Context/Provider, hooks |
+| `reactive/` | `Signal`, Context/Provider, hooks, `FormState` |
 | `macros.rs` | the `row!`/`col!`/… layout macros |
-| root files | `Button`, `Badge`, `Card`, `Paper`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `Chip`, `Indicator`, `Skeleton`, `Divider` |
+| `transition.rs` | `Transition` / `Collapse` mount animations |
+| `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
+| root files | `Button`, `Badge`, `Card`, `Paper`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea` |
 
 ## Conventions
 

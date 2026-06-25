@@ -1,7 +1,7 @@
 # Data display
 
-`Avatar`, `AvatarGroup`, `Badge`, `Indicator`, `List`, `Table` are stateless
-builders. `Tabs` and `Accordion` are stateful entities.
+`Avatar`, `AvatarGroup`, `Badge`, `Indicator`, `List`, `Table`, `Timeline` are
+stateless builders. `Tabs` and `Accordion` are stateful entities.
 
 ## Avatar
 
@@ -81,6 +81,22 @@ Table::new()
 
 Methods: `new()`, `head(iter)`, `row(iter)`, `striped(bool)`,
 `highlight_on_hover(bool)`, `with_border(bool)`.
+
+## Timeline
+
+A vertical sequence of events with bullets and connectors. Items up to and
+including `active` are highlighted.
+
+```rust
+Timeline::new()
+    .active(1)
+    .item_desc("Created", "Project initialized")
+    .item_desc("Building", "Compiling sources")
+    .item("Deploy")
+```
+
+Methods: `new()`, `item(title)`, `item_desc(title, description)`,
+`active(usize)`, `color` (default `Blue`).
 
 ## Tabs (entity)
 

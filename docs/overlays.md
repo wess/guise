@@ -1,6 +1,11 @@
 # Overlays
 
-`Modal`, `Menu`, `Tooltip` — UI that paints above the page.
+`Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip` — UI that paints
+above the page. Most are built on the same mechanism: a `deferred()` layer
+(optionally `occlude()`d) so it overlays sibling content.
+
+`Popover` is the reusable anchored-floating primitive; `Menu`/`Select` predate
+it and still hand-roll their own dropdown, but new flyouts should build on it.
 
 ## Modal
 
@@ -66,8 +71,76 @@ let menu = cx.new(|cx| {
 Methods: `new(cx, trigger)`, `item(label, |window, app| ...)`,
 `danger_item(label, handler)` (red), `section(label)`, `divider()`, `size`.
 
+Keyboard: the trigger takes focus when opened, so ↑/↓ move the highlight across
+items, Enter runs the highlighted item, and Esc closes.
+
 > Item handlers get `(&mut Window, &mut App)`. To mutate a parent view from one,
 > capture a `WeakEntity` of it and `update` inside.
+
+## Popover (entity)
+
+The reusable anchored-floating primitive: a trigger plus a deferred panel
+positioned relative to it. Both the trigger and content are **builder closures**,
+re-invoked each render so they show live data. Closes on Esc or a second trigger
+click; call `close(cx)` from a content action to dismiss.
+
+```rust
+let pop = cx.new(|cx| {
+    Popover::new(
+        cx,
+        |_w, _app| Button::new("trigger", "Options").into_any_element(),
+        |_w, _app| Text::new("Panel content").into_any_element(),
+    )
+    .placement(Placement::Bottom)
+    .width(220.0)
+});
+```
+
+Methods: `new(cx, trigger_fn, content_fn)`, `placement(Placement)`,
+`width(f32)`. State: `is_open()`, `open(cx)`, `close(cx)`, `toggle(cx)`.
+`Placement` is `Bottom` | `BottomEnd` | `Top` | `TopEnd`.
+
+## Drawer
+
+A panel that slides in from a window edge over a scrim. **Controlled** like
+`Modal`: render it only while opened, place it in a full-size root, pass an
+`on_close`. Implements `ParentElement`.
+
+```rust
+if self.drawer_open {
+    root = root.child(
+        Drawer::new()
+            .title("Filters")
+            .side(Side::Right)
+            .size(360.0)
+            .on_close(cx.listener(|this, _ev, _w, cx| { this.drawer_open = false; cx.notify(); }))
+            .child(filters),
+    );
+}
+```
+
+Methods: `new()`, `title`, `side(Side)` (default `Right`), `size(f32)` (width for
+left/right, height for top/bottom), `padding(Size)`, `on_close`. `Side` is
+`Left` | `Right` | `Top` | `Bottom`.
+
+## Spotlight (entity)
+
+A command palette: a centered overlay with a search field and a
+keyboard-navigable command list. Type to filter, ↑/↓ to move, Enter to run, Esc
+to dismiss. Render it in a full-size root; open it from an action.
+
+```rust
+let palette = cx.new(|cx| {
+    Spotlight::new(cx)
+        .item("New file", |_w, _app| { /* ... */ })
+        .item_hint("Toggle theme", "⌘T", |_w, _app| { /* ... */ })
+});
+// open from a handler that has a window:
+palette.update(cx, |s, cx| s.open(window, cx));
+```
+
+Methods: `new(cx)`, `item(label, handler)`, `item_hint(label, hint, handler)`.
+State: `is_open()`, `open(window, cx)`, `close(cx)`.
 
 ## Tooltip
 

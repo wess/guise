@@ -61,6 +61,39 @@ pub enum Align { Start, Center, End, Stretch }
 pub enum Justify { Start, Center, End, Between, Around }
 ```
 
+## SimpleGrid
+
+Equal-width columns that wrap into rows. gpui's flexbox has no CSS-grid track
+system, so this lays children out as a column of flex rows, each holding up to
+`cols` equal-weight cells (the final short row is padded so columns stay aligned).
+Implements `ParentElement`.
+
+```rust
+SimpleGrid::new(3)
+    .spacing(Size::Md)
+    .child(card_a)
+    .child(card_b)
+    .child(card_c)
+    .child(card_d)
+```
+
+Methods: `new(cols)`, `spacing(Size)` (default `Md`).
+
+## ScrollArea
+
+A bounded, scrollable container — desktop UIs scroll, but most builders assume
+their content fits. Each instance needs a unique id so gpui can track its scroll
+offset. Implements `ParentElement`.
+
+```rust
+ScrollArea::new("log")
+    .max_height(240.0)
+    .children(rows)
+```
+
+Methods: `new(id)`, `max_height(f32)`, `horizontal(bool)` (scroll the x axis
+instead).
+
 ## Paper
 
 A raised surface: themed background, radius, padding, optional border and shadow.
