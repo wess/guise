@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build, test and lint on macOS — guise targets gpui's native renderer, and
+  # the default `webview` feature uses the system WebKit (no extra deps there).
+  check:
+    name: build · test · clippy
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --workspace --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      # Advisory: surfaces lints without failing the pipeline.
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets
+        continue-on-error: true
+
+  # Advisory formatting check (does not block — run `cargo fmt` to apply).
+  fmt:
+    name: rustfmt (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --all --check
+        continue-on-error: true
+
+  # Verify the documentation site builds (it is deployed by pages.yml).
+  site:
+    name: site build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install
+        working-directory: site
+        run: bun install --frozen-lockfile
+      - name: Build site
+        working-directory: site
+        run: bun run build.ts
