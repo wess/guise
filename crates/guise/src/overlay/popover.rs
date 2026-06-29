@@ -109,7 +109,7 @@ impl Render for Popover {
                 }))
                 .on_click(cx.listener(|this, _ev, window, cx| {
                     this.open = !this.open;
-                    window.focus(&this.focus);
+                    window.focus(&this.focus, cx);
                     cx.notify();
                 }))
                 .child(trigger_el),

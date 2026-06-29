@@ -93,7 +93,7 @@ impl RenderOnce for Timeline {
                 rail = rail.child(
                     div()
                         .w(px(2.0))
-                        .flex_grow()
+                        .flex_grow(1.0)
                         .min_h(px(12.0))
                         .bg(if connector_done { accent } else { border }),
                 );
