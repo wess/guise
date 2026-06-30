@@ -91,13 +91,16 @@ pub use webview::{WebView, WebViewEvent};
 pub use data::{Accordion, Avatar, AvatarGroup, List, Table, Tabs, Timeline};
 pub use feedback::{Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack};
 pub use input::{
-    Checkbox, CheckboxGroup, Combobox, ComboboxEvent, Field, NumberInput, NumberInputEvent, Radio,
-    RadioGroup, SegmentedControl, SegmentedControlEvent, Select, SelectEvent, Slider, SliderEvent,
-    Switch, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent,
+    apply_key, Checkbox, CheckboxGroup, Combobox, ComboboxEvent, Field, KeyOutcome, NumberInput,
+    NumberInputEvent, Radio, RadioGroup, SegmentedControl, SegmentedControlEvent, Select,
+    SelectEvent, Slider, SliderEvent, Switch, TextArea, TextAreaEvent, TextEdit, TextInput,
+    TextInputEvent,
 };
 pub use layout::{Align, Center, Group, Justify, SimpleGrid, Stack};
 pub use nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
-pub use overlay::{tooltip, Drawer, Menu, Modal, Placement, Popover, Side, Spotlight, Tooltip};
+pub use overlay::{
+    tooltip, Drawer, Menu, MenuBar, MenuColumn, Modal, Placement, Popover, Side, Spotlight, Tooltip,
+};
 pub use reactive::{provide, use_context, use_form, use_state, watch, FormState, Signal};
 pub use style::{surface, ColorValue, StyleExt, Surface, Variant};
 pub use theme::{
@@ -114,9 +117,9 @@ pub mod prelude {
     };
     pub use crate::{color, style};
     pub use crate::input::{
-        Checkbox, CheckboxGroup, Combobox, ComboboxEvent, Field, NumberInput, NumberInputEvent,
-        Radio, RadioGroup, Select, SelectEvent, Slider, SliderEvent, Switch, TextArea,
-        TextAreaEvent, TextInput, TextInputEvent,
+        apply_key, Checkbox, CheckboxGroup, Combobox, ComboboxEvent, Field, KeyOutcome, NumberInput,
+        NumberInputEvent, Radio, RadioGroup, Select, SelectEvent, Slider, SliderEvent, Switch,
+        TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent,
     };
     pub use crate::data::{Accordion, Avatar, AvatarGroup, List, Table, Tabs, Timeline};
     pub use crate::feedback::{
@@ -136,7 +139,8 @@ pub mod prelude {
     };
     pub use crate::{badge, button, code, kbd, text, title};
     pub use crate::overlay::{
-        tooltip, Drawer, Menu, Modal, Placement, Popover, Side, Spotlight, Tooltip,
+        tooltip, Drawer, Menu, MenuBar, MenuColumn, Modal, Placement, Popover, Side, Spotlight,
+        Tooltip,
     };
     pub use crate::reactive::{
         provide, use_context, use_form, use_state, watch, FormState, Signal,

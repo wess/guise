@@ -97,6 +97,11 @@ impl TextArea {
         self
     }
 
+    /// The field's focus handle, so a host can focus it on open.
+    pub fn focus_handle(&self) -> FocusHandle {
+        self.focus.clone()
+    }
+
     pub fn text(&self) -> String {
         self.edit.text()
     }
@@ -111,36 +116,103 @@ impl TextArea {
             return;
         }
         let ks = &event.keystroke;
-        if ks.modifiers.platform || ks.modifiers.control {
+        let m = &ks.modifiers;
+        // Tab and unconsumed shortcuts bubble so the host can act; Escape too.
+        // (Enter inserts a newline here — this is a multi-line field.)
+        if matches!(ks.key.as_str(), "escape" | "tab") {
             return;
         }
-        match ks.key.as_str() {
-            "enter" => self.edit.insert("\n"),
+        let edited = match ks.key.as_str() {
+            "enter" => {
+                self.edit.insert("\n");
+                true
+            }
+            "left" => {
+                if m.platform {
+                    self.edit.home();
+                } else if m.alt {
+                    self.edit.word_left();
+                } else {
+                    self.edit.left();
+                }
+                true
+            }
+            "right" => {
+                if m.platform {
+                    self.edit.end();
+                } else if m.alt {
+                    self.edit.word_right();
+                } else {
+                    self.edit.right();
+                }
+                true
+            }
+            "up" => {
+                self.edit.up();
+                true
+            }
+            "down" => {
+                self.edit.down();
+                true
+            }
+            "home" => {
+                self.edit.home();
+                true
+            }
+            "end" => {
+                self.edit.end();
+                true
+            }
             "backspace" => {
-                self.edit.backspace();
+                if m.platform {
+                    self.edit.delete_to_start();
+                } else if m.alt {
+                    self.edit.delete_word_back();
+                } else {
+                    self.edit.backspace();
+                }
+                true
             }
             "delete" => {
-                self.edit.delete();
+                if m.platform {
+                    self.edit.delete_to_end();
+                } else if m.alt {
+                    self.edit.delete_word_forward();
+                } else {
+                    self.edit.delete();
+                }
+                true
             }
-            "left" => self.edit.left(),
-            "right" => self.edit.right(),
-            "up" => self.edit.up(),
-            "down" => self.edit.down(),
-            "home" => self.edit.home(),
-            "end" => self.edit.end(),
+            "k" if m.control => {
+                self.edit.delete_to_end();
+                true
+            }
+            "a" if m.control => {
+                self.edit.home();
+                true
+            }
+            "e" if m.control => {
+                self.edit.end();
+                true
+            }
             _ => {
-                if let Some(text) = ks
-                    .key_char
-                    .as_deref()
-                    .filter(|t| !t.is_empty() && !ks.modifiers.alt)
-                {
-                    self.edit.insert(text);
+                if !m.platform && !m.control {
+                    if let Some(text) = ks.key_char.as_deref().filter(|t| !t.is_empty()) {
+                        self.edit.insert(text);
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
                 }
             }
+        };
+        if edited {
+            cx.emit(TextAreaEvent(self.edit.text()));
+            cx.notify();
+            cx.stop_propagation();
         }
-        cx.emit(TextAreaEvent(self.edit.text()));
-        cx.notify();
-        cx.stop_propagation();
     }
 }
 

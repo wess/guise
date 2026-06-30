@@ -42,7 +42,7 @@ your view, exactly like React's controlled inputs.
 
 Components that own intrinsic, frame-to-frame state are gpui *entities* instead.
 These are: `TextInput`, `Select`, `SegmentedControl`, `Tabs`, `Accordion`,
-`Pagination`, `Menu`. You create them with `cx.new(...)`, store the `Entity`,
+`Pagination`, `Menu`, `MenuBar`. You create them with `cx.new(...)`, store the `Entity`,
 and add it as a child:
 
 ```rust

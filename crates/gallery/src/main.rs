@@ -72,6 +72,7 @@ struct Gallery {
     name: Entity<TextInput>,
     framework: Entity<Select>,
     menu: Entity<Menu>,
+    menubar: Entity<MenuBar>,
     tabs: Entity<Tabs>,
     accordion: Entity<Accordion>,
     pagination: Entity<Pagination>,
@@ -167,6 +168,30 @@ impl Gallery {
                 .divider()
                 .danger_item("Delete", |_, _| {})
         });
+        let menubar = cx.new(|cx| {
+            MenuBar::new(cx)
+                .menu("File", |m| {
+                    m.item_shortcut("New Tab", "⌘T", |_, _| {})
+                        .item_shortcut("New Window", "⌘N", |_, _| {})
+                        .divider()
+                        .item_shortcut("Close Tab", "⌘W", |_, _| {})
+                        .divider()
+                        .danger_item("Quit", |_, _| {})
+                })
+                .menu("Edit", |m| {
+                    m.item_shortcut("Undo", "⌘Z", |_, _| {})
+                        .disabled_item("Redo")
+                        .divider()
+                        .section("Clipboard")
+                        .item_shortcut("Copy", "⌘C", |_, _| {})
+                        .item_shortcut("Paste", "⌘V", |_, _| {})
+                })
+                .menu("View", |m| {
+                    m.item("Toggle Sidebar", |_, _| {})
+                        .item("Zoom In", |_, _| {})
+                        .item("Zoom Out", |_, _| {})
+                })
+        });
         let tabs = cx.new(|cx| {
             Tabs::new(cx)
                 .tab("Overview", |_, _| {
@@ -258,6 +283,7 @@ impl Gallery {
             name,
             framework,
             menu,
+            menubar,
             tabs,
             accordion,
             pagination,
@@ -571,6 +597,7 @@ impl Gallery {
                 )),
             )
             .child(self.menu.clone())
+            .child(self.menubar.clone())
             .child(
                 div()
                     .id("tooltip-target")
