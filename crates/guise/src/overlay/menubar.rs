@@ -303,7 +303,7 @@ impl Render for MenuBar {
                         this.open = None;
                     } else {
                         this.open_menu(mi);
-                        window.focus(&this.focus, cx);
+                        window.focus(&this.focus);
                     }
                     cx.notify();
                 }))
