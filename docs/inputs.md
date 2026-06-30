@@ -121,8 +121,32 @@ cx.subscribe(&name, |_this, _input, event, cx| {
 }).detach();
 ```
 
-Editing supports insert, backspace/delete, arrows, home/end, and is
-unicode-correct (the underlying `TextEdit` model is unit-tested).
+Editing follows the macOS/Linux conventions: Option+←/→ moves by word,
+Cmd+←/→ to line start/end, Option+Backspace deletes a word, Cmd+Backspace /
+Cmd+Delete clears to the line edge, plus Ctrl+A / Ctrl+E / Ctrl+K. It is
+unicode-correct (the underlying `TextEdit` model is unit-tested). Escape and
+Tab are left to bubble so a host (a dialog, a form) can cancel or move focus.
+
+### Driving a field yourself
+
+The single-line model and its key map are public, for hosts that render their
+own chrome (a search bar, a command palette) instead of embedding the full
+`TextInput`:
+
+```rust
+use guise::{apply_key, KeyOutcome, TextEdit};
+
+// state: edit: TextEdit
+match apply_key(&mut self.edit, &keystroke) {
+    KeyOutcome::Submit => { /* commit */ }
+    KeyOutcome::Cancel => { /* dismiss */ }
+    KeyOutcome::Edited => { /* redraw; read self.edit.split() for the caret */ }
+    KeyOutcome::Pass   => { /* not ours — Tab, Cmd+W, … */ }
+}
+```
+
+`apply_key` is exactly what `TextInput` uses internally, so an inline field and
+the full component stay keystroke-for-keystroke identical.
 
 ## Select (entity)
 

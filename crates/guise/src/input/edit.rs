@@ -75,6 +75,81 @@ impl TextEdit {
         self.cursor = self.chars.len();
     }
 
+    /// Move left to the start of the previous word (Option+Left on macOS).
+    pub fn word_left(&mut self) {
+        while self.cursor > 0 && !is_word(self.chars[self.cursor - 1]) {
+            self.cursor -= 1;
+        }
+        while self.cursor > 0 && is_word(self.chars[self.cursor - 1]) {
+            self.cursor -= 1;
+        }
+    }
+
+    /// Move right past the end of the next word (Option+Right on macOS).
+    pub fn word_right(&mut self) {
+        let n = self.chars.len();
+        while self.cursor < n && !is_word(self.chars[self.cursor]) {
+            self.cursor += 1;
+        }
+        while self.cursor < n && is_word(self.chars[self.cursor]) {
+            self.cursor += 1;
+        }
+    }
+
+    /// Delete the word before the cursor (Option+Backspace). Returns whether
+    /// anything changed.
+    pub fn delete_word_back(&mut self) -> bool {
+        let end = self.cursor;
+        self.word_left();
+        if self.cursor < end {
+            self.chars.drain(self.cursor..end);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Delete the word after the cursor (Option+Delete). Returns whether
+    /// anything changed.
+    pub fn delete_word_forward(&mut self) -> bool {
+        let start = self.cursor;
+        let n = self.chars.len();
+        let mut end = self.cursor;
+        while end < n && !is_word(self.chars[end]) {
+            end += 1;
+        }
+        while end < n && is_word(self.chars[end]) {
+            end += 1;
+        }
+        if end > start {
+            self.chars.drain(start..end);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Delete from the cursor to the line start (Cmd+Backspace). Returns
+    /// whether anything changed.
+    pub fn delete_to_start(&mut self) -> bool {
+        if self.cursor == 0 {
+            return false;
+        }
+        self.chars.drain(0..self.cursor);
+        self.cursor = 0;
+        true
+    }
+
+    /// Delete from the cursor to the line end (Cmd+Delete / Ctrl+K). Returns
+    /// whether anything changed.
+    pub fn delete_to_end(&mut self) -> bool {
+        if self.cursor >= self.chars.len() {
+            return false;
+        }
+        self.chars.truncate(self.cursor);
+        true
+    }
+
     /// The text before and after the cursor, for rendering a caret between.
     pub fn split(&self) -> (String, String) {
         (
@@ -139,6 +214,11 @@ impl TextEdit {
     }
 }
 
+/// Word characters for word-wise navigation/deletion.
+fn is_word(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,5 +280,42 @@ mod tests {
         e.home(); // line 1 has only the final char; home goes to absolute start
         e.up(); // already on first line, no-op
         assert_eq!(e.split().0, "");
+    }
+
+    #[test]
+    fn word_navigation() {
+        let mut e = TextEdit::new("foo bar baz");
+        e.word_left();
+        assert_eq!(e.split(), ("foo bar ".into(), "baz".into()));
+        e.word_left();
+        assert_eq!(e.split(), ("foo ".into(), "bar baz".into()));
+        e.word_right();
+        assert_eq!(e.split(), ("foo bar".into(), " baz".into()));
+    }
+
+    #[test]
+    fn delete_word_back_and_forward() {
+        let mut e = TextEdit::new("foo bar baz");
+        assert!(e.delete_word_back());
+        assert_eq!(e.text(), "foo bar ");
+        e.home();
+        assert!(e.delete_word_forward());
+        assert_eq!(e.text(), " bar ");
+        // Nothing before the cursor at home: no-op.
+        e.home();
+        assert!(!e.delete_word_back());
+    }
+
+    #[test]
+    fn delete_to_line_edges() {
+        let mut e = TextEdit::new("hello world");
+        e.home();
+        e.right();
+        e.right();
+        assert!(e.delete_to_start());
+        assert_eq!(e.text(), "llo world");
+        assert!(e.delete_to_end());
+        assert_eq!(e.text(), "");
+        assert!(!e.delete_to_end());
     }
 }

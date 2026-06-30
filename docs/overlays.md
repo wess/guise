@@ -77,6 +77,45 @@ items, Enter runs the highlighted item, and Esc closes.
 > Item handlers get `(&mut Window, &mut App)`. To mutate a parent view from one,
 > capture a `WeakEntity` of it and `update` inside.
 
+## MenuBar (entity)
+
+A horizontal application menu — a row of top-level labels (File / Edit / View /
+…), each opening a dropdown. Once any menu is open, moving the pointer onto a
+sibling label switches to it, the way a desktop menu bar does. This is the
+themed, in-window counterpart to the native OS menu (see
+[Window menu](windowmenu.md)): use it when you draw your own titlebar, or on
+platforms with no native menu bar.
+
+```rust
+let bar = cx.new(|cx| {
+    MenuBar::new(cx)
+        .menu("File", |m| {
+            m.item_shortcut("New Tab", "⌘T", |_w, _app| { /* ... */ })
+                .item_shortcut("New Window", "⌘N", |_w, _app| { /* ... */ })
+                .divider()
+                .danger_item("Quit", |_w, _app| { /* ... */ })
+        })
+        .menu("Edit", |m| {
+            m.item_shortcut("Undo", "⌘Z", |_w, _app| {})
+                .disabled_item("Redo")
+                .divider()
+                .section("Clipboard")
+                .item_shortcut("Copy", "⌘C", |_w, _app| {})
+                .item_shortcut("Paste", "⌘V", |_w, _app| {})
+        })
+});
+```
+
+Drop it into a titlebar strip or a [`StatusBar`](navigation.md#statusbar) slot.
+Each menu is built with a `MenuColumn` (the closure argument), which offers
+`item`, `item_shortcut(label, shortcut, handler)`, `danger_item` (red),
+`disabled_item(label)` (greyed, inert), `section(label)`, and `divider()`.
+`MenuColumn` is also exported, so menus can be assembled programmatically and
+added with `MenuBar::push(column)`.
+
+Keyboard (while open): ←/→ switch menus, ↑/↓ move the highlight, Enter runs the
+highlighted item, Esc closes. Set the top-level label size with `size(Size)`.
+
 ## Popover (entity)
 
 The reusable anchored-floating primitive: a trigger plus a deferred panel

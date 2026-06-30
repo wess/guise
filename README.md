@@ -84,7 +84,7 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 | Surface | `Paper`, `Card`                                         |
 | Typography | `Text`, `Title`                                     |
 | Inputs  | `Button`, `TextInput`, `TextArea`, `NumberInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `Slider`, `Field` |
-| Overlays | `Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip` |
+| Overlays | `Modal`, `Drawer`, `Menu`, `MenuBar`, `Popover`, `Spotlight`, `Tooltip` |
 | Feedback | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
 | Data    | `Badge`, `Divider`, `Avatar`, `AvatarGroup`, `List`, `Table`, `Timeline`, `Tabs`, `Accordion` |
 | Navigation | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
@@ -103,7 +103,8 @@ Inputs come in two flavors that match how each control behaves in gpui:
 
 Overlays paint above the page (a `deferred` layer): `Modal` and `Drawer` are
 controlled backdrops (render while `opened`, pass `on_close`), `Menu` is a
-keyboard-navigable trigger + deferred action list, `Popover` is the reusable
+keyboard-navigable trigger + deferred action list, `MenuBar` is a themed
+in-window application menu (File / Edit / View …), `Popover` is the reusable
 anchored-floating primitive, `Spotlight` is a command palette, and `Tooltip`
 plugs into gpui's built-in `.tooltip(...)` via the `tooltip(...)` helper.
 

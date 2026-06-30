@@ -9,7 +9,7 @@ use gpui::{
     SharedString, Window,
 };
 
-use super::{control_metrics, edit::TextEdit};
+use super::{apply_key, control_metrics, edit::TextEdit, KeyOutcome};
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted as the user edits or submits the field.
@@ -98,6 +98,11 @@ impl TextInput {
         self
     }
 
+    /// The field's focus handle, so a host can focus it on open.
+    pub fn focus_handle(&self) -> FocusHandle {
+        self.focus.clone()
+    }
+
     /// The current text.
     pub fn text(&self) -> String {
         self.edit.text()
@@ -113,40 +118,21 @@ impl TextInput {
         if self.disabled {
             return;
         }
-        let ks = &event.keystroke;
-        if ks.modifiers.platform || ks.modifiers.control {
-            return;
-        }
-        match ks.key.as_str() {
-            "enter" => {
+        match apply_key(&mut self.edit, &event.keystroke) {
+            KeyOutcome::Submit => {
                 cx.emit(TextInputEvent::Submit(self.edit.text()));
                 cx.notify();
                 cx.stop_propagation();
-                return;
             }
-            "backspace" => {
-                self.edit.backspace();
+            KeyOutcome::Edited => {
+                cx.emit(TextInputEvent::Change(self.edit.text()));
+                cx.notify();
+                cx.stop_propagation();
             }
-            "delete" => {
-                self.edit.delete();
-            }
-            "left" => self.edit.left(),
-            "right" => self.edit.right(),
-            "home" => self.edit.home(),
-            "end" => self.edit.end(),
-            _ => {
-                if let Some(text) = ks
-                    .key_char
-                    .as_deref()
-                    .filter(|t| !t.is_empty() && !ks.modifiers.alt)
-                {
-                    self.edit.insert(text);
-                }
-            }
+            // Escape (Cancel) and unhandled keys (Tab, Cmd+W, …) bubble to the
+            // host: dialogs cancel on Escape, forms move focus on Tab.
+            KeyOutcome::Cancel | KeyOutcome::Pass => {}
         }
-        cx.emit(TextInputEvent::Change(self.edit.text()));
-        cx.notify();
-        cx.stop_propagation();
     }
 }
 

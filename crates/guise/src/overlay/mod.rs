@@ -5,9 +5,11 @@
 //! - [`Tooltip`] is a small view plus the [`tooltip`] helper for gpui's
 //!   built-in `.tooltip(...)` attachment.
 //! - [`Menu`] is a stateful entity: a trigger plus a deferred action list.
+//! - [`MenuBar`] is a stateful entity: a row of dropdown menus for an app menu.
 
 mod drawer;
 mod menu;
+mod menubar;
 mod modal;
 mod popover;
 mod spotlight;
@@ -15,6 +17,7 @@ mod tooltip;
 
 pub use drawer::{Drawer, Side};
 pub use menu::Menu;
+pub use menubar::{MenuBar, MenuColumn};
 pub use modal::Modal;
 pub use popover::{Placement, Popover};
 pub use spotlight::Spotlight;

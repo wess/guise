@@ -22,7 +22,7 @@ gpui's retained-mode renderer.
 - [Layout](layout.md) — `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`, `Paper`, `Card`, `Divider`
 - [Feedback](feedback.md) — `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack`, `Skeleton`
 - [Data display](data.md) — `Avatar`, `AvatarGroup`, `Badge`, `Indicator`, `List`, `Table`, `Timeline`, `Tabs`, `Accordion`
-- [Overlays](overlays.md) — `Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip`
+- [Overlays](overlays.md) — `Modal`, `Drawer`, `Menu`, `MenuBar`, `Popover`, `Spotlight`, `Tooltip`
 - [Navigation](navigation.md) — `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar`
 - [WebView](webview.md) — `WebView`, a native embedded web view (`wry`)
 

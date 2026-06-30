@@ -4,6 +4,10 @@ The native application menu (the macOS menu bar / OS menu) is a gpui feature,
 not a `guise` component — `guise` doesn't theme native chrome. This page shows
 the idiomatic way to wire it, as the gallery does.
 
+> For a **themed, in-window** menu bar — drawn by `guise`, useful when you
+> render your own titlebar or run on a platform with no native menu bar — see
+> [`MenuBar`](overlays.md#menubar-entity) instead.
+
 ## Define actions
 
 Menu items dispatch `gpui::Action` types. Derive them:
