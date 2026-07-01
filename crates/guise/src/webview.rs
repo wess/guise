@@ -39,6 +39,9 @@ pub enum WebViewEvent {
     LoadStarted,
     /// A page finished loading.
     LoadFinished,
+    /// The page posted a message to the host via `window.ipc.postMessage(...)`.
+    /// Carries the raw string payload; the host decides how to interpret it.
+    Message(SharedString),
 }
 
 /// What the view should display.
@@ -61,6 +64,12 @@ pub struct WebView {
     transparent: bool,
     width: Option<f32>,
     height: Option<f32>,
+    /// JavaScript injected at document start (before page scripts run). Hosts
+    /// use it to expose a native API the page can call via
+    /// `window.ipc.postMessage(...)`. Only applied when the `webview` feature is
+    /// on; the placeholder ignores it.
+    #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+    init_script: Option<SharedString>,
 
     #[cfg(feature = "webview")]
     inner: Option<Rc<wry::WebView>>,
@@ -82,6 +91,7 @@ impl WebView {
             transparent: false,
             width: None,
             height: None,
+            init_script: None,
 
             #[cfg(feature = "webview")]
             inner: None,
@@ -90,6 +100,15 @@ impl WebView {
             #[cfg(feature = "webview")]
             draining: false,
         }
+    }
+
+    /// Inject JavaScript that runs at document start, before the page's own
+    /// scripts. Combined with [`WebViewEvent::Message`] (delivered when the page
+    /// calls `window.ipc.postMessage(str)`), this lets a host expose a native
+    /// API to the embedded page. No-op under the placeholder build.
+    pub fn init_script(mut self, js: impl Into<SharedString>) -> Self {
+        self.init_script = Some(js.into());
+        self
     }
 
     /// Load a URL (`https://…`, `file://…`, etc.).
@@ -173,7 +192,8 @@ impl WebView {
         }
 
         let queue = self.queue.clone();
-        let (q_title, q_nav, q_load) = (queue.clone(), queue.clone(), queue.clone());
+        let (q_title, q_nav, q_load, q_ipc) =
+            (queue.clone(), queue.clone(), queue.clone(), queue.clone());
 
         let mut builder = WebViewBuilder::new()
             .with_bounds(rect_from(bounds))
@@ -192,7 +212,17 @@ impl WebView {
                     PageLoadEvent::Started => WebViewEvent::LoadStarted,
                     PageLoadEvent::Finished => WebViewEvent::LoadFinished,
                 });
+            })
+            // JS -> native: `window.ipc.postMessage(str)` in the page lands here.
+            .with_ipc_handler(move |req| {
+                q_ipc
+                    .borrow_mut()
+                    .push(WebViewEvent::Message(req.into_body().into()));
             });
+
+        if let Some(js) = &self.init_script {
+            builder = builder.with_initialization_script(js.to_string());
+        }
 
         builder = match &self.source {
             Source::Url(url) => builder.with_url(url.as_ref()),
