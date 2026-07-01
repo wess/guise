@@ -94,7 +94,12 @@ impl RenderOnce for Radio {
                 .border_color(t.border().hsla());
         }
 
-        let mut row = div().id(self.id).flex().items_center().gap(px(8.0)).child(ring);
+        let mut row = div()
+            .id(self.id)
+            .flex()
+            .items_center()
+            .gap(px(8.0))
+            .child(ring);
         if let Some(label) = self.label {
             row = row.child(
                 div()

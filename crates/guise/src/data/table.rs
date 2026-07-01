@@ -88,20 +88,18 @@ impl RenderOnce for Table {
         let dimmed = t.dimmed().hsla();
         let line = t.border().hsla();
         let stripe = t.surface_hover().hsla();
-        let hover = t.color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 1 }).hsla();
+        let hover = t
+            .color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 1 })
+            .hsla();
         let radius = t.radius(Size::Sm);
         let striped = self.striped;
         let highlight = self.highlight_on_hover;
 
-        let header = div()
-            .flex()
-            .border_b_1()
-            .border_color(line)
-            .children(
-                self.head
-                    .into_iter()
-                    .map(move |h| cell(h, dimmed, FontWeight::SEMIBOLD, font)),
-            );
+        let header = div().flex().border_b_1().border_color(line).children(
+            self.head
+                .into_iter()
+                .map(move |h| cell(h, dimmed, FontWeight::SEMIBOLD, font)),
+        );
 
         let body = self.rows.into_iter().enumerate().map(move |(i, row)| {
             let mut tr = div().flex().border_b_1().border_color(line).children(

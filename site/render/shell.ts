@@ -9,7 +9,7 @@ export type ShellOpts = {
   title: string;
   description: string;
   body: string;
-  active?: "docs" | "gallery" | "home";
+  active?: "docs" | "tutorial" | "gallery" | "home";
   tail?: string;
 };
 
@@ -27,6 +27,7 @@ function header(active: string): string {
     </button>
     <nav class="topnav">
       ${link("docs.html", "Docs", "docs")}
+      ${link("tutorial.html", "Tutorial", "tutorial")}
       ${link("gallery.html", "Gallery", "gallery")}
       <a href="${REPO}" class="ext" rel="noreferrer">GitHub &#8599;</a>
     </nav>
@@ -61,6 +62,7 @@ function footer(): string {
     <div class="foot-col">
       <span class="foot-h">Docs</span>
       <a href="gettingstarted.html">Installation</a>
+      <a href="tutorial.html">Tutorial</a>
       <a href="theming.html">Theming</a>
       <a href="components.html">Component model</a>
       <a href="architecture.html">Architecture</a>

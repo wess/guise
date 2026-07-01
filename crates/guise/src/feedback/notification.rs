@@ -93,7 +93,12 @@ impl RenderOnce for Notification {
             .child(div().w(px(4.0)).h(px(38.0)).rounded(px(4.0)).bg(accent));
 
         if let Some(icon) = self.icon {
-            row = row.child(div().text_size(px(t.font_size(Size::Md))).text_color(accent).child(icon));
+            row = row.child(
+                div()
+                    .text_size(px(t.font_size(Size::Md)))
+                    .text_color(accent)
+                    .child(icon),
+            );
         }
         row = row.child(content);
         if let Some(handler) = self.on_close {

@@ -116,7 +116,10 @@ impl Render for Pagination {
         let total = self.total;
 
         // A single square control cell.
-        let arrow = |id: &'static str, glyph: &'static str, target: Option<usize>, cx: &mut Context<Self>| {
+        let arrow = |id: &'static str,
+                     glyph: &'static str,
+                     target: Option<usize>,
+                     cx: &mut Context<Self>| {
             let mut el = div()
                 .id(id)
                 .w(px(32.0))
@@ -177,7 +180,9 @@ impl Render for Pagination {
                             .border_color(border)
                             .text_color(text)
                             .hover(move |s| s.bg(surface_hover))
-                            .on_click(cx.listener(move |this, _ev, _window, cx| this.goto(page, cx)));
+                            .on_click(
+                                cx.listener(move |this, _ev, _window, cx| this.goto(page, cx)),
+                            );
                     }
                     row = row.child(cell);
                 }

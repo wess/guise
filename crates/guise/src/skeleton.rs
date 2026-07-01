@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use gpui::prelude::*;
-use gpui::{div, px, pulsating_between, Animation, AnimationExt, App, IntoElement, Window};
+use gpui::{div, pulsating_between, px, Animation, AnimationExt, App, IntoElement, Window};
 
 use crate::theme::{theme, ColorName, Size};
 
@@ -77,7 +77,9 @@ impl RenderOnce for Skeleton {
         let pulse = pulsating_between(0.4, 1.0);
         block.with_animation(
             "guise-skeleton",
-            Animation::new(Duration::from_millis(1100)).repeat().with_easing(pulse),
+            Animation::new(Duration::from_millis(1100))
+                .repeat()
+                .with_easing(pulse),
             |block, delta| block.opacity(delta),
         )
     }

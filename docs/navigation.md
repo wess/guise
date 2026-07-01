@@ -5,14 +5,25 @@
 
 ## Breadcrumbs
 
-A trail of locations; the last item is rendered as the current location.
+A trail of locations; the last item is rendered as the current location. Build
+clickable ancestors with `link(label, handler)` — dimmed until hovered — and
+inert ones with `item`/`items`.
 
 ```rust
-Breadcrumbs::new().items(["Home", "Projects", "guise"])
-Breadcrumbs::new().items(["a", "b"]).separator("›")
+Breadcrumbs::new()
+    .link("Home", cx.listener(|this, _ev, _w, cx| { this.page = Page::Home; cx.notify(); }))
+    .link("Projects", cx.listener(|this, _ev, _w, cx| { this.page = Page::Projects; cx.notify(); }))
+    .item("guise")
+
+Breadcrumbs::new().items(["Home", "Projects", "guise"]).separator("›")  // all inert
 ```
 
-Methods: `new()`, `item(s)`, `items(iter)`, `separator(s)` (default `/`).
+Methods: `new()`, `item(s)` (inert), `link(label, handler)` (handler is
+`Fn(&ClickEvent, &mut Window, &mut App)`, so `cx.listener` works directly),
+`items(iter)` (bulk inert items), `separator(s)` (default `/`).
+
+> **Note** The last item is never clickable, even when built with `link` — its
+> handler is ignored, since the tail of the trail is the page you're already on.
 
 ## NavLink
 

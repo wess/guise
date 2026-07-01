@@ -3,9 +3,7 @@
 use gpui::prelude::*;
 use gpui::{div, px, AnyElement, App, IntoElement, Window};
 
-use super::{
-    apply_cross, apply_main, CrossAxisAlignment, MainAxisAlignment, MainAxisSize,
-};
+use super::{apply_cross, apply_main, CrossAxisAlignment, MainAxisAlignment, MainAxisSize};
 
 /// A horizontal flex container. Flutter's `Row`.
 #[derive(IntoElement)]

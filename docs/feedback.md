@@ -105,19 +105,24 @@ top-right stack above the page. Hold the entity, render it in a full-size root,
 and push from anywhere.
 
 ```rust
-let toasts = cx.new(|_| ToastStack::new());
+let toasts = cx.new(|_| ToastStack::new());               // auto-dismiss after 4s
+let sticky = cx.new(|_| ToastStack::new().duration(None)); // keep until closed
 // later, from a handler:
 toasts.update(cx, |t, cx| {
     t.push_titled("Saved", "Your changes were saved.", ColorName::Teal, cx);
 });
 ```
 
-Methods: `new()`, `push(message, cx) -> id`,
-`push_titled(title, message, color, cx) -> id`, `remove(id, cx)`, `clear(cx)`,
-`len()`, `is_empty()`.
+Methods: `new()`, `duration(Option<Duration>)` (chainable) /
+`set_duration(...)` (on a built stack, e.g. inside `entity.update(cx, ...)`),
+`push(message, cx) -> id`, `push_titled(title, message, color, cx) -> id`,
+`remove(id, cx)`, `clear(cx)`, `len()`, `is_empty()`.
 
-> Each card has a close button. Auto-dismiss is left to the host (call `remove`
-> from a timer), so the manager stays free of executor assumptions.
+> **Note** Toasts auto-dismiss 4 seconds after being pushed (a timer spawned
+> per push — the delay in force *at push time* is the one that applies; pass
+> `duration(None)` to keep toasts until closed). Each card also has a close
+> button, and ids are never reused, so a hand-closed toast can't be
+> double-removed by its timer.
 
 ## Skeleton
 

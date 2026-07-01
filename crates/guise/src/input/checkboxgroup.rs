@@ -9,6 +9,7 @@ use gpui::prelude::*;
 use gpui::{div, px, App, IntoElement, SharedString, Window};
 
 use super::Checkbox;
+use crate::reactive::Binding;
 use crate::theme::{theme, ColorName, Size};
 
 type GroupHandler = Rc<dyn Fn(Vec<usize>, &mut Window, &mut App) + 'static>;
@@ -21,6 +22,7 @@ pub struct CheckboxGroup {
     color: ColorName,
     size: Size,
     label: Option<SharedString>,
+    binding: Option<Binding<Vec<usize>>>,
     on_change: Option<GroupHandler>,
 }
 
@@ -32,6 +34,7 @@ impl CheckboxGroup {
             color: ColorName::Blue,
             size: Size::Sm,
             label: None,
+            binding: None,
             on_change: None,
         }
     }
@@ -66,6 +69,14 @@ impl CheckboxGroup {
         self
     }
 
+    /// Two-way bind the selection set. Overrides `value`; each toggle writes
+    /// the full next selection back through the binding, then runs any
+    /// `on_change`.
+    pub fn bind(mut self, binding: Binding<Vec<usize>>) -> Self {
+        self.binding = Some(binding);
+        self
+    }
+
     /// Called with the full next selection (sorted) when any box is toggled.
     pub fn on_change(
         mut self,
@@ -88,20 +99,26 @@ impl RenderOnce for CheckboxGroup {
         let gap = t.spacing(Size::Xs);
         let text = t.text().hsla();
         let font = t.font_size(Size::Sm);
+        let value = self
+            .binding
+            .as_ref()
+            .map_or_else(|| self.value.clone(), |b| b.get(cx));
 
         let mut column = div().flex().flex_col().gap(px(gap));
         if let Some(label) = self.label.clone() {
             column = column.child(div().text_size(px(font)).text_color(text).child(label));
         }
 
-        let current = Rc::new(self.value.clone());
+        let current = Rc::new(value.clone());
         for (i, option) in self.options.iter().enumerate() {
             let mut checkbox = Checkbox::new(("guise-checkboxgroup", i))
                 .label(option.clone())
-                .checked(self.value.contains(&i))
+                .checked(value.contains(&i))
                 .color(self.color)
                 .size(self.size);
-            if let Some(handler) = self.on_change.clone() {
+            if self.binding.is_some() || self.on_change.is_some() {
+                let binding = self.binding.clone();
+                let handler = self.on_change.clone();
                 let current = current.clone();
                 checkbox = checkbox.on_change(move |_ev, window, cx| {
                     let mut next = (*current).clone();
@@ -111,7 +128,12 @@ impl RenderOnce for CheckboxGroup {
                         next.push(i);
                         next.sort_unstable();
                     }
-                    handler(next, window, cx);
+                    if let Some(binding) = &binding {
+                        binding.set(cx, next.clone());
+                    }
+                    if let Some(handler) = &handler {
+                        handler(next, window, cx);
+                    }
                 });
             }
             column = column.child(checkbox);

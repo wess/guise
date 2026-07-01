@@ -65,13 +65,7 @@ impl RenderOnce for SimpleGrid {
             while row_cells.len() < cols {
                 row_cells.push(cell().into_any_element());
             }
-            column = column.child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(gap))
-                    .children(row_cells),
-            );
+            column = column.child(div().flex().flex_row().gap(px(gap)).children(row_cells));
         }
         column
     }

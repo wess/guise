@@ -45,6 +45,20 @@ impl<T: 'static> Signal<T> {
         });
     }
 
+    /// Replace the value and notify observers, unless the new value equals
+    /// the current one — then nothing happens (no notify).
+    pub fn set_if_changed(&self, cx: &mut App, value: T)
+    where
+        T: PartialEq,
+    {
+        self.entity.update(cx, |slot, cx| {
+            if *slot != value {
+                *slot = value;
+                cx.notify();
+            }
+        });
+    }
+
     /// Mutate the value in place and notify observers.
     pub fn update(&self, cx: &mut App, f: impl FnOnce(&mut T)) {
         self.entity.update(cx, |slot, cx| {

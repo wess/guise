@@ -2,13 +2,14 @@
 //!
 //! Holds a list of live toasts and paints them as a deferred, top-right stack
 //! above the page. Push from anywhere you hold the entity handle; each card has
-//! a close button. Auto-dismiss is left to the host (call [`ToastStack::remove`]
-//! from a timer) so the manager stays free of executor assumptions.
+//! a close button. Pushed toasts auto-dismiss after four seconds by default;
+//! set [`ToastStack::duration`] to change the delay or pass `None` to keep
+//! toasts until closed.
+
+use std::time::Duration;
 
 use gpui::prelude::*;
-use gpui::{
-    deferred, div, px, Context, FontWeight, IntoElement, SharedString, Window,
-};
+use gpui::{deferred, div, px, Context, FontWeight, IntoElement, SharedString, Window};
 
 use crate::theme::{theme, ColorName, Size};
 
@@ -24,6 +25,7 @@ struct Toast {
 pub struct ToastStack {
     toasts: Vec<Toast>,
     next_id: usize,
+    duration: Option<Duration>,
 }
 
 impl ToastStack {
@@ -31,7 +33,22 @@ impl ToastStack {
         ToastStack {
             toasts: Vec::new(),
             next_id: 0,
+            duration: Some(Duration::from_secs(4)),
         }
+    }
+
+    /// Set the auto-dismiss delay for subsequently pushed toasts. `None`
+    /// keeps toasts until closed. Chainable, so it slots into construction:
+    /// `cx.new(|_| ToastStack::new().duration(None))`.
+    pub fn duration(mut self, duration: Option<Duration>) -> Self {
+        self.set_duration(duration);
+        self
+    }
+
+    /// [`duration`](ToastStack::duration) for an already-built stack, e.g.
+    /// inside `entity.update(cx, ...)` right before a sticky push.
+    pub fn set_duration(&mut self, duration: Option<Duration>) {
+        self.duration = duration;
     }
 
     /// Push a plain message toast. Returns its id (pass to [`remove`]).
@@ -68,6 +85,17 @@ impl ToastStack {
             color,
         });
         cx.notify();
+
+        if let Some(delay) = self.duration {
+            // Ids are never reused, so this removes exactly this toast (or
+            // nothing, if it was closed by hand first).
+            cx.spawn(async move |this, cx| {
+                cx.background_executor().timer(delay).await;
+                this.update(cx, |this, cx| this.remove(id, cx)).ok();
+            })
+            .detach();
+        }
+
         id
     }
 

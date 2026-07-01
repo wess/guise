@@ -30,8 +30,9 @@ Stack::new()
 
 Full docs live in [`docs/`](docs/readme.md):
 
+- **[Tutorial](docs/tutorial.md)** — build a complete app step by step ([web version](https://wess.github.io/guise/tutorial.html))
 - [Getting started](docs/gettingstarted.md) · [Theming](docs/theming.md) · [Component model](docs/components.md)
-- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
+- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [Editor](docs/editor.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
 - Systems: [Flex layout](docs/flex.md) · [Macros](docs/macros.md) · [Transitions](docs/transitions.md) · [Reactive state](docs/reactive.md) · [Window menu](docs/windowmenu.md) · [Architecture](docs/architecture.md)
 
 ## Workspace
@@ -80,42 +81,56 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 
 | Group   | Components                                              |
 | ------- | ------------------------------------------------------- |
-| Layout  | `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`  |
+| Layout  | `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`, `AppShell`, `Container`, `Space`, `Panel`, `SplitPanel` |
 | Surface | `Paper`, `Card`                                         |
-| Typography | `Text`, `Title`                                     |
-| Inputs  | `Button`, `TextInput`, `TextArea`, `NumberInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `Slider`, `Field` |
-| Overlays | `Modal`, `Drawer`, `Menu`, `MenuBar`, `Popover`, `Spotlight`, `Tooltip` |
+| Typography | `Text`, `Title`, `Mark`, `Blockquote`, `Spoiler`    |
+| Inputs  | `Button`, `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field` |
+| Editor  | `Editor` (syntax highlighting: `Language::Rust` / `Sql` / `Json`) |
+| Overlays | `Modal`, `Drawer`, `Menu`, `MenuBar`, `ContextMenu`, `HoverCard`, `LoadingOverlay`, `ConfirmModal`, `Popover`, `Spotlight`, `Tooltip` |
 | Feedback | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
-| Data    | `Badge`, `Divider`, `Avatar`, `AvatarGroup`, `List`, `Table`, `Timeline`, `Tabs`, `Accordion` |
+| Data    | `Badge`, `Divider`, `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Image`, `Timeline`, `Tabs`, `Accordion` |
+| Charts  | `Sparkline`, `BarChart`, `LineChart`, `PieChart`        |
 | Navigation | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
 | Polish  | `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Anchor`, `Code`, `Kbd`, `Chip`, `Indicator`, `Skeleton`, `SegmentedControl` |
 | Motion  | `Transition`, `Collapse`                                |
 
 Inputs come in two flavors that match how each control behaves in gpui:
 
-- **Controlled** (`Checkbox`, `Switch`, `Radio`, and the `RadioGroup` /
+- **Controlled** (`Checkbox`, `Switch`, `Radio`, `Rating`, and the `RadioGroup` /
   `CheckboxGroup` wrappers) are `RenderOnce` builders — the parent view owns the
   value and passes a change handler via `cx.listener(...)`.
-- **Stateful** (`TextInput`, `TextArea`, `NumberInput`, `Select`, `Combobox`,
-  `Slider`) are gpui entities that own their buffer / selection. Create with
+- **Stateful** (`TextInput`, `TextArea`, `NumberInput`, `PasswordInput`,
+  `PinInput`, `Select`, `Combobox`, `Slider`, `RangeSlider`, `ColorInput`,
+  `TagsInput`) are gpui entities that own their buffer / selection. Create with
   `cx.new(...)` and subscribe to their events. `Field` is the shared
   label/description/error chrome these compose.
 
 Overlays paint above the page (a `deferred` layer): `Modal` and `Drawer` are
-controlled backdrops (render while `opened`, pass `on_close`), `Menu` is a
-keyboard-navigable trigger + deferred action list, `MenuBar` is a themed
-in-window application menu (File / Edit / View …), `Popover` is the reusable
-anchored-floating primitive, `Spotlight` is a command palette, and `Tooltip`
-plugs into gpui's built-in `.tooltip(...)` via the `tooltip(...)` helper.
+controlled backdrops (render while `opened`, pass `on_close`), `ConfirmModal`
+is a confirm/cancel dialog on `Modal`, `Menu` is a keyboard-navigable trigger +
+deferred action list, `MenuBar` is a themed in-window application menu
+(File / Edit / View …), `ContextMenu` opens at the pointer on right-click,
+`Popover` is the reusable anchored-floating primitive, `HoverCard` its
+hover-triggered sibling, `LoadingOverlay` a dimming busy layer over one
+container, `Spotlight` is a command palette, and `Tooltip` plugs into gpui's
+built-in `.tooltip(...)` via the `tooltip(...)` helper.
 
 Feedback components communicate state: `Alert` (inline callout), `Loader`
 (animated pulsing dots/bars), `Progress` / `RingProgress` (determinate bar and
 circular gauge), `Notification` (an elevated toast card), and `ToastStack` (a
 positioned, stacking toast manager).
 
-Data display: `Avatar`, `List`, `Table`, and `Timeline` are stateless builders;
-`Tabs` and `Accordion` are stateful entities whose panel content is a builder
-closure (`|window, app| ...`) re-invoked each frame so panels can show live data.
+Data display: `Avatar`, `List`, `Table`, `Image`, and `Timeline` are stateless
+builders; `Tabs` and `Accordion` are stateful entities whose panel content is a
+builder closure (`|window, app| ...`) re-invoked each frame so panels can show
+live data. The richer views are also entities: `TableView<T>` (typed rows with
+sorting and selection), `DataView<T>` (a list/grid bound to a
+`Signal<Vec<T>>` with filter/sort projections), `TreeView` (expandable
+hierarchy), and `TabBar` (a document-style tab strip with close/add buttons).
+`Editor` is a code
+editor entity with a line-number gutter and Rust / SQL / JSON highlighting, and
+the `chart` module's `Sparkline` / `BarChart` / `LineChart` / `PieChart` are
+stateless canvas-painted builders.
 
 Navigation: `Breadcrumbs`, `NavLink`, and `Stepper` are stateless builders;
 `Pagination` is a stateful entity (windowed page list with ellipses);
@@ -189,6 +204,28 @@ count.update(cx, |n| *n += 1);   // notifies every watcher
 - **`use_form` / `FormState`** — field values, validators, and errors keyed by
   name, with built-in `required` / `min_len` / `email` validators.
 
+### Bindings
+
+`Binding<T>` is a SwiftUI-style two-way connection — a getter + setter over
+`App`. Controlled builders accept one via `.bind(...)`; stateful entities bind
+to a `Signal` with `X::bind(entity, &signal, cx)` — either way the value flows
+both directions with no hand-written change handler:
+
+```rust
+let dark = use_state(cx, false);
+let toggle = Switch::new("dark-mode").bind(dark.binding()); // builder: two-way
+
+let query = use_state(cx, String::new());
+let input = cx.new(|cx| TextInput::new(cx).placeholder("Filter…"));
+TextInput::bind(&input, &query, cx);                        // entity: edits land in the signal
+```
+
+`Signal::binding()` wraps the whole signal, `signal.lens(get, set)` projects
+one field of a struct signal, and `binding.map(from, into)` converts types both
+ways. `use_memo` derives a signal that recomputes when its source changes;
+`use_effect` runs a side effect on change. See
+[Reactive state](docs/reactive.md).
+
 ## Transitions
 
 Mount animations on gpui's animation API: `Transition` plays a one-shot
@@ -232,7 +269,7 @@ Requires Rust stable.
 
 ```sh
 cargo run -p gallery     # launch the component gallery
-cargo test -p guise      # run the library's unit tests
+cargo test -p guise-ui   # run the library's unit tests
 ```
 
 ## License

@@ -10,7 +10,7 @@
 import { renderLanding } from "./render/landing";
 import { renderGallery } from "./render/gallery";
 import { renderDocsIndex } from "./render/docsindex";
-import { renderDoc } from "./render/doc";
+import { renderDoc, headingsFor } from "./render/doc";
 import { docPages, groupOf } from "./render/nav";
 import { favicon, ogImage } from "./assets/svg";
 
@@ -20,16 +20,6 @@ const out = `${root}/dist`;
 
 async function write(rel: string, content: string) {
   await Bun.write(`${out}/${rel}`, content);
-}
-
-function slugify(text: string): string {
-  return text
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[*_]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function plain(md: string): string {
@@ -66,10 +56,7 @@ for (const page of docPages()) {
     console.log(`  doc  ${page.src} -> ${page.out}`);
   }
 
-  const headings = [...md.matchAll(/^#{2,3}\s+(.+?)\s*$/gm)].map((m) => {
-    const text = m[1].replace(/`([^`]*)`/g, "$1").replace(/[*_]/g, "").trim();
-    return { text, id: slugify(m[1]) };
-  });
+  const headings = headingsFor(md);
   searchIndex.push({
     title: page.title,
     out: page.out,

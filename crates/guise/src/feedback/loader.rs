@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use gpui::prelude::*;
-use gpui::{div, px, pulsating_between, Animation, AnimationExt, App, IntoElement, Window};
+use gpui::{div, pulsating_between, px, Animation, AnimationExt, App, IntoElement, Window};
 
 use crate::theme::{theme, ColorName, Size};
 
@@ -80,7 +80,10 @@ impl RenderOnce for Loader {
                 .with_easing(move |delta| pulse((delta + phase) % 1.0));
 
             let dot = if bars {
-                div().w(px(unit * 0.6)).h(px(unit * 2.4)).rounded(px(unit * 0.3))
+                div()
+                    .w(px(unit * 0.6))
+                    .h(px(unit * 2.4))
+                    .rounded(px(unit * 0.3))
             } else {
                 div().w(px(unit)).h(px(unit)).rounded(px(unit))
             }

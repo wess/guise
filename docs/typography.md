@@ -1,6 +1,8 @@
 # Typography
 
-`Text`, `Title`, `Anchor`, `Code`, `Kbd`. All stateless builders.
+`Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Mark`, `Blockquote`, `Spoiler`. All
+stateless builders — `Spoiler` is *controlled*: the parent owns the expanded
+flag and flips it in `on_toggle`.
 
 ## Text
 
@@ -76,3 +78,75 @@ Group::new()
 ```
 
 Method: `new(key)`.
+
+## Mark
+
+An inline highlighted span — the highlighter pen. Inherits the surrounding font
+size unless `size` is set, so it drops into a `Group` next to `Text` runs.
+
+```rust
+Group::new()
+    .gap(Size::Xs)
+    .child(Text::new("Highlight the"))
+    .child(Mark::new("important part"))
+    .child(Text::new("of a sentence."))
+```
+
+Methods: `new(content)`, `color(ColorName)` (default `Yellow` — a light wash in
+light mode, a translucent tint in dark), `size(Size)` (inherits when unset).
+
+## Blockquote
+
+A quoted passage behind a left accent border, with an optional icon and
+citation. Content is `text(..)`, `ParentElement` children, or both — text
+renders first, the citation last.
+
+```rust
+Blockquote::new()
+    .icon(IconName::Info)
+    .text("Life is like an npm install — you never know what you are going to get.")
+    .cite("– Forrest Gump")
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new()` | — | `.child(..)` / `.children(..)` also accepted |
+| `text(str)` | none | shorthand for a single text child |
+| `color(ColorName)` | `Blue` | border, icon, and background wash |
+| `cite(str)` | none | dimmed attribution line; include your own dash |
+| `icon(IconName)` | none | accent-colored glyph above the quote |
+| `padding(Size)` | `Lg` | |
+| `radius(Size)` | theme default | right-side corners (the accent border owns the left) |
+
+## Spoiler
+
+Clips tall content to a max height behind an [`Anchor`](#anchor)-styled
+"Show more" toggle. **Controlled**: the parent owns `expanded` and flips it in
+`on_toggle`, exactly like `Modal`'s `opened`/`on_close` pair. Implements
+`ParentElement`.
+
+```rust
+Spoiler::new("bio-spoiler")
+    .max_height(60.0)
+    .expanded(self.bio_open)
+    .on_toggle(cx.listener(|this, _, _, cx| {
+        this.bio_open = !this.bio_open;
+        cx.notify();
+    }))
+    .child(Text::new(LONG_BIO).size(Size::Sm))
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(id)` | — | the id sits on the toggle link |
+| `max_height(f32)` | `100.0` | visible px while collapsed (overflow hidden) |
+| `expanded(bool)` | `false` | the parent owns this flag |
+| `show_label(str)` | `"Show more"` | |
+| `hide_label(str)` | `"Hide"` | |
+| `color(ColorName)` | `Blue` | toggle link color |
+| `size(Size)` | `Sm` | toggle label font size |
+| `on_toggle(handler)` | — | wire with `cx.listener(...)` |
+
+> **Note** The toggle is always visible — gpui elements don't expose their
+> measured height at build time, so there is no "content fits, hide the
+> toggle" check.

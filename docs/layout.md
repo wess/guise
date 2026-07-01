@@ -54,6 +54,21 @@ Center::new().child(Loader::new())
 
 `inline(bool)` (default `false`) shrinks to content instead of filling the parent.
 
+## Space
+
+A fixed gap on one axis, sized by the theme spacing scale — for the places a
+parent `gap` doesn't cover.
+
+```rust
+Stack::new()
+    .child(Title::new("Heading").order(3))
+    .child(Space::y(Size::Md))
+    .child(Text::new("Body copy."))
+```
+
+Methods: `Space::x(Size)` (horizontal, for rows), `Space::y(Size)` (vertical,
+for columns). The block is `flex_none`, so flex parents never squash it.
+
 ## Align & Justify enums
 
 ```rust
@@ -78,6 +93,29 @@ SimpleGrid::new(3)
 ```
 
 Methods: `new(cols)`, `spacing(Size)` (default `Md`).
+
+## Container
+
+A centered column with a capped width — Mantine's `Container`, for readable
+line lengths on any window width. Implements `ParentElement`.
+
+```rust
+Container::new()
+    .size(Size::Sm)
+    .padding(Size::Md)
+    .child(Title::new("Article").order(2))
+    .child(Text::new("Readable line lengths on any window width."))
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `size(Size)` | `Md` | max width: `Xs..Xl` → 540 / 720 / 960 / 1140 / 1320 px |
+| `padding(Size)` | `Md` | horizontal padding inside the capped column |
+
+> **Note** `guise::layout::Container` intentionally shares its name with
+> [`guise::flex::Container`](flex.md), the Flutter-style pixel box — one more
+> reason `flex` is not glob-exported. If both are in scope, name this one as
+> `guise::layout::Container`.
 
 ## ScrollArea
 
@@ -138,3 +176,32 @@ Divider::vertical()                  // 1px tall divider for rows
 ```
 
 `Orientation` is `Horizontal` | `Vertical`.
+
+## AppShell
+
+The application frame: header, navbar, aside, and footer regions around a
+scrollable main area. Regions take a fixed px size plus a content closure
+re-invoked every render (live data, like Tabs panels); the main area is the
+shell's children, laid out as a scrollable column. The shell fills its parent —
+place it at the window root (or inside a sized box for a framed demo). Regions
+get the theme surface background and a hairline border on their inner edge.
+Implements `ParentElement` for the main area.
+
+```rust
+AppShell::new()
+    .header(48.0, |_window, _cx| Text::new("guise"))
+    .navbar(220.0, |_window, _cx| Text::new("nav links"))
+    .footer(28.0, |_window, _cx| Text::new("status").size(Size::Xs))
+    .child(Title::new("Main content").order(2))
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `header(f32, closure)` | none | height in px; full width, top |
+| `navbar(f32, closure)` | none | width in px; left column |
+| `aside(f32, closure)` | none | width in px; right column |
+| `footer(f32, closure)` | none | height in px; full width, bottom |
+
+Region closures take `(&mut Window, &mut App)` and return any `IntoElement`.
+Every region is a flex column with `overflow_hidden`, so oversized content
+clips instead of breaking the frame.

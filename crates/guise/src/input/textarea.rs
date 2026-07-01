@@ -6,11 +6,12 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
-    SharedString, Window,
+    div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
+    MouseButton, SharedString, Window,
 };
 
 use super::{control_metrics, Field, TextEdit};
+use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted as the user edits the field. Carries the full new value.
@@ -109,6 +110,35 @@ impl TextArea {
     pub fn set_text(&mut self, value: &str, cx: &mut Context<Self>) {
         self.edit = TextEdit::new(value);
         cx.notify();
+    }
+
+    /// Two-way bind this field's text to a `Signal<String>`. The signal is
+    /// the source of truth: the field adopts its value now, edits write back
+    /// through [`Signal::set_if_changed`], and signal writes replace the text.
+    /// Equality guards on both directions prevent update loops.
+    pub fn bind(entity: &Entity<TextArea>, signal: &Signal<String>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| {
+            if this.text() != initial {
+                this.set_text(&initial, cx);
+            }
+        });
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_area, event: &TextAreaEvent, cx| {
+            sink.set_if_changed(cx, event.0.clone());
+        })
+        .detach();
+        let area = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let value = observed.read(cx).clone();
+            area.update(cx, |this, cx| {
+                if this.text() != value {
+                    this.set_text(&value, cx);
+                }
+            })
+            .ok();
+        })
+        .detach();
     }
 
     fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {

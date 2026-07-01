@@ -61,9 +61,7 @@ impl Transition {
 
 impl RenderOnce for Transition {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        let child = self
-            .child
-            .unwrap_or_else(|| div().into_any_element());
+        let child = self.child.unwrap_or_else(|| div().into_any_element());
         let kind = self.kind;
         let animation = Animation::new(Duration::from_millis(self.duration));
         div()
@@ -121,9 +119,7 @@ impl RenderOnce for Collapse {
         if !self.open {
             return div().into_any_element();
         }
-        let child = self
-            .child
-            .unwrap_or_else(|| div().into_any_element());
+        let child = self.child.unwrap_or_else(|| div().into_any_element());
         let animation = Animation::new(Duration::from_millis(self.duration));
         div()
             .child(child)

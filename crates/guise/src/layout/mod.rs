@@ -1,14 +1,21 @@
-//! Layout primitives: vertical [`Stack`], horizontal [`Group`], and [`Center`].
+//! Layout primitives: vertical [`Stack`], horizontal [`Group`], [`Center`],
+//! plus app-structure helpers ([`AppShell`], [`Container`], [`Space`]).
 //! These map Mantine's flex helpers onto gpui's flex container.
 
+mod appshell;
 mod center;
+mod container;
 mod grid;
 mod group;
+mod space;
 mod stack;
 
+pub use appshell::AppShell;
 pub use center::Center;
+pub use container::Container;
 pub use grid::SimpleGrid;
 pub use group::Group;
+pub use space::Space;
 pub use stack::Stack;
 
 use gpui::prelude::*;

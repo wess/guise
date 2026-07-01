@@ -17,3 +17,38 @@ pub fn watch<V: 'static, T: 'static>(cx: &mut Context<V>, signal: &Signal<T>) {
     cx.observe(signal.entity(), |_view, _observed, cx| cx.notify())
         .detach();
 }
+
+/// Derived state — React's `useMemo`. Returns a signal that recomputes from
+/// `source` whenever it changes; watch the returned signal like any other.
+pub fn use_memo<T: 'static, U: 'static>(
+    cx: &mut App,
+    source: &Signal<T>,
+    f: impl Fn(&T) -> U + 'static,
+) -> Signal<U> {
+    let derived = Signal::new(cx, f(source.read(cx)));
+    let out = derived.clone();
+    cx.observe(source.entity(), move |observed, cx| {
+        let next = f(observed.read(cx));
+        out.set(cx, next);
+    })
+    .detach();
+    derived
+}
+
+/// Run a side effect with the current value whenever `source` changes —
+/// React's `useEffect` with one dependency.
+///
+/// The value is cloned out of the signal before `f` runs, so the effect may
+/// freely read or write any signal — including `source` itself. Guard writes
+/// to `source` with a condition, or the effect re-triggers itself forever.
+pub fn use_effect<T: Clone + 'static>(
+    cx: &mut App,
+    source: &Signal<T>,
+    f: impl Fn(&T, &mut App) + 'static,
+) {
+    cx.observe(source.entity(), move |observed, cx| {
+        let value = observed.read(cx).clone();
+        f(&value, cx);
+    })
+    .detach();
+}

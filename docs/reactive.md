@@ -4,8 +4,10 @@ A small, React-flavored layer over gpui's reactivity. gpui already has
 observable entities and globals; `reactive` wraps them in a familiar API:
 
 - **`Signal<T>`** — an observable state cell (React's `useState` value).
+- **`Binding<T>`** — a two-way connection to a value (SwiftUI's `Binding`);
+  see [Bindings](#bindings).
 - **`provide` / `use_context`** — the Context/Provider pattern.
-- **`use_state` / `watch`** — hook-style helpers.
+- **`use_state` / `watch` / `use_memo` / `use_effect`** — hook-style helpers.
 
 Everything is in the prelude.
 
@@ -30,11 +32,118 @@ count.update(cx, |n| *n += 1); // mutate in place + notify
 | `get(cx)` | `&App -> T` | requires `T: Clone` |
 | `read(cx)` | `&App -> &T` | borrow |
 | `set(cx, value)` | `&mut App` | replace, notifies |
+| `set_if_changed(cx, value)` | `&mut App` | replace + notify, unless equal — then nothing happens (`T: PartialEq`) |
 | `update(cx, f)` | `&mut App` | `f: FnOnce(&mut T)`, notifies |
+| `binding()` | `-> Binding<T>` | the whole signal as a two-way [binding](#bindings) |
+| `lens(get, set)` | `-> Binding<U>` | one field as a [binding](#bindings) |
 | `entity()` | `-> &Entity<T>` | for manual `cx.observe` |
 
 `cx` is `&mut App`, but a `&mut Context<V>` derefs to it, so you can call these
 from any view method or event handler.
+
+## Bindings
+
+The macOS-style value-binding story, in three parts: a [`Signal`](#signal) is
+the **store**, a `Binding<T>` is the **connection** — a getter and a setter
+over `App` — and a component's `.bind(...)` / `X::bind(...)` is the
+**wiring**. Once wired, the value flows both ways with no hand-written change
+handlers:
+
+- **down** — the component reads the current value through the binding (or
+  adopts the signal's value at bind time), and every signal write repaints it;
+- **up** — a user edit writes back through the setter, which lands in
+  [`set_if_changed`](#signal) and notifies every other observer.
+
+Equality guards on both directions make an echoed write a no-op, so the
+round trip terminates instead of looping.
+
+### Binding<T>
+
+Cheap to clone (both accessors are `Rc`-shared) and `'static`, so element
+closures (`.on_click`, `.hover`) can capture it.
+
+| Method | Notes |
+| --- | --- |
+| `Binding::new(get, set)` | from raw accessors — `Fn(&App) -> T` + `Fn(&mut App, T)` |
+| `get(cx)` | read the current value |
+| `set(cx, value)` | write a new value |
+| `map(from, into)` | bidirectional transform, e.g. `Binding<f64>` ⇄ `Binding<String>`; `from` converts on read, `into` back on write |
+| `Binding::constant(value)` | read-only over a fixed value; writes are a no-op (disabled or demo states) |
+
+You rarely call `Binding::new` yourself — build one from a signal:
+
+```rust
+let dark = use_state(cx, false);
+Switch::new("dark-mode").bind(dark.binding());       // the whole signal
+
+let settings = use_state(cx, Settings::default());   // one field (a lens)
+Checkbox::new("mute").bind(settings.lens(|s| s.muted, |s, v| s.muted = v));
+```
+
+`Signal::binding` requires `T: Clone + PartialEq`; `lens` projects a
+`Signal<T>` to a `Binding<U>` with a getter and a field setter, and skips the
+notify when a write leaves the field unchanged.
+
+### Wiring components
+
+The two [component patterns](components.md) bind differently — see
+[Inputs → Binding inputs](inputs.md#binding-inputs) for the per-component
+surface:
+
+- **Controlled builders** (`Checkbox`, `Switch`, `Rating`, …) take a
+  `Binding` via `.bind(...)`; it overrides the plain value setter, and user
+  actions write back through it before running any `on_change`.
+- **Stateful entities** (`TextInput`, `Slider`, `Editor`, …) own their state,
+  so they bind to the `Signal` itself, once, after creation:
+  `X::bind(&entity, &signal, cx)`. Under the hood that's a `cx.subscribe`
+  (entity events → signal) plus a `cx.observe` (signal writes → entity).
+
+### Worked example: one Signal, two editors
+
+Bind a single `Signal<String>` to a `TextInput` and an `Editor` at once.
+Type in either — the edit lands in the signal via `set_if_changed`, the
+observer pushes it into the other view, and the equality guard stops the echo
+there.
+
+```rust
+struct Scratch {
+    source: Signal<String>,
+    input: Entity<TextInput>,
+    editor: Entity<Editor>,
+}
+
+impl Scratch {
+    fn new(cx: &mut Context<Self>) -> Self {
+        let source = use_state(cx, String::from("fn main() {}"));
+
+        let input = cx.new(|cx| TextInput::new(cx).label("One-liner"));
+        TextInput::bind(&input, &source, cx);
+
+        let editor = cx.new(|cx| Editor::new(cx).language(Language::Rust).rows(6));
+        Editor::bind(&editor, &source, cx);
+
+        watch(cx, &source); // only needed if this view renders the value too
+        Scratch { source, input, editor }
+    }
+}
+
+impl Render for Scratch {
+    fn render(&mut self, _w: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        Stack::new()
+            .child(self.input.clone())
+            .child(self.editor.clone())
+            .child(Text::new(format!("{} chars", self.source.read(cx).len())).dimmed())
+    }
+}
+```
+
+Programmatic writes work the same way: `source.set(cx, "reset".into())`
+updates both views, no component-specific code required.
+
+> **Tip** For collections there's a dedicated component:
+> [`DataView`](data.md#dataview-entity) observes a `Signal<Vec<T>>` and
+> repaints the list/grid on every write — filtering and sorting are render-time
+> projections, so the source vector is never touched.
 
 ## Context / Provider
 
@@ -61,10 +170,26 @@ let count = use_context::<Signal<i32>>(cx).unwrap();  // useContext
 ```rust
 let count = use_state(cx, 0i32);   // = Signal::new
 watch(cx, &count);                 // re-render this view when `count` changes
+
+let label = use_memo(cx, &count, |n| format!("Count: {n}"));  // derived signal
+use_effect(cx, &count, |n, _cx| println!("count -> {n}"));    // side effect
 ```
 
 `watch` is the wiring behind a component "subscribing" to state. Call it once
 per signal in a view's constructor (where `cx` is the view's `Context`).
+
+- **`use_memo(cx, &source, f)`** — derived state (React's `useMemo`). Returns
+  a new `Signal<U>` that recomputes `f(&T) -> U` on every `source` change;
+  `watch` the returned signal like any other.
+- **`use_effect(cx, &source, f)`** — run `f(&value, &mut App)` with the
+  current value whenever `source` changes (React's `useEffect` with one
+  dependency).
+
+> **Caution** `use_effect` clones the value out of the signal before running
+> your closure, so the effect may freely read or write any signal — including
+> `source` itself. A write to `source` re-triggers the effect, so guard it
+> with a condition (or the effect loops forever); to derive a value from the
+> source, use `use_memo` instead.
 
 ## Forms
 
@@ -156,6 +281,10 @@ Press `+` and the `Counter` view updates, even though it only ever knew about th
 
 - `Signal<T>` is a thin wrapper over `Entity<T>`; `update` calls
   `entity.update(cx, |v, cx| { …; cx.notify() })`.
+- `Binding<T>` is a pair of `Rc`'d closures over `App` — no entity of its own.
+- `X::bind(entity, signal, cx)` is `cx.subscribe` (component events → signal)
+  plus `cx.observe` (signal writes → component), both detached, with equality
+  guards at each end.
 - `watch` is `cx.observe(signal.entity(), |_, _, cx| cx.notify()).detach()`.
 - `provide` / `use_context` store the value in a typed gpui global.
 

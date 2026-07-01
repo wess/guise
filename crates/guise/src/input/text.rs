@@ -5,11 +5,12 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
-    SharedString, Window,
+    div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
+    MouseButton, SharedString, Window,
 };
 
 use super::{apply_key, control_metrics, edit::TextEdit, KeyOutcome};
+use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted as the user edits or submits the field.
@@ -114,6 +115,40 @@ impl TextInput {
         cx.notify();
     }
 
+    /// Two-way bind this input's text to a `Signal<String>`. The signal is
+    /// the source of truth: the field adopts its value now, edits write back
+    /// through [`Signal::set_if_changed`], and signal writes replace the text.
+    /// Equality guards on both directions prevent update loops.
+    pub fn bind(entity: &Entity<TextInput>, signal: &Signal<String>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| {
+            if this.text() != initial {
+                this.set_text(&initial, cx);
+            }
+        });
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_input, event: &TextInputEvent, cx| {
+            if let TextInputEvent::Change(text) = event {
+                sink.set_if_changed(cx, text.clone());
+            }
+        })
+        .detach();
+        // Weak handle: a strong clone would keep the input alive (and updated)
+        // for the signal's whole lifetime after the owning view is gone.
+        let input = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let value = observed.read(cx).clone();
+            input
+                .update(cx, |this, cx| {
+                    if this.text() != value {
+                        this.set_text(&value, cx);
+                    }
+                })
+                .ok();
+        })
+        .detach();
+    }
+
     fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
         if self.disabled {
             return;
@@ -155,7 +190,9 @@ impl Render for TextInput {
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
         let caret_color = t.primary().hsla();
-        let error_color = t.color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 }).hsla();
+        let error_color = t
+            .color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 })
+            .hsla();
         let border = border.hsla();
         let font_sm = t.font_size(Size::Sm);
         let font_xs = t.font_size(Size::Xs);
@@ -176,17 +213,10 @@ impl Render for TextInput {
                 .items_center()
                 .text_color(text_color)
                 .child(SharedString::from(mask(before)))
-                .child(
-                    div()
-                        .w(px(1.0))
-                        .h(px(font * 1.15))
-                        .bg(caret_color),
-                )
+                .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret_color))
                 .child(SharedString::from(mask(after)))
         } else if self.edit.is_empty() {
-            div()
-                .text_color(dimmed)
-                .child(self.placeholder.clone())
+            div().text_color(dimmed).child(self.placeholder.clone())
         } else {
             div()
                 .text_color(text_color)

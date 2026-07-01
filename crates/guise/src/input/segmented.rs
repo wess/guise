@@ -1,9 +1,10 @@
 //! `SegmentedControl` — a stateful single-choice segmented switch (gpui entity).
 
 use gpui::prelude::*;
-use gpui::{div, px, Context, EventEmitter, IntoElement, SharedString, Window};
+use gpui::{div, px, App, Context, Entity, EventEmitter, IntoElement, SharedString, Window};
 
 use super::control_metrics;
+use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted when the selected segment changes. Carries the option index.
@@ -51,6 +52,40 @@ impl SegmentedControl {
     pub fn selected_index(&self) -> usize {
         self.selected
     }
+
+    /// Two-way bind this control's selection to a `Signal<usize>`. The signal
+    /// is the source of truth: the control adopts its index now, clicks write
+    /// back through [`Signal::set_if_changed`], and signal writes move the
+    /// selection without emitting [`SegmentedControlEvent`]. Equality guards
+    /// on both directions prevent update loops.
+    pub fn bind(entity: &Entity<SegmentedControl>, signal: &Signal<usize>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_selected(initial, cx));
+        let sink = signal.clone();
+        cx.subscribe(
+            entity,
+            move |_control, event: &SegmentedControlEvent, cx| {
+                sink.set_if_changed(cx, event.0);
+            },
+        )
+        .detach();
+        let control = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let index = *observed.read(cx);
+            control
+                .update(cx, |this, cx| this.sync_selected(index, cx))
+                .ok();
+        })
+        .detach();
+    }
+
+    /// Programmatic set: repaint without emitting an event.
+    fn sync_selected(&mut self, index: usize, cx: &mut Context<Self>) {
+        if self.selected != index {
+            self.selected = index;
+            cx.notify();
+        }
+    }
 }
 
 impl Render for SegmentedControl {
@@ -58,13 +93,19 @@ impl Render for SegmentedControl {
         let t = theme(cx);
         let (height, pad_x, font) = control_metrics(self.size);
         let radius = t.radius(Size::Sm);
-        let track = t.color(ColorName::Gray, if t.scheme.is_dark() { 8 } else { 1 }).hsla();
+        let track = t
+            .color(ColorName::Gray, if t.scheme.is_dark() { 8 } else { 1 })
+            .hsla();
         let active_bg = t.surface().hsla();
         let active_fg = t.text().hsla();
         let inactive_fg = t.dimmed().hsla();
 
         let count = self.options.len();
-        let selected = if count == 0 { 0 } else { self.selected.min(count - 1) };
+        let selected = if count == 0 {
+            0
+        } else {
+            self.selected.min(count - 1)
+        };
 
         let mut row = div()
             .flex()

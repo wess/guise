@@ -6,12 +6,13 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
-    SharedString, Window,
+    div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
+    MouseButton, SharedString, Window,
 };
 
 use super::{control_metrics, Field, TextEdit};
 use crate::icon::{Icon, IconName};
+use crate::reactive::Signal;
 use crate::theme::{theme, Size};
 
 /// Emitted when the numeric value changes. Carries the parsed value.
@@ -124,6 +125,36 @@ impl NumberInput {
         parse_number(&self.edit.text())
     }
 
+    /// Two-way bind this input's value to a `Signal<f64>`. The signal is the
+    /// source of truth: the input adopts its value now (clamped to min/max),
+    /// edits write back through [`Signal::set_if_changed`], and signal writes
+    /// replace the buffer without emitting [`NumberInputEvent`]. Equality
+    /// guards on both directions prevent update loops.
+    pub fn bind(entity: &Entity<NumberInput>, signal: &Signal<f64>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_value(initial, cx));
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_input, event: &NumberInputEvent, cx| {
+            sink.set_if_changed(cx, event.0);
+        })
+        .detach();
+        let input = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let value = *observed.read(cx);
+            input.update(cx, |this, cx| this.sync_value(value, cx)).ok();
+        })
+        .detach();
+    }
+
+    /// Programmatic set: clamp and repaint without emitting an event.
+    fn sync_value(&mut self, raw: f64, cx: &mut Context<Self>) {
+        let next = clamp(raw, self.min, self.max);
+        if self.value_f64() != Some(next) {
+            self.edit = TextEdit::new(&format_number(next));
+            cx.notify();
+        }
+    }
+
     fn nudge(&mut self, dir: f64, cx: &mut Context<Self>) {
         if self.disabled {
             return;
@@ -160,7 +191,8 @@ impl NumberInput {
                 if let Some(text) = ks.key_char.as_deref().filter(|t| {
                     !t.is_empty()
                         && !ks.modifiers.alt
-                        && t.chars().all(|c| c.is_ascii_digit() || c == '.' || c == '-')
+                        && t.chars()
+                            .all(|c| c.is_ascii_digit() || c == '.' || c == '-')
                 }) {
                     self.edit.insert(text);
                 }
@@ -203,7 +235,9 @@ impl Render for NumberInput {
                 .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
                 .child(SharedString::from(after))
         } else if self.edit.is_empty() {
-            div().text_color(dimmed).child(SharedString::new_static("0"))
+            div()
+                .text_color(dimmed)
+                .child(SharedString::new_static("0"))
         } else {
             div()
                 .text_color(text_color)
@@ -228,12 +262,14 @@ impl Render for NumberInput {
             .flex_col()
             .border_l_1()
             .border_color(border)
-            .child(stepper("guise-number-inc", IconName::ChevronUp).on_click(
-                cx.listener(|this, _ev, _window, cx| this.nudge(1.0, cx)),
-            ))
-            .child(stepper("guise-number-dec", IconName::ChevronDown).on_click(
-                cx.listener(|this, _ev, _window, cx| this.nudge(-1.0, cx)),
-            ));
+            .child(
+                stepper("guise-number-inc", IconName::ChevronUp)
+                    .on_click(cx.listener(|this, _ev, _window, cx| this.nudge(1.0, cx))),
+            )
+            .child(
+                stepper("guise-number-dec", IconName::ChevronDown)
+                    .on_click(cx.listener(|this, _ev, _window, cx| this.nudge(-1.0, cx))),
+            );
 
         let field = div()
             .id("guise-numberinput")

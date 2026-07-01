@@ -184,7 +184,9 @@ impl WebView {
                     .push(WebViewEvent::TitleChanged(title.into()));
             })
             .with_navigation_handler(move |url| {
-                q_nav.borrow_mut().push(WebViewEvent::UrlChanged(url.into()));
+                q_nav
+                    .borrow_mut()
+                    .push(WebViewEvent::UrlChanged(url.into()));
                 true
             })
             .with_on_page_load_handler(move |event, _url| {

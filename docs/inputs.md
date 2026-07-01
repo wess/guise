@@ -2,15 +2,48 @@
 
 Two groups, by how they hold state:
 
-- **Controlled builders** — `Checkbox`, `Switch`, `Radio`, `Chip`, plus the
-  group wrappers `RadioGroup` / `CheckboxGroup`. The parent owns the value; wire
-  changes with `cx.listener`.
-- **Stateful entities** — `TextInput`, `TextArea`, `NumberInput`, `Select`,
-  `Combobox`, `SegmentedControl`, `Slider`. Created with `cx.new`, they own their
-  buffer/selection and emit events.
+- **Controlled builders** — `Checkbox`, `Switch`, `Radio`, `Chip`, `Rating`,
+  plus the group wrappers `RadioGroup` / `CheckboxGroup`. The parent owns the
+  value; wire changes with `cx.listener` (or a [binding](#binding-inputs)).
+- **Stateful entities** — `TextInput`, `TextArea`, `NumberInput`,
+  `PasswordInput`, `PinInput`, `ColorInput`, `TagsInput`, `Select`, `Combobox`,
+  `SegmentedControl`, `Slider`, `RangeSlider`. Created with `cx.new`, they own
+  their buffer/selection and emit events.
 
 `Field` is the shared label/description/error chrome that wraps a control;
 `NumberInput`, `TextArea`, and `Combobox` compose it.
+
+## Binding inputs
+
+Every input can skip the hand-written change handler and two-way bind to a
+[`Signal`](reactive.md#signal) instead. The two shapes mirror the two component
+patterns:
+
+- **Controlled builders** take a [`Binding`](reactive.md#bindings) —
+  `.bind(signal.binding())` for the whole value, or
+  `.bind(signal.lens(...))` for one field of a struct signal. The binding
+  overrides the plain value setter; user actions write back through it, then
+  run any `on_change`.
+- **Stateful entities** bind once after creation with the associated function
+  `X::bind(&entity, &signal, cx)` — the entity adopts the signal's value now,
+  edits write back, and signal writes update the entity.
+
+```rust
+// Controlled: the binding replaces `checked` + `on_change`.
+let dark = use_state(cx, false);
+Switch::new("dark-mode").label("Dark mode").bind(dark.binding())
+```
+
+```rust
+// Entity: bind after cx.new; edits and signal writes stay in sync.
+let name = use_state(cx, String::new());
+let input = cx.new(|cx| TextInput::new(cx).label("Name"));
+TextInput::bind(&input, &name, cx);
+```
+
+Writes land in `set_if_changed` on both directions, so an echoed value is a
+no-op and updates can't loop. The full story — lenses, `map`, `constant` — is
+in [Reactive → Bindings](reactive.md#bindings).
 
 ## Checkbox
 
@@ -82,6 +115,33 @@ Chip::new("chip", "Notifications")
 ```
 
 Methods: `new(id, label)`, `checked`, `color`, `size` (default `Md`), `on_change`.
+
+## Rating
+
+A row of clickable stars (controlled). Clicking star *i* sets the value to
+`i`; hovering an unfilled star previews it in the accent color. The `f32`
+value is rounded to whole stars for display.
+
+```rust
+Rating::new("stars")
+    .value(self.stars)
+    .color(ColorName::Yellow)
+    .on_change(cx.listener(|this, value: &f32, _w, cx| {
+        this.stars = *value;
+        cx.notify();
+    }))
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(id)` | — | |
+| `value(f32)` | `0.0` | rounded to whole stars, clamped to `count` |
+| `count(usize)` | `5` | how many stars |
+| `color(impl Into<ColorValue>)` | `Yellow` | |
+| `size(Size)` | `Md` | glyph sizes: xs 14 … xl 36 |
+| `readonly(bool)` | `false` | display-only — no hover preview, no clicks |
+| `on_change(handler)` | — | `Fn(&f32, &mut Window, &mut App)` |
+| `bind(Binding<f32>)` | — | overrides `value`; clicks write back, then run `on_change` |
 
 ## TextInput (entity)
 
@@ -288,3 +348,159 @@ let volume = cx.new(|cx| Slider::new(cx).min(0.0).max(100.0).step(5.0).value(40.
 
 Methods: `new(cx)`, `value(f64)`, `min`, `max`, `step`, `color`, `disabled`.
 Read with `value_f64() -> f64`. Emits `SliderEvent(f64)`.
+
+## RangeSlider (entity)
+
+A two-thumb slider holding a `(low, high)` pair in `min..=max`. Each thumb is
+a real gpui drag source (`on_drag` + `on_drag_move`), so dragging tracks the
+pointer even outside the control; clicking the track jumps the nearest thumb;
+arrow keys (and Home/End) nudge the last active thumb. Values snap to `step`
+and keep at least `min_gap` apart.
+
+```rust
+let range = cx.new(|cx| {
+    RangeSlider::new(cx).min(0.0).max(100.0).min_gap(10.0).value((20.0, 80.0))
+});
+cx.subscribe(&range, |_this, _slider, event: &RangeSliderEvent, _cx| {
+    let (low, high) = event.0;
+}).detach();
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
+| `value((f64, f64))` | `(25.0, 75.0)` | set `min`/`max`/`step`/`min_gap` first — the pair is normalized against them |
+| `min(f64)` / `max(f64)` | `0.0` / `100.0` | |
+| `step(f64)` | `1.0` | |
+| `min_gap(f64)` | `0.0` | minimum distance between the thumbs |
+| `color(ColorName)` | `Blue` | |
+| `size(Size)` | `Md` | thumb and track dimensions |
+| `disabled(bool)` | `false` | |
+| `value_pair()` | — | read the current `(low, high)` |
+| `RangeSlider::bind(&entity, &Signal<(f64, f64)>, cx)` | — | two-way [binding](reactive.md#bindings) |
+
+Emits `RangeSliderEvent((f64, f64))` on change. (Unlike `Slider`, click
+positions are hit-tested against real track bounds — an invisible canvas
+captures them each frame, since gpui doesn't hand elements their own bounds.)
+
+## PasswordInput (entity)
+
+A masked text field with an eye toggle that reveals the plain text. Same
+buffer, focus, and key handling as `TextInput` in password mode; the eye flips
+visibility without losing the value.
+
+```rust
+let secret = cx.new(|cx| {
+    PasswordInput::new(cx)
+        .label("Password")
+        .placeholder("At least 8 characters")
+});
+cx.subscribe(&secret, |_this, _input, event, _cx| {
+    if let PasswordInputEvent::Submit(value) = event { /* log in */ }
+}).detach();
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
+| `value(&str)` | `""` | initial text |
+| `placeholder` / `label` / `description` / `error` | none | chrome; error turns the border red |
+| `visible(bool)` | `false` | start revealed; the eye still toggles |
+| `size(Size)` | `Sm` | |
+| `disabled(bool)` | `false` | |
+| `text()` / `set_text(&str, cx)` | — | read / write at runtime |
+| `PasswordInput::bind(&entity, &Signal<String>, cx)` | — | two-way [binding](reactive.md#bindings) |
+
+Emits `PasswordInputEvent::{Change(String), Submit(String)}` — `Submit` fires
+on Enter. Escape and Tab bubble to the host, as in `TextInput`.
+
+## PinInput (entity)
+
+Segmented one-character code boxes — the one-time-code field. Typing advances,
+Backspace clears and retreats, arrows move between boxes, and Cmd+V fills them
+from the clipboard (whitespace stripped, extra characters dropped).
+
+```rust
+let pin = cx.new(|cx| PinInput::new(cx).length(6).mask(true));
+cx.subscribe(&pin, |_this, _pin, event, _cx| {
+    if let PinInputEvent::Complete(code) = event { /* verify */ }
+}).detach();
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
+| `length(usize)` | `4` | number of boxes |
+| `mask(bool)` | `false` | render filled boxes as bullets |
+| `value(&str)` | `""` | initial code; characters beyond `length` are dropped |
+| `size(Size)` | `Sm` | box dimensions |
+| `disabled(bool)` | `false` | |
+| `text()` / `set_text(&str, cx)` | — | read / write at runtime |
+| `PinInput::bind(&entity, &Signal<String>, cx)` | — | two-way [binding](reactive.md#bindings) |
+
+Emits `PinInputEvent::{Change(String), Complete(String)}` — `Complete` fires
+when every box is filled (its `Change` fires first). `text()` returns the
+filled characters in slot order.
+
+## ColorInput (entity)
+
+A swatch plus an editable hex/CSS text field. Clicking the swatch opens the
+full theme palette (14 colors × 10 shades) in a deferred dropdown; typing any
+`css()`-parsable color — `#40c057`, `rgb(64, 192, 87)`, `teal` — updates the
+swatch live. Enter normalizes the buffer to hex; Escape closes the dropdown.
+
+```rust
+let brand = cx.new(|cx| {
+    ColorInput::new(cx).label("Brand color").value(rgb(34, 139, 230))
+});
+cx.subscribe(&brand, |_this, _input, event: &ColorInputEvent, _cx| {
+    let color: Hsla = event.0;
+}).detach();
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
+| `value(impl Into<Hsla>)` | black | also rewrites the buffer as hex |
+| `label` / `description` / `error` | none | chrome; error turns the border red |
+| `size(Size)` | `Sm` | |
+| `disabled(bool)` | `false` | |
+| `color_value()` | — | read the current `Hsla` |
+| `ColorInput::bind(&entity, &Signal<Hsla>, cx)` | — | two-way [binding](reactive.md#bindings) |
+
+Emits `ColorInputEvent(Hsla)` whenever the color changes (typed or picked).
+
+> **Note** Alpha is dropped when the buffer is normalized — the field holds
+> opaque hex.
+
+## TagsInput (entity)
+
+A pill list with an inline editor. Enter or comma commits the query as a tag
+(trimmed, non-empty, unique); Backspace in an empty query pops the last pill;
+each pill has a remove button.
+
+```rust
+let topics = cx.new(|cx| {
+    TagsInput::new(cx)
+        .label("Topics")
+        .placeholder("Type and press Enter…")
+        .max_tags(5)
+});
+cx.subscribe(&topics, |_this, _input, event: &TagsInputEvent, _cx| {
+    let tags: &Vec<String> = &event.0;
+}).detach();
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
+| `tags(impl IntoIterator)` | `[]` | initial tags |
+| `placeholder` / `label` / `description` / `error` | none | chrome; error turns the border red |
+| `max_tags(usize)` | unlimited | commits beyond the cap are ignored |
+| `size(Size)` | `Sm` | |
+| `disabled(bool)` | `false` | |
+| `tag_values()` / `set_tags(Vec<String>, cx)` | — | read / write at runtime (`set_tags` emits no event) |
+| `TagsInput::bind(&entity, &Signal<Vec<String>>, cx)` | — | two-way [binding](reactive.md#bindings) |
+
+Emits `TagsInputEvent(Vec<String>)` with the full list on every add/remove.
+Committing a duplicate clears the query without emitting.

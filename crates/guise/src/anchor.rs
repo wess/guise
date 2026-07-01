@@ -49,8 +49,12 @@ impl Anchor {
 impl RenderOnce for Anchor {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let t = theme(cx);
-        let color = t.color(self.color, if t.scheme.is_dark() { 4 } else { 6 }).hsla();
-        let hover = t.color(self.color, if t.scheme.is_dark() { 3 } else { 7 }).hsla();
+        let color = t
+            .color(self.color, if t.scheme.is_dark() { 4 } else { 6 })
+            .hsla();
+        let hover = t
+            .color(self.color, if t.scheme.is_dark() { 3 } else { 7 })
+            .hsla();
 
         let mut el = div()
             .id(self.id)

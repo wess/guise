@@ -20,8 +20,12 @@ impl Kbd {
 impl RenderOnce for Kbd {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let t = theme(cx);
-        let bg = t.color(ColorName::Gray, if t.scheme.is_dark() { 7 } else { 0 }).hsla();
-        let border = t.color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 3 }).hsla();
+        let bg = t
+            .color(ColorName::Gray, if t.scheme.is_dark() { 7 } else { 0 })
+            .hsla();
+        let border = t
+            .color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 3 })
+            .hsla();
 
         div()
             .px(px(7.0))

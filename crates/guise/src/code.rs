@@ -37,7 +37,8 @@ impl RenderOnce for Code {
                 t.color(name, if t.scheme.is_dark() { 2 } else { 8 }).hsla(),
             ),
             None => (
-                t.color(ColorName::Gray, if t.scheme.is_dark() { 8 } else { 1 }).hsla(),
+                t.color(ColorName::Gray, if t.scheme.is_dark() { 8 } else { 1 })
+                    .hsla(),
                 t.text().hsla(),
             ),
         };

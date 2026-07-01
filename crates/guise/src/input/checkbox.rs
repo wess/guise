@@ -4,10 +4,12 @@ use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, ElementId, FontWeight, IntoElement, SharedString, Window};
 
 use super::{control_box_size, ClickHandler};
+use crate::reactive::Binding;
 use crate::theme::{theme, ColorName, Size};
 
 /// A controlled checkbox. The Mantine `Checkbox`. Pass `checked` and a change
-/// handler (via `cx.listener`); the parent view owns the value.
+/// handler (via `cx.listener`); the parent view owns the value. Or hand it a
+/// [`Binding`] via [`Checkbox::bind`] and skip the handler.
 #[derive(IntoElement)]
 pub struct Checkbox {
     id: ElementId,
@@ -17,6 +19,7 @@ pub struct Checkbox {
     size: Size,
     color: ColorName,
     disabled: bool,
+    binding: Option<Binding<bool>>,
     on_change: Option<ClickHandler>,
 }
 
@@ -30,6 +33,7 @@ impl Checkbox {
             size: Size::Sm,
             color: ColorName::Blue,
             disabled: false,
+            binding: None,
             on_change: None,
         }
     }
@@ -64,6 +68,13 @@ impl Checkbox {
         self
     }
 
+    /// Two-way bind the checked state. Overrides `checked`; clicks write the
+    /// toggled value back through the binding, then run any `on_change`.
+    pub fn bind(mut self, binding: Binding<bool>) -> Self {
+        self.binding = Some(binding);
+        self
+    }
+
     pub fn on_change(
         mut self,
         handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
@@ -76,7 +87,8 @@ impl Checkbox {
 impl RenderOnce for Checkbox {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let t = theme(cx);
-        let on = self.checked || self.indeterminate;
+        let checked = self.binding.as_ref().map_or(self.checked, |b| b.get(cx));
+        let on = checked || self.indeterminate;
         let accent = t.color(self.color, t.primary_shade());
         let box_size = control_box_size(self.size);
 
@@ -105,7 +117,12 @@ impl RenderOnce for Checkbox {
                 .border_color(t.border().hsla());
         }
 
-        let mut row = div().id(self.id).flex().items_center().gap(px(8.0)).child(check);
+        let mut row = div()
+            .id(self.id)
+            .flex()
+            .items_center()
+            .gap(px(8.0))
+            .child(check);
         if let Some(label) = self.label {
             row = row.child(
                 div()
@@ -118,8 +135,18 @@ impl RenderOnce for Checkbox {
         if self.disabled {
             row.opacity(0.5)
         } else {
-            if let Some(handler) = self.on_change {
-                row = row.on_click(handler);
+            if self.binding.is_some() || self.on_change.is_some() {
+                let binding = self.binding;
+                let handler = self.on_change;
+                let next = !checked;
+                row = row.on_click(move |ev, window, cx| {
+                    if let Some(binding) = &binding {
+                        binding.set(cx, next);
+                    }
+                    if let Some(handler) = &handler {
+                        handler(ev, window, cx);
+                    }
+                });
             }
             row
         }

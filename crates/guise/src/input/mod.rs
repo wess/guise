@@ -11,33 +11,45 @@
 
 mod checkbox;
 mod checkboxgroup;
+mod colorinput;
 mod combobox;
 mod edit;
 mod field;
 mod keys;
 mod number;
+mod password;
+mod pin;
 mod radio;
 mod radiogroup;
+mod rangeslider;
+mod rating;
 mod segmented;
 mod select;
 mod slider;
 mod switch;
+mod tags;
 mod text;
 mod textarea;
 
 pub use checkbox::Checkbox;
 pub use checkboxgroup::CheckboxGroup;
+pub use colorinput::{ColorInput, ColorInputEvent};
 pub use combobox::{Combobox, ComboboxEvent};
 pub use edit::TextEdit;
 pub use field::Field;
 pub use keys::{apply_key, KeyOutcome};
 pub use number::{NumberInput, NumberInputEvent};
+pub use password::{PasswordInput, PasswordInputEvent};
+pub use pin::{PinInput, PinInputEvent};
 pub use radio::Radio;
 pub use radiogroup::RadioGroup;
+pub use rangeslider::{RangeSlider, RangeSliderEvent};
+pub use rating::Rating;
 pub use segmented::{SegmentedControl, SegmentedControlEvent};
 pub use select::{Select, SelectEvent};
 pub use slider::{Slider, SliderEvent};
 pub use switch::Switch;
+pub use tags::{TagsInput, TagsInputEvent};
 pub use text::{TextInput, TextInputEvent};
 pub use textarea::{TextArea, TextAreaEvent};
 
