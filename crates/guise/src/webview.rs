@@ -200,6 +200,18 @@ impl WebView {
         }
     }
 
+    /// Show or hide the native surface. The surface tracks its layout bounds only
+    /// while it is painted, so a host that stops rendering this view (e.g. a
+    /// collapsed drawer or a hidden tab) must hide it explicitly — otherwise the
+    /// OS view lingers on screen at its last position. A painted view re-shows
+    /// itself. No-op until the view exists.
+    pub fn set_visible(&mut self, _visible: bool) {
+        #[cfg(feature = "webview")]
+        if let Some(inner) = &self.inner {
+            let _ = inner.set_visible(_visible);
+        }
+    }
+
     /// Build the native view once a window handle is available, then start the
     /// loop that drains events from the wry handlers back onto the entity.
     #[cfg(feature = "webview")]
@@ -324,6 +336,9 @@ impl Render for WebView {
             move |bounds, _state, _window, _app| {
                 if let Some(view) = &view {
                     let _ = view.set_bounds(rect_from(bounds));
+                    // Being painted means we're on screen; re-assert visibility so
+                    // a view that was hidden while unmounted shows again.
+                    let _ = view.set_visible(true);
                 }
             },
         )
