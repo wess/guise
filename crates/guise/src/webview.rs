@@ -70,6 +70,9 @@ pub struct WebView {
     /// on; the placeholder ignores it.
     #[cfg_attr(not(feature = "webview"), allow(dead_code))]
     init_script: Option<SharedString>,
+    /// A directory served over an internal `guise://` origin (see [`WebView::serve`]).
+    #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+    serve_dir: Option<std::path::PathBuf>,
 
     #[cfg(feature = "webview")]
     inner: Option<Rc<wry::WebView>>,
@@ -92,6 +95,7 @@ impl WebView {
             width: None,
             height: None,
             init_script: None,
+            serve_dir: None,
 
             #[cfg(feature = "webview")]
             inner: None,
@@ -120,6 +124,19 @@ impl WebView {
     /// Load an inline HTML document.
     pub fn html(mut self, html: impl Into<SharedString>) -> Self {
         self.source = Source::Html(html.into());
+        self
+    }
+
+    /// Serve files from `dir` over an internal `guise://localhost/` origin and
+    /// load `entry` from it. Prefer this over a `file://` [`WebView::url`] for
+    /// local content: `file://` pages are treated as an opaque/null origin, so
+    /// the JS bridge (`window.ipc.postMessage`) is dropped and ES modules /
+    /// `fetch` are blocked. A real origin fixes both.
+    pub fn serve(mut self, dir: impl Into<std::path::PathBuf>, entry: impl AsRef<str>) -> Self {
+        self.serve_dir = Some(dir.into());
+        self.source = Source::Url(
+            format!("guise://localhost/{}", entry.as_ref().trim_start_matches('/')).into(),
+        );
         self
     }
 
@@ -222,6 +239,13 @@ impl WebView {
 
         if let Some(js) = &self.init_script {
             builder = builder.with_initialization_script(js.to_string());
+        }
+
+        // Serve `serve_dir` over the `guise://` scheme used by `WebView::serve`.
+        if let Some(dir) = self.serve_dir.clone() {
+            builder = builder.with_custom_protocol("guise".to_string(), move |_id, request| {
+                serve_local(&dir, request.uri().path())
+            });
         }
 
         builder = match &self.source {
@@ -354,4 +378,61 @@ fn frame(
         root = root.border_1().border_color(border).rounded(px(radius));
     }
     root
+}
+
+/// Serve a file from `dir` for a `guise://localhost/<path>` request. Rejects
+/// paths that try to escape `dir`; unknown files return 404.
+#[cfg(feature = "webview")]
+fn serve_local(
+    dir: &std::path::Path,
+    url_path: &str,
+) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
+    use std::borrow::Cow;
+    use wry::http::{Response, StatusCode};
+
+    let not_found = || {
+        Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Cow::Borrowed(&b"not found"[..]))
+            .unwrap()
+    };
+
+    let rel = url_path.trim_start_matches('/');
+    let rel = if rel.is_empty() { "index.html" } else { rel };
+    // No traversal or absolute escapes; only simple forward paths.
+    if rel.split('/').any(|c| c.is_empty() || c == "." || c == "..") {
+        return not_found();
+    }
+    match std::fs::read(dir.join(rel)) {
+        Ok(bytes) => Response::builder()
+            .status(StatusCode::OK)
+            .header("Content-Type", content_type(rel))
+            .header("Access-Control-Allow-Origin", "*")
+            .body(Cow::Owned(bytes))
+            .unwrap(),
+        Err(_) => not_found(),
+    }
+}
+
+/// A best-effort content type from a file's extension.
+#[cfg(feature = "webview")]
+fn content_type(rel: &str) -> &'static str {
+    match rel.rsplit('.').next() {
+        Some("html" | "htm") => "text/html; charset=utf-8",
+        Some("js" | "mjs") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("json") => "application/json; charset=utf-8",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("ico") => "image/x-icon",
+        Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("ttf") => "font/ttf",
+        Some("wasm") => "application/wasm",
+        Some("map") => "application/json; charset=utf-8",
+        _ => "application/octet-stream",
+    }
 }
