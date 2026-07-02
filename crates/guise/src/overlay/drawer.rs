@@ -69,7 +69,10 @@ impl Drawer {
         self
     }
 
-    pub fn on_close(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_close(
+        mut self,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_close = Some(Rc::new(handler));
         self
     }

@@ -1,8 +1,10 @@
 # Overlays
 
-`Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip` — UI that paints
-above the page. Most are built on the same mechanism: a `deferred()` layer
-(optionally `occlude()`d) so it overlays sibling content.
+UI that paints above the page. `Modal`, `ConfirmModal`, `Drawer`,
+`LoadingOverlay`, `Tooltip` are stateless builders; `Menu`, `MenuBar`,
+`ContextMenu`, `Popover`, `HoverCard`, `Spotlight` are stateful entities. Most
+are built on the same mechanism: a `deferred()` layer (optionally `occlude()`d)
+so it overlays sibling content.
 
 `Popover` is the reusable anchored-floating primitive; `Menu`/`Select` predate
 it and still hand-roll their own dropdown, but new flyouts should build on it.
@@ -51,6 +53,43 @@ Notes:
 - The dialog stops click propagation, so clicking inside it won't close it.
 - `on_close` takes `Fn(&ClickEvent, &mut Window, &mut App)`, so `cx.listener`
   works directly.
+
+## ConfirmModal
+
+A confirm/cancel dialog composed from [`Modal`](#modal). **Controlled** the
+same way: the parent owns an `opened` flag, renders the `ConfirmModal` only
+while it is true, and flips the flag from `on_confirm` / `on_cancel` — neither
+button closes the dialog by itself. The backdrop and the header `×` also run
+`on_cancel`. Implements `ParentElement` for body content beyond the plain
+`message`.
+
+```rust
+if self.confirm_open {
+    root = root.child(
+        ConfirmModal::new()
+            .title("Delete file?")
+            .message("del.rs will be moved to the Trash.")
+            .confirm_label("Delete")
+            .danger()
+            .on_confirm(cx.listener(|this, _ev, _w, cx| { this.confirm_open = false; cx.notify(); }))
+            .on_cancel(cx.listener(|this, _ev, _w, cx| { this.confirm_open = false; cx.notify(); })),
+    );
+}
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new()` | — | |
+| `title(impl Into<SharedString>)` | none | |
+| `message(impl Into<SharedString>)` | none | dimmed body text; children also work |
+| `confirm_label(...)` | `"Confirm"` | |
+| `cancel_label(...)` | `"Cancel"` | |
+| `danger()` | off | red confirm button for destructive actions |
+| `width(f32)` | `Modal`'s 440 | |
+| `on_confirm(handler)` | none | `Fn(&ClickEvent, &mut Window, &mut App)` |
+| `on_cancel(handler)` | none | also fired by the backdrop and `×` |
+
+Render it as a child of a **full-size root**, exactly like `Modal`.
 
 ## Menu (entity)
 
@@ -116,6 +155,56 @@ added with `MenuBar::push(column)`.
 Keyboard (while open): ←/→ switch menus, ↑/↓ move the highlight, Enter runs the
 highlighted item, Esc closes. Set the top-level label size with `size(Size)`.
 
+## ContextMenu (entity)
+
+A right-click action menu at the pointer. Unlike [`Menu`](#menu-entity) there
+is no trigger element — call `show(position, window, cx)` with the window
+coordinates of a `MouseButton::Right` mouse-down, and render the entity
+anywhere in the tree (it paints nothing while closed). While open, a deferred
+full-viewport backdrop occludes the page: clicking away, pressing Esc, or
+running an item closes the menu.
+
+```rust
+let menu = cx.new(|cx| {
+    ContextMenu::new(cx)
+        .section("File")
+        .item_icon(IconName::Copy, "Copy path", |_w, _app| { /* ... */ })
+        .item("Rename", |_w, _app| { /* ... */ })
+        .divider()
+        .danger_item("Delete", |_w, _app| { /* ... */ })
+});
+
+// In the parent's render (MouseButton / MouseDownEvent are gpui types):
+div()
+    .id("target")
+    .child("Right-click me")
+    .on_mouse_down(MouseButton::Right, cx.listener(|this, ev: &MouseDownEvent, window, cx| {
+        let position = ev.position;
+        this.menu.update(cx, |menu, cx| menu.show(position, window, cx));
+    }))
+    .child(self.menu.clone())
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx)` | — | items via the builders below |
+| `item(label, handler)` | — | handler gets `(&mut Window, &mut App)` |
+| `item_icon(IconName, label, handler)` | — | leading icon |
+| `danger_item(label, handler)` | — | rendered in red |
+| `section(label)` / `divider()` | — | non-interactive |
+| `size(Size)` | `Sm` | item font scale |
+| `width(f32)` | `220.0` | fixed; also drives the edge clamp |
+| `show(position, window, cx)` | — | opens at window coordinates, grabs focus so Esc closes |
+| `close(window, cx)` / `is_open()` | — | programmatic state; closing restores the previous focus |
+
+Notes:
+
+- The menu clamps to the window edges (8px margin). gpui hands elements no
+  bounds of their own before paint, so the clamp works from an estimated menu
+  size — a `width` that matches your longest label keeps the right-edge clamp
+  exact.
+- Item handlers run **after** the menu closes, like `Menu`.
+
 ## Popover (entity)
 
 The reusable anchored-floating primitive: a trigger plus a deferred panel
@@ -138,6 +227,38 @@ let pop = cx.new(|cx| {
 Methods: `new(cx, trigger_fn, content_fn)`, `placement(Placement)`,
 `width(f32)`. State: `is_open()`, `open(cx)`, `close(cx)`, `toggle(cx)`.
 `Placement` is `Bottom` | `BottomEnd` | `Top` | `TopEnd`.
+
+## HoverCard (entity)
+
+An anchored panel that opens on hover — [`Popover`](#popover-entity)'s
+pointer-driven sibling. Trigger and content are **builder closures** re-invoked
+each render. The card opens after `open_delay` of hovering the trigger and
+closes `close_delay` after the pointer leaves both the trigger *and* the card,
+so the card's content is reachable and interactive.
+
+```rust
+let card = cx.new(|cx| {
+    HoverCard::new(
+        cx,
+        |_w, _app| Badge::new("@ada").into_any_element(),
+        |_w, _app| Text::new("Ada Lovelace — wrote the first program.").into_any_element(),
+    )
+    .placement(Placement::Bottom)
+    .width(260.0)
+});
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new(cx, trigger_fn, content_fn)` | — | closures return `AnyElement` |
+| `placement(Placement)` | `Bottom` | same enum as `Popover` |
+| `width(f32)` | content-sized, min 180px | |
+| `open_delay(Duration)` | 300ms | hover time before opening |
+| `close_delay(Duration)` | 150ms | grace period to reach the card |
+| `is_open()` / `close(cx)` | — | `close` dismisses immediately |
+
+At most one delayed transition is ever pending — re-entering the trigger or the
+card cancels a scheduled close.
 
 ## Drawer
 
@@ -180,6 +301,32 @@ palette.update(cx, |s, cx| s.open(window, cx));
 
 Methods: `new(cx)`, `item(label, handler)`, `item_hint(label, hint, handler)`.
 State: `is_open()`, `open(window, cx)`, `close(cx)`.
+
+## LoadingOverlay
+
+A dimming busy layer over one container. **Stateless**: render it as the
+**last child** of the container and flip `visible`. While visible it fills the
+parent with the body color at 60% opacity, centers a
+[`Loader`](feedback.md#loader), and occludes the mouse so the content
+underneath is inert. Hidden, it renders nothing at all.
+
+```rust
+div()
+    .relative() // required — the overlay is absolutely positioned
+    .child(form)
+    .child(LoadingOverlay::new().visible(self.saving))
+```
+
+| Method | Default | Notes |
+| --- | --- | --- |
+| `new()` | — | |
+| `visible(bool)` | `false` | |
+| `loader(Loader)` | `Loader::new()` | swap variant/color/size |
+
+> **Caution** The parent must be `.relative()`. The overlay is an
+> absolutely-positioned `size_full` child, and gpui resolves absolute
+> positioning against the nearest non-statically-positioned ancestor — without
+> `.relative()` it anchors to the wrong box and dims the wrong content.
 
 ## Tooltip
 

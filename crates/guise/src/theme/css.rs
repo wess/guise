@@ -342,7 +342,10 @@ mod tests {
         assert_eq!(css("#228be6").unwrap(), rgb(0x22, 0x8b, 0xe6));
         assert_eq!(css("228be6").is_err(), true); // needs the leading '#'
         assert_eq!(css("#fff").unwrap(), rgb(255, 255, 255));
-        assert_eq!(css("#ff000080").unwrap(), rgba(255, 0, 0, 0x80 as f32 / 255.0));
+        assert_eq!(
+            css("#ff000080").unwrap(),
+            rgba(255, 0, 0, 0x80 as f32 / 255.0)
+        );
     }
 
     #[test]
@@ -350,7 +353,10 @@ mod tests {
         assert_eq!(css("rgb(34, 139, 230)").unwrap(), rgb(34, 139, 230));
         assert_eq!(css("rgba(0,0,0,0.5)").unwrap(), rgba(0, 0, 0, 0.5));
         assert_eq!(css("hsl(210, 80%, 52%)").unwrap(), hsl(210.0, 80.0, 52.0));
-        assert_eq!(css("hsla(210,80%,52%,0.5)").unwrap(), hsla(210.0, 80.0, 52.0, 0.5));
+        assert_eq!(
+            css("hsla(210,80%,52%,0.5)").unwrap(),
+            hsla(210.0, 80.0, 52.0, 0.5)
+        );
     }
 
     #[test]

@@ -3,9 +3,7 @@
 use std::time::Duration;
 
 use gpui::prelude::*;
-use gpui::{
-    div, px, ClickEvent, ClipboardItem, Context, IntoElement, SharedString, Window,
-};
+use gpui::{div, px, ClickEvent, ClipboardItem, Context, IntoElement, SharedString, Window};
 
 use crate::theme::{theme, ColorName, Size};
 

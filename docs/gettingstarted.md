@@ -2,31 +2,36 @@
 
 ## Requirements
 
-- Rust stable **≥ 1.96** (gpui uses recently-stabilized library features).
-- The workspace pins gpui to a specific zed git rev and mirrors zed's
-  `[patch.crates-io]` entries, because cargo patches don't propagate through git
-  dependencies. See [Architecture](architecture.md) for the full recipe.
+Rust stable. Both `guise` and `gpui` come straight from crates.io — there is
+no git pin and no `[patch.crates-io]` recipe anymore. See
+[Architecture](architecture.md#the-gpui-dependency).
 
 ## Add the dependency
 
-`guise` lives in this Cargo workspace as `crates/guise`. From another crate in
-the workspace:
+```sh
+cargo add guise-ui gpui
+```
+
+or in `Cargo.toml`:
 
 ```toml
 [dependencies]
-guise-ui = { path = "crates/guise" }   # published as `guise-ui`, imported as `guise`
-gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
-gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit", "wayland", "x11"] }
+guise-ui = "0.2"
+gpui = "0.2"
 ```
 
-Your binary crate needs `gpui_platform` to start the app; library crates that
-only build components need `gpui` alone.
+> **Note** The crate is published as **`guise-ui`** (the `guise` name was taken
+> on crates.io), but its library is named `guise` — so you still write
+> `use guise::prelude::*;`.
 
 ## The smallest app
 
 ```rust
 use gpui::prelude::*;
-use gpui::{div, px, size, App, Bounds, Context, IntoElement, Window, WindowBounds, WindowOptions};
+use gpui::{
+    div, px, size, App, Application, Bounds, Context, IntoElement, Window, WindowBounds,
+    WindowOptions,
+};
 use guise::prelude::*;
 
 struct Hello;
@@ -50,7 +55,7 @@ impl Render for Hello {
 }
 
 fn main() {
-    gpui_platform::application().run(|cx: &mut App| {
+    Application::new().run(|cx: &mut App| {
         // 1. Install a theme exactly once, before opening any window.
         Theme::dark().init(cx);
 
@@ -92,6 +97,8 @@ use guise::flex::*;
 
 ## Next
 
+- Follow the [tutorial](tutorial.md) — it grows this smallest app into a
+  complete one, one component pattern at a time.
 - Learn the [component model](components.md) (builders vs. stateful entities).
 - Browse the component pages from the [index](readme.md).
 - The `gallery` crate (`cargo run -p gallery`) is a live showcase of everything.

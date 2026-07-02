@@ -70,7 +70,8 @@ impl RenderOnce for NavLink {
         let (bg, label_color) = if self.active {
             let accent = t.color(self.color, if t.scheme.is_dark() { 4 } else { 7 });
             (
-                t.color(self.color, if t.scheme.is_dark() { 8 } else { 0 }).hsla(),
+                t.color(self.color, if t.scheme.is_dark() { 8 } else { 0 })
+                    .hsla(),
                 accent.hsla(),
             )
         } else {

@@ -103,7 +103,12 @@ impl EdgeInsets {
     }
 
     pub const fn only(top: f32, right: f32, bottom: f32, left: f32) -> Self {
-        EdgeInsets { top, right, bottom, left }
+        EdgeInsets {
+            top,
+            right,
+            bottom,
+            left,
+        }
     }
 
     pub const fn horizontal(value: f32) -> Self {
@@ -175,7 +180,13 @@ mod tests {
             EdgeInsets::symmetric(10.0, 4.0),
             EdgeInsets::only(4.0, 10.0, 4.0, 10.0)
         );
-        assert_eq!(EdgeInsets::horizontal(6.0), EdgeInsets::only(0.0, 6.0, 0.0, 6.0));
-        assert_eq!(EdgeInsets::vertical(6.0), EdgeInsets::only(6.0, 0.0, 6.0, 0.0));
+        assert_eq!(
+            EdgeInsets::horizontal(6.0),
+            EdgeInsets::only(0.0, 6.0, 0.0, 6.0)
+        );
+        assert_eq!(
+            EdgeInsets::vertical(6.0),
+            EdgeInsets::only(6.0, 0.0, 6.0, 0.0)
+        );
     }
 }

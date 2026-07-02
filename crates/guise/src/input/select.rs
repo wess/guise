@@ -5,10 +5,12 @@
 
 use gpui::prelude::*;
 use gpui::{
-    deferred, div, px, Context, EventEmitter, FocusHandle, IntoElement, SharedString, Window,
+    deferred, div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, SharedString,
+    Window,
 };
 
 use super::control_metrics;
+use crate::reactive::Signal;
 use crate::theme::{theme, Size};
 
 /// Emitted when the user picks an option. Carries the option index.
@@ -84,6 +86,37 @@ impl Select {
     pub fn selected_value(&self) -> Option<SharedString> {
         self.selected.and_then(|i| self.options.get(i).cloned())
     }
+
+    /// Two-way bind this picker's selection to a `Signal<usize>`. The signal
+    /// is the source of truth: the picker adopts its index now, picks write
+    /// back through [`Signal::set_if_changed`], and signal writes move the
+    /// selection without emitting [`SelectEvent`]. Equality guards on both
+    /// directions prevent update loops.
+    pub fn bind(entity: &Entity<Select>, signal: &Signal<usize>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_selected(initial, cx));
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_select, event: &SelectEvent, cx| {
+            sink.set_if_changed(cx, event.0);
+        })
+        .detach();
+        let select = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let index = *observed.read(cx);
+            select
+                .update(cx, |this, cx| this.sync_selected(index, cx))
+                .ok();
+        })
+        .detach();
+    }
+
+    /// Programmatic set: repaint without emitting an event.
+    fn sync_selected(&mut self, index: usize, cx: &mut Context<Self>) {
+        if self.selected != Some(index) {
+            self.selected = Some(index);
+            cx.notify();
+        }
+    }
 }
 
 impl Render for Select {
@@ -102,8 +135,7 @@ impl Render for Select {
         let selected = self.selected;
         let chosen = selected.and_then(|i| self.options.get(i));
         let has_value = chosen.is_some();
-        let value_text: SharedString =
-            chosen.cloned().unwrap_or_else(|| self.placeholder.clone());
+        let value_text: SharedString = chosen.cloned().unwrap_or_else(|| self.placeholder.clone());
 
         let trigger = div()
             .id("guise-select-trigger")

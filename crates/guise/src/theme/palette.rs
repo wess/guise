@@ -87,6 +87,12 @@ impl Palette {
     pub fn get(&self, name: ColorName, shade: usize) -> Color {
         self.shades(name).get(shade)
     }
+
+    /// Replace the shade ramp for one named color — e.g. re-pin `Dark` to an
+    /// app's custom scale before `Theme::init`.
+    pub fn set_shades(&mut self, name: ColorName, shades: Shades) {
+        self.shades[name as usize] = shades;
+    }
 }
 
 impl Default for Palette {

@@ -128,6 +128,7 @@ export function renderLanding(): string {
     </p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="gettingstarted.html">Get started</a>
+      <a class="btn btn-ghost" href="tutorial.html">Read the tutorial</a>
       <a class="btn btn-ghost" href="gallery.html">Explore components</a>
     </div>
     <div class="cmd" style="margin-left:auto;margin-right:auto;">
@@ -179,6 +180,7 @@ export function renderLanding(): string {
   <div class="container">
     ${bandHead(`Systems, not just <span class="gw">widgets</span>.`, "Layout, motion and state — the parts of an app a component grab-bag leaves out.")}
     <div class="syslist">${systems}</div>
+    <a class="more-link" href="tutorial.html">See them all in one app — the data workbench tutorial &#8594;</a>
   </div>
 </section>
 

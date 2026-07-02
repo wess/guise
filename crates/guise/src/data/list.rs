@@ -91,12 +91,7 @@ impl RenderOnce for List {
                 .items_start()
                 .gap(px(8.0))
                 .text_size(px(font))
-                .child(
-                    div()
-                        .min_w(px(font * 1.2))
-                        .text_color(marker)
-                        .child(bullet),
-                )
+                .child(div().min_w(px(font * 1.2)).text_color(marker).child(bullet))
                 .child(div().text_color(text).child(item))
         });
 

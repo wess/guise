@@ -11,6 +11,7 @@ export const groups: DocGroup[] = [
     items: [
       { slug: "docs", title: "Overview" },
       { slug: "gettingstarted", title: "Installation" },
+      { slug: "tutorial", title: "Tutorial" },
     ],
   },
   {
@@ -26,10 +27,13 @@ export const groups: DocGroup[] = [
       { slug: "buttons", title: "Buttons" },
       { slug: "icons", title: "Icons" },
       { slug: "inputs", title: "Inputs" },
+      { slug: "editor", title: "Editor" },
       { slug: "typography", title: "Typography" },
       { slug: "layout", title: "Layout" },
+      { slug: "panels", title: "Panels" },
       { slug: "feedback", title: "Feedback" },
       { slug: "data", title: "Data display" },
+      { slug: "charts", title: "Charts" },
       { slug: "overlays", title: "Overlays" },
       { slug: "navigation", title: "Navigation" },
       { slug: "webview", title: "WebView" },

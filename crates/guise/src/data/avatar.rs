@@ -47,7 +47,6 @@ impl Avatar {
         self.radius = Some(radius);
         self
     }
-
 }
 
 /// Avatar diameter (px) across the size scale. Shared with `AvatarGroup`.

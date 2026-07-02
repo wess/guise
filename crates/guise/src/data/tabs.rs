@@ -62,7 +62,11 @@ impl Render for Tabs {
         let font = t.font_size(Size::Sm);
 
         let count = self.tabs.len();
-        let active = if count == 0 { 0 } else { self.active.min(count - 1) };
+        let active = if count == 0 {
+            0
+        } else {
+            self.active.min(count - 1)
+        };
 
         let mut bar = div().flex().border_b_1().border_color(line);
         for (i, tab) in self.tabs.iter().enumerate() {
@@ -73,7 +77,11 @@ impl Render for Tabs {
                     .px(px(16.0))
                     .py(px(8.0))
                     .border_b_2()
-                    .border_color(if is_active { accent } else { transparent_black() })
+                    .border_color(if is_active {
+                        accent
+                    } else {
+                        transparent_black()
+                    })
                     .text_size(px(font))
                     .text_color(if is_active { accent } else { dimmed })
                     .hover(move |s| s.text_color(text))

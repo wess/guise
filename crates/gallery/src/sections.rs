@@ -152,10 +152,14 @@ pub fn feedback() -> impl IntoElement {
     // Each loader is wrapped in an id'd div (so their animation ids stay
     // unique); all three are the same `Stateful<Div>` type → `.children`.
     let loaders = Group::new().gap(Size::Xl).align(Align::Center).children([
-        div().id("loader-dots").child(Loader::new().color(ColorName::Blue)),
         div()
-            .id("loader-bars")
-            .child(Loader::new().variant(LoaderVariant::Bars).color(ColorName::Grape)),
+            .id("loader-dots")
+            .child(Loader::new().color(ColorName::Blue)),
+        div().id("loader-bars").child(
+            Loader::new()
+                .variant(LoaderVariant::Bars)
+                .color(ColorName::Grape),
+        ),
         div()
             .id("loader-lg")
             .child(Loader::new().size(Size::Lg).color(ColorName::Teal)),
@@ -178,6 +182,66 @@ pub fn feedback() -> impl IntoElement {
                 .color(ColorName::Teal)
                 .icon("✓"),
         )
+}
+
+pub fn media() -> impl IntoElement {
+    Group::new()
+        .gap(Size::Md)
+        .align(Align::Start)
+        .child(
+            Image::new("https://picsum.photos/seed/guise/240/160")
+                .width(240.0)
+                .height(160.0)
+                .radius(Size::Md)
+                .fit(ObjectFit::Cover)
+                .fallback(|| Text::new("image loading…").dimmed().size(Size::Xs)),
+        )
+        .child(
+            Image::new("https://picsum.photos/seed/guise-avatar/96")
+                .width(96.0)
+                .height(96.0)
+                .circle()
+                .fallback(|| Text::new("…").dimmed().size(Size::Xs)),
+        )
+}
+
+pub fn charts() -> impl IntoElement {
+    let trend = [12.0, 18.0, 9.0, 24.0, 20.0, 31.0, 26.0];
+
+    let sparklines = Group::new()
+        .align(Align::Center)
+        .child(Sparkline::new(trend).fill())
+        .child(Sparkline::new([5.0, 3.0, 8.0, 2.0, 7.0, 4.0]).color(ColorName::Teal))
+        .child(
+            Sparkline::new([1.0, 4.0, 2.0, 8.0, 5.0, 9.0])
+                .color(ColorName::Red)
+                .stroke(1.0),
+        );
+
+    let bars = BarChart::entries([
+        ("Mon", 12.0),
+        ("Tue", 9.0),
+        ("Wed", 15.0),
+        ("Thu", 7.0),
+        ("Fri", 18.0),
+    ])
+    .height(120.0);
+
+    let line = LineChart::new(trend).fill().height(120.0);
+
+    let pies = Group::new().gap(Size::Xl).children([
+        PieChart::entries([("Rust", 62.0), ("TOML", 25.0), ("Other", 13.0)]).size(120.0),
+        PieChart::new([40.0, 30.0, 20.0, 10.0])
+            .donut(0.6)
+            .size(120.0),
+    ]);
+
+    Stack::new()
+        .gap(Size::Lg)
+        .child(sparklines)
+        .child(bars)
+        .child(line)
+        .child(pies)
 }
 
 pub fn palette(cx: &App) -> impl IntoElement {

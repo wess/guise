@@ -149,7 +149,9 @@ impl Render for Menu {
         let border = t.border().hsla();
         let text = t.text().hsla();
         let dimmed = t.dimmed().hsla();
-        let danger = t.color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 6 }).hsla();
+        let danger = t
+            .color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 6 })
+            .hsla();
         let font_xs = t.font_size(Size::Xs);
         let trigger_hover = s.bg_hover;
 
@@ -205,7 +207,11 @@ impl Render for Menu {
 
             for (i, entry) in self.entries.iter().enumerate() {
                 match entry {
-                    Entry::Item { label, danger: is_danger, .. } => {
+                    Entry::Item {
+                        label,
+                        danger: is_danger,
+                        ..
+                    } => {
                         let mut item = div()
                             .id(("guise-menu-item", i))
                             .px(px(10.0))
@@ -218,8 +224,8 @@ impl Render for Menu {
                         if i == self.highlight {
                             item = item.bg(surface_hover);
                         }
-                        menu = menu.child(item.on_click(cx.listener(
-                            move |this, _ev, window, cx| {
+                        menu =
+                            menu.child(item.on_click(cx.listener(move |this, _ev, window, cx| {
                                 this.open = false;
                                 if let Entry::Item {
                                     handler: Some(handler),
@@ -229,8 +235,7 @@ impl Render for Menu {
                                     handler(window, cx);
                                 }
                                 cx.notify();
-                            },
-                        )));
+                            })));
                     }
                     Entry::Section(label) => {
                         menu = menu.child(

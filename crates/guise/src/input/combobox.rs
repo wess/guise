@@ -227,7 +227,11 @@ impl Render for Combobox {
             .bg(surface)
             .text_size(px(font))
             .child(interior)
-            .child(Icon::new(IconName::ChevronDown).size(Size::Xs).color(crate::theme::ColorName::Gray));
+            .child(
+                Icon::new(IconName::ChevronDown)
+                    .size(Size::Xs)
+                    .color(crate::theme::ColorName::Gray),
+            );
 
         let mut wrap = div().relative().child(trigger);
 

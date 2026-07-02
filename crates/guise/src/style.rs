@@ -73,7 +73,6 @@ pub enum Variant {
     White,
 }
 
-
 /// Resolved colors for one `(color, variant)` pairing.
 #[derive(Debug, Clone, Copy)]
 pub struct Surface {
@@ -171,7 +170,11 @@ pub fn surface(theme: &Theme, color: impl Into<ColorValue>, variant: Variant) ->
 fn surface_custom(theme: &Theme, c: Hsla, variant: Variant) -> Surface {
     let dark = theme.scheme.is_dark();
     let transparent = gpui::transparent_black();
-    let hover_fill = if dark { shift_l(c, 0.06) } else { shift_l(c, -0.06) };
+    let hover_fill = if dark {
+        shift_l(c, 0.06)
+    } else {
+        shift_l(c, -0.06)
+    };
     match variant {
         Variant::Filled => Surface {
             bg: c,

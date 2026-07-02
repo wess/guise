@@ -2,9 +2,7 @@
 //! colors, and sizes.
 
 use gpui::prelude::*;
-use gpui::{
-    div, px, App, ClickEvent, ElementId, FontWeight, IntoElement, SharedString, Window,
-};
+use gpui::{div, px, App, ClickEvent, ElementId, FontWeight, IntoElement, SharedString, Window};
 
 use crate::input::ClickHandler;
 use crate::style::{surface, ColorValue, Variant};

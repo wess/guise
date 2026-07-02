@@ -55,10 +55,7 @@ impl RenderOnce for Progress {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let t = theme(cx);
         let height = self.height();
-        let radius = self
-            .radius
-            .map(|r| t.radius(r))
-            .unwrap_or(height / 2.0);
+        let radius = self.radius.map(|r| t.radius(r)).unwrap_or(height / 2.0);
         let track = t
             .color(ColorName::Gray, if t.scheme.is_dark() { 7 } else { 2 })
             .hsla();

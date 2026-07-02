@@ -4,11 +4,12 @@ use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, ElementId, FontWeight, IntoElement, SharedString, Window};
 
 use crate::input::ClickHandler;
+use crate::reactive::Binding;
 use crate::style::ColorValue;
 use crate::theme::{theme, Size};
 
 /// A selectable chip. The Mantine `Chip`. Controlled: pass `checked` and a
-/// change handler via `cx.listener`.
+/// change handler via `cx.listener`, or two-way bind with [`Chip::bind`].
 #[derive(IntoElement)]
 pub struct Chip {
     id: ElementId,
@@ -16,6 +17,7 @@ pub struct Chip {
     checked: bool,
     color: ColorValue,
     size: Size,
+    binding: Option<Binding<bool>>,
     on_change: Option<ClickHandler>,
 }
 
@@ -27,6 +29,7 @@ impl Chip {
             checked: false,
             color: ColorValue::default(),
             size: Size::Md,
+            binding: None,
             on_change: None,
         }
     }
@@ -43,6 +46,13 @@ impl Chip {
 
     pub fn size(mut self, size: Size) -> Self {
         self.size = size;
+        self
+    }
+
+    /// Two-way bind the checked state. Overrides `checked`; clicks write the
+    /// toggled value back through the binding, then run any `on_change`.
+    pub fn bind(mut self, binding: Binding<bool>) -> Self {
+        self.binding = Some(binding);
         self
     }
 
@@ -70,8 +80,9 @@ impl RenderOnce for Chip {
         let t = theme(cx);
         let (height, pad_x, font) = self.metrics();
         let accent = self.color.accent(t);
+        let checked = self.binding.as_ref().map_or(self.checked, |b| b.get(cx));
 
-        let (bg, fg, border) = if self.checked {
+        let (bg, fg, border) = if checked {
             (self.color.soft(t), accent, accent)
         } else {
             (t.surface().hsla(), t.text().hsla(), t.border().hsla())
@@ -92,14 +103,24 @@ impl RenderOnce for Chip {
             .text_color(fg)
             .text_size(px(font))
             .font_weight(FontWeight::MEDIUM);
-        if self.checked {
+        if checked {
             el = el.child(SharedString::new_static("\u{2713}"));
         } else {
             el = el.hover(move |s| s.bg(hover_bg));
         }
         el = el.child(self.label);
-        if let Some(handler) = self.on_change {
-            el = el.on_click(handler);
+        if self.binding.is_some() || self.on_change.is_some() {
+            let binding = self.binding;
+            let handler = self.on_change;
+            let next = !checked;
+            el = el.on_click(move |ev, window, cx| {
+                if let Some(binding) = &binding {
+                    binding.set(cx, next);
+                }
+                if let Some(handler) = &handler {
+                    handler(ev, window, cx);
+                }
+            });
         }
         el
     }

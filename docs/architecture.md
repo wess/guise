@@ -4,26 +4,24 @@
 
 ```
 guise/
-├── Cargo.toml            # workspace + [patch.crates-io] (mirrors zed)
-├── thirdparty/block/     # vendored patch for the macOS gpui build
+├── Cargo.toml            # workspace; gpui comes from crates.io
+├── docs/                 # human docs (this directory)
+├── site/                 # docs-website generator (Bun; one page per docs/*.md, via render/nav.ts)
 └── crates/
-    ├── guise/            # the component library
+    ├── guise/            # the library — published as `guise-ui`, lib name `guise`
     └── gallery/          # a live showcase (cargo run -p gallery)
 ```
 
 ## The gpui dependency
 
-gpui is a git dependency pinned to a zed rev. Two things are required and easy to
-get wrong:
+gpui ships on crates.io — the workspace depends on `gpui = "0.2.2"` in
+`[workspace.dependencies]` like any other crate. There is no git pin to a zed
+rev and no `[patch.crates-io]` block to mirror. (`thirdparty/block/` is a
+leftover from the earlier git-dependency era; no manifest references it.)
 
-1. **Rust stable ≥ 1.96.** Earlier toolchains fail on library features zed uses.
-2. **Mirror zed's `[patch.crates-io]`.** Cargo patch entries do not propagate
-   through git dependencies, so the consuming workspace must declare them itself.
-   The root `Cargo.toml` carries the `async-process` / `async-task` forks and a
-   vendored `block` crate (a transitive cocoa dep with a one-line fix).
-
-If you bump the zed rev, re-check zed's root `Cargo.toml` patch section and match
-it. This recipe is borrowed from the sibling `prompt` project.
+The library package is **`guise-ui`** — the `guise` name was taken on
+crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
+`-p guise-ui`, while code imports stay `use guise::...`.
 
 ## Library module map (`crates/guise/src`)
 
@@ -31,18 +29,20 @@ it. This recipe is borrowed from the sibling `prompt` project.
 | --- | --- |
 | `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme` |
 | `style.rs` | the `Variant` system and `surface()` resolver |
-| `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid` |
+| `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid`, `AppShell`, `Container`, `Space` |
 | `flex/` | Flutter-style `Row`, `Column`, `Container`, `Expanded`, … |
-| `input/` | `TextInput`, `TextArea`, `NumberInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `Field`, the `TextEdit` model |
-| `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `Timeline`, `Tabs`, `Accordion` |
+| `input/` | `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field`, the `TextEdit` model, the shared single-line key map (`keys.rs`) |
+| `editor/` | `Editor` entity, the `EditorModel` buffer, `Language` highlighters (Rust / SQL / JSON) |
+| `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion` |
+| `chart/` | `Sparkline`, `LineChart`, `BarChart`, `PieChart` — canvas-painted builders |
 | `feedback/` | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
-| `overlay/` | `Modal`, `Drawer`, `Menu`, `Popover`, `Spotlight`, `Tooltip` |
+| `overlay/` | `Modal`, `ConfirmModal`, `Drawer`, `Menu`, `MenuBar`, `ContextMenu`, `Popover`, `HoverCard`, `LoadingOverlay`, `Spotlight`, `Tooltip` |
 | `nav/` | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
-| `reactive/` | `Signal`, Context/Provider, hooks, `FormState` |
+| `reactive/` | `Signal`, `Binding`, Context/Provider, hooks (`use_state`/`watch`/`use_memo`/`use_effect`), `FormState` |
 | `macros.rs` | the `row!`/`col!`/… layout macros |
 | `transition.rs` | `Transition` / `Collapse` mount animations |
 | `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
-| root files | `Button`, `Badge`, `Card`, `Paper`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea` |
+| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea` |
 
 ## Conventions
 
@@ -68,7 +68,9 @@ it. This recipe is borrowed from the sibling `prompt` project.
 3. Re-export it from the module's `mod.rs`, then from `lib.rs`, then add it to
    the `prelude`.
 4. Add a showcase to `crates/gallery/`.
-5. For pure logic (parsing, range math, an editing model), add `#[cfg(test)]`
+5. Write the component's docs section on the right `docs/` page — and if that
+   page is new, register it in `site/render/nav.ts` so the website picks it up.
+6. For pure logic (parsing, range math, an editing model), add `#[cfg(test)]`
    tests next to the code.
 
 See the [component model](components.md) for the two patterns in detail.
@@ -77,7 +79,7 @@ See the [component model](components.md) for the two patterns in detail.
 
 ```sh
 cargo run -p gallery        # launch the showcase
-cargo check -p guise        # fast type-check
-cargo test -p guise         # unit tests
+cargo check -p guise-ui     # fast type-check (package is guise-ui; lib name is guise)
+cargo test -p guise-ui      # unit tests
 cargo build -p gallery      # full build of the binary
 ```

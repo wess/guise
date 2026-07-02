@@ -30,6 +30,8 @@ pub enum IconName {
     Ellipsis,
     ArrowRight,
     ArrowLeft,
+    Eye,
+    EyeOff,
 }
 
 impl IconName {
@@ -54,6 +56,8 @@ impl IconName {
             IconName::Ellipsis => "\u{2026}",
             IconName::ArrowRight => "\u{2192}",
             IconName::ArrowLeft => "\u{2190}",
+            IconName::Eye => "\u{25ce}",
+            IconName::EyeOff => "\u{2298}",
         }
     }
 }

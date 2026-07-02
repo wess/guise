@@ -8,10 +8,11 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, relative, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent, SharedString,
-    Window,
+    div, px, relative, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
+    SharedString, Window,
 };
 
+use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted when the slider value changes.
@@ -76,6 +77,38 @@ impl Slider {
 
     pub fn value_f64(&self) -> f64 {
         self.value
+    }
+
+    /// Two-way bind this slider's value to a `Signal<f64>`. The signal is the
+    /// source of truth: the slider adopts its value now (snapped to `step`),
+    /// drags write back through [`Signal::set_if_changed`], and signal writes
+    /// move the knob without emitting [`SliderEvent`]. Equality guards on both
+    /// directions prevent update loops.
+    pub fn bind(entity: &Entity<Slider>, signal: &Signal<f64>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_value(initial, cx));
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_slider, event: &SliderEvent, cx| {
+            sink.set_if_changed(cx, event.0);
+        })
+        .detach();
+        let slider = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let value = *observed.read(cx);
+            slider
+                .update(cx, |this, cx| this.sync_value(value, cx))
+                .ok();
+        })
+        .detach();
+    }
+
+    /// Programmatic set: snap and repaint without emitting an event.
+    fn sync_value(&mut self, raw: f64, cx: &mut Context<Self>) {
+        let next = self.snap(raw);
+        if next != self.value {
+            self.value = next;
+            cx.notify();
+        }
     }
 
     fn fraction(&self) -> f32 {

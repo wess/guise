@@ -67,12 +67,7 @@ impl RenderOnce for Field {
 
         let mut column = div().flex().flex_col().gap(px(4.0));
         if let Some(label) = self.label {
-            column = column.child(
-                div()
-                    .text_size(px(font_sm))
-                    .text_color(text)
-                    .child(label),
-            );
+            column = column.child(div().text_size(px(font_sm)).text_color(text).child(label));
         }
         if let Some(child) = self.child {
             column = column.child(child);

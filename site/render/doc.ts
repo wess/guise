@@ -23,13 +23,15 @@ const marked = new Marked(
   { gfm: true },
 );
 
-function slugify(text: string): string {
-  return text
+// GitHub-flavored heading slugs: strip tags, decode entities, drop punctuation
+// (underscores and hyphens survive), then map every space to a hyphen — so
+// "Row & Column" -> "row--column", matching the anchors the docs link against.
+function slugify(inner: string): string {
+  return decode(inner.replace(/<[^>]+>/g, ""))
+    .trim()
     .toLowerCase()
-    .replace(/<[^>]+>/g, "")
-    .replace(/&[a-z]+;/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s/g, "-");
 }
 
 function rewriteLinks(html: string): string {
@@ -46,15 +48,26 @@ type Heading = { level: number; id: string; text: string };
 
 function anchorHeadings(html: string): { html: string; toc: Heading[] } {
   const toc: Heading[] = [];
+  const seen = new Map<string, number>();
   const out = html.replace(
     /<h([23])>([\s\S]*?)<\/h\1>/g,
     (_m, level: string, inner: string) => {
-      const id = slugify(inner);
+      let id = slugify(inner);
+      const n = seen.get(id) ?? 0;
+      seen.set(id, n + 1);
+      if (n > 0) id = `${id}-${n}`; // repeated heading text, GitHub-style suffix
       toc.push({ level: Number(level), id, text: inner.replace(/<[^>]+>/g, "") });
       return `<h${level} id="${id}"><a class="anchor" href="#${id}" aria-hidden="true">#</a>${inner}</h${level}>`;
     },
   );
   return { html: out, toc };
+}
+
+// Heading ids for a page, exactly as renderDoc will emit them — build.ts feeds
+// these to the search index so anchors can never drift from the rendered ids.
+export function headingsFor(md: string): { text: string; id: string }[] {
+  const html = rewriteLinks(marked.parse(md) as string);
+  return anchorHeadings(html).toc.map((h) => ({ text: h.text, id: h.id }));
 }
 
 // Turn blockquotes that begin with a keyword into colored callouts.
@@ -154,7 +167,7 @@ export function renderDoc(opts: { md: string; out: string; title: string }): str
     title: `${opts.title} — guise`,
     description: `${opts.title} — documentation for guise, a Mantine-inspired component library for gpui.`,
     body,
-    active: "docs",
+    active: opts.out === "tutorial.html" ? "tutorial" : "docs",
     tail: DOC_SCRIPT,
   });
 }

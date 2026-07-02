@@ -55,7 +55,6 @@ impl AvatarGroup {
         self.limit = Some(limit);
         self
     }
-
 }
 
 impl Default for AvatarGroup {
@@ -69,7 +68,9 @@ impl RenderOnce for AvatarGroup {
         let t = theme(cx);
         let dim = super::avatar::avatar_size(self.size);
         let ring = t.body().hsla();
-        let overflow_bg = t.color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 3 }).hsla();
+        let overflow_bg = t
+            .color(ColorName::Gray, if t.scheme.is_dark() { 6 } else { 3 })
+            .hsla();
         let overflow_fg = t.text().hsla();
         let dark = t.scheme.is_dark();
 

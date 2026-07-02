@@ -69,7 +69,13 @@ impl RenderOnce for StatusBar {
             .bg(t.surface().hsla())
             .text_size(px(font))
             .text_color(t.dimmed().hsla())
-            .child(div().flex().items_center().gap(px(12.0)).children(self.left))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(12.0))
+                    .children(self.left),
+            )
             .child(
                 div()
                     .flex_1()
@@ -79,6 +85,12 @@ impl RenderOnce for StatusBar {
                     .gap(px(12.0))
                     .children(self.center),
             )
-            .child(div().flex().items_center().gap(px(12.0)).children(self.right))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(12.0))
+                    .children(self.right),
+            )
     }
 }

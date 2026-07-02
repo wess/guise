@@ -82,7 +82,13 @@ impl MenuColumn {
         shortcut: impl Into<SharedString>,
         handler: impl Fn(&mut Window, &mut App) + 'static,
     ) -> Self {
-        self.entry(label, Some(shortcut.into()), false, false, Some(Box::new(handler)))
+        self.entry(
+            label,
+            Some(shortcut.into()),
+            false,
+            false,
+            Some(Box::new(handler)),
+        )
     }
 
     /// Add a destructive action item, rendered in red.
@@ -219,7 +225,9 @@ impl MenuBar {
 
     fn move_highlight(&mut self, delta: isize) {
         let Some(open) = self.open else { return };
-        let Some(menu) = self.menus.get(open) else { return };
+        let Some(menu) = self.menus.get(open) else {
+            return;
+        };
         let items = menu.actionable();
         if items.is_empty() {
             return;
@@ -236,7 +244,10 @@ impl MenuBar {
         if let Some(Entry::Item {
             handler: Some(handler),
             ..
-        }) = self.menus.get(open).and_then(|m| m.entries.get(self.highlight))
+        }) = self
+            .menus
+            .get(open)
+            .and_then(|m| m.entries.get(self.highlight))
         {
             handler(window, cx);
         }
@@ -365,9 +376,10 @@ impl Render for MenuBar {
                                 .text_color(color)
                                 .child(label.clone())
                                 .child(match shortcut {
-                                    Some(s) => {
-                                        div().text_size(px(font_xs)).text_color(dimmed).child(s.clone())
-                                    }
+                                    Some(s) => div()
+                                        .text_size(px(font_xs))
+                                        .text_color(dimmed)
+                                        .child(s.clone()),
                                     None => div(),
                                 });
                             if !*disabled {
@@ -375,19 +387,17 @@ impl Render for MenuBar {
                                 if ei == self.highlight {
                                     item = item.bg(surface_hover);
                                 }
-                                item = item.on_click(cx.listener(
-                                    move |this, _ev, window, cx| {
-                                        this.open = None;
-                                        if let Some(Entry::Item {
-                                            handler: Some(handler),
-                                            ..
-                                        }) = this.menus.get(mi).and_then(|m| m.entries.get(ei))
-                                        {
-                                            handler(window, cx);
-                                        }
-                                        cx.notify();
-                                    },
-                                ));
+                                item = item.on_click(cx.listener(move |this, _ev, window, cx| {
+                                    this.open = None;
+                                    if let Some(Entry::Item {
+                                        handler: Some(handler),
+                                        ..
+                                    }) = this.menus.get(mi).and_then(|m| m.entries.get(ei))
+                                    {
+                                        handler(window, cx);
+                                    }
+                                    cx.notify();
+                                }));
                             }
                             dropdown = dropdown.child(item);
                         }

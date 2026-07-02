@@ -55,6 +55,25 @@ const stages: Record<string, string> = {
     <div class="g-group"><div class="g-pager"><span>&#8249;</span><span>1</span><span class="is-on">2</span><span>3</span><span>&#8250;</span></div><div class="g-crumbs"><a>Home</a><i>/</i><a>Projects</a><i>/</i><span>guise</span></div></div>
   </div>`,
 
+  editor: `<div class="codepanel" style="width:100%;max-width:520px">
+    <div class="codepanel-bar"><i></i><i></i><i></i><span>query.sql &middot; Editor</span></div>
+    <pre class="code"><code><span class="t-c">-- &#8984;Enter emits EditorEvent::Run</span>
+<span class="t-k">select</span> name, stars
+<span class="t-k">from</span> repos
+<span class="t-k">where</span> lang = <span class="t-s">'rust'</span>
+<span class="t-k">order by</span> stars <span class="t-k">desc</span>;</code></pre>
+  </div>`,
+
+  panels: `<div class="pv-grid">
+    <div class="g-cardmock"><div class="g-row"><span class="g-title">Results</span><span class="g-badge is-blue">128 rows</span></div><span class="g-dimmed">Card chrome, header actions, footer.</span><div class="g-progress"><span style="width:64%"></span></div></div>
+    <div class="g-col g-col--gap"><div class="g-alert"><span class="g-alert-bar"></span><div><strong>Panel</strong><span class="g-dimmed">Controlled collapse, like Modal.</span></div></div><div class="g-alert"><span class="g-alert-bar is-teal"></span><div><strong>SplitPanel</strong><span class="g-dimmed">Draggable divider, Resized events.</span></div></div></div>
+  </div>`,
+
+  charts: `<div class="pv-grid">
+    <div class="g-col g-col--gap"><svg viewBox="0 0 120 36" width="220" height="66" aria-hidden="true"><polyline fill="none" style="stroke:var(--blue)" stroke-width="2.5" stroke-linecap="round" points="2,28 16,20 30,24 44,11 58,17 72,7 86,13 100,5 118,9"/></svg><div class="g-progress"><span style="width:78%"></span></div><div class="g-progress"><span class="is-teal" style="width:52%"></span></div></div>
+    <div class="g-group"><span class="g-ring"></span><span class="g-ring is-grape"></span></div>
+  </div>`,
+
   webview: `<div class="g-webview" style="max-width:460px">
     <div class="g-webbar"><i></i><i></i><i></i><span>https://example.com</span></div>
     <div class="g-webbody"><strong>Native WebView</strong><span>Embedded via wry, positioned in guise layout.</span></div>

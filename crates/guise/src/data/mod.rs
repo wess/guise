@@ -8,18 +8,26 @@
 mod accordion;
 mod avatar;
 mod avatargroup;
+mod dataview;
 mod list;
+mod tabbar;
 mod table;
+mod tableview;
 mod tabs;
 mod timeline;
+mod tree;
 
 pub use accordion::Accordion;
 pub use avatar::Avatar;
 pub use avatargroup::AvatarGroup;
+pub use dataview::{DataView, DataViewEvent, DataViewLayout};
 pub use list::List;
+pub use tabbar::{TabBar, TabBarEvent};
 pub use table::Table;
+pub use tableview::{Column, SelectionMode, SortDir, TableView, TableViewEvent};
 pub use tabs::Tabs;
 pub use timeline::Timeline;
+pub use tree::{TreeNode, TreeView, TreeViewEvent};
 
 use gpui::{AnyElement, App, Window};
 
