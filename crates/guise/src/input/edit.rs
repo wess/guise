@@ -2,12 +2,15 @@
 //! with the operations a text field needs. No UI — fully unit-testable; the
 //! `TextInput` entity drives it from key events and renders from `split`.
 
-/// An editable line of text with a cursor.
+/// An editable line of text with a cursor and an optional selection.
 #[derive(Debug, Clone, Default)]
 pub struct TextEdit {
     chars: Vec<char>,
     /// Cursor position as a char index in `0..=chars.len()`.
     cursor: usize,
+    /// Selection anchor; a selection spans `anchor..cursor` in either order.
+    /// `None` means no selection.
+    anchor: Option<usize>,
 }
 
 impl TextEdit {
@@ -15,7 +18,7 @@ impl TextEdit {
     pub fn new(text: &str) -> Self {
         let chars: Vec<char> = text.chars().collect();
         let cursor = chars.len();
-        Self { chars, cursor }
+        Self { chars, cursor, anchor: None }
     }
 
     pub fn text(&self) -> String {
@@ -30,16 +33,88 @@ impl TextEdit {
         self.chars.len()
     }
 
-    /// Insert `s` at the cursor, advancing past it.
+    /// The selected span `(start, end)` as char indices, or `None` if the
+    /// selection is empty/collapsed.
+    pub fn selection(&self) -> Option<(usize, usize)> {
+        let a = self.anchor?;
+        (a != self.cursor).then(|| (a.min(self.cursor), a.max(self.cursor)))
+    }
+
+    pub fn has_selection(&self) -> bool {
+        self.selection().is_some()
+    }
+
+    /// The selected text, or `None` when nothing is selected.
+    pub fn selected_text(&self) -> Option<String> {
+        let (s, e) = self.selection()?;
+        Some(self.chars[s..e].iter().collect())
+    }
+
+    /// Select the whole line.
+    pub fn select_all(&mut self) {
+        if self.chars.is_empty() {
+            self.anchor = None;
+            return;
+        }
+        self.anchor = Some(0);
+        self.cursor = self.chars.len();
+    }
+
+    /// Drop any selection, keeping the cursor put.
+    pub fn clear_selection(&mut self) {
+        self.anchor = None;
+    }
+
+    /// Delete the selected text (if any), leaving the cursor at its start.
+    /// Returns whether anything was removed.
+    pub fn delete_selection(&mut self) -> bool {
+        let Some((s, e)) = self.selection() else {
+            return false;
+        };
+        self.chars.drain(s..e);
+        self.cursor = s;
+        self.anchor = None;
+        true
+    }
+
+    /// Prepare for a cursor move: with `extend` (Shift held) anchor a selection
+    /// at the current cursor if one isn't already open; otherwise drop it.
+    pub fn pre_move(&mut self, extend: bool) {
+        if extend {
+            if self.anchor.is_none() {
+                self.anchor = Some(self.cursor);
+            }
+        } else {
+            self.anchor = None;
+        }
+    }
+
+    /// The text split around the selection: `(before, selected, after)`, or
+    /// `None` when nothing is selected.
+    pub fn split_selection(&self) -> Option<(String, String, String)> {
+        let (s, e) = self.selection()?;
+        Some((
+            self.chars[..s].iter().collect(),
+            self.chars[s..e].iter().collect(),
+            self.chars[e..].iter().collect(),
+        ))
+    }
+
+    /// Insert `s` at the cursor, replacing any selection, advancing past it.
     pub fn insert(&mut self, s: &str) {
+        self.delete_selection();
         for c in s.chars() {
             self.chars.insert(self.cursor, c);
             self.cursor += 1;
         }
     }
 
-    /// Delete the char before the cursor. Returns whether anything changed.
+    /// Delete the selection, or the char before the cursor. Returns whether
+    /// anything changed.
     pub fn backspace(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         if self.cursor == 0 {
             return false;
         }
@@ -48,8 +123,12 @@ impl TextEdit {
         true
     }
 
-    /// Delete the char at the cursor. Returns whether anything changed.
+    /// Delete the selection, or the char at the cursor. Returns whether anything
+    /// changed.
     pub fn delete(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         if self.cursor >= self.chars.len() {
             return false;
         }
@@ -304,6 +383,45 @@ mod tests {
         // Nothing before the cursor at home: no-op.
         e.home();
         assert!(!e.delete_word_back());
+    }
+
+    #[test]
+    fn select_all_then_type_replaces() {
+        let mut e = TextEdit::new("hello");
+        e.select_all();
+        assert_eq!(e.selected_text().as_deref(), Some("hello"));
+        e.insert("x");
+        assert_eq!(e.text(), "x");
+        assert!(!e.has_selection());
+    }
+
+    #[test]
+    fn shift_arrow_extends_selection() {
+        let mut e = TextEdit::new("abcd");
+        e.pre_move(true);
+        e.left(); // select "d"
+        e.pre_move(true);
+        e.left(); // select "cd"
+        assert_eq!(e.selected_text().as_deref(), Some("cd"));
+        let (before, sel, after) = e.split_selection().unwrap();
+        assert_eq!((before.as_str(), sel.as_str(), after.as_str()), ("ab", "cd", ""));
+    }
+
+    #[test]
+    fn plain_move_clears_selection() {
+        let mut e = TextEdit::new("abcd");
+        e.select_all();
+        e.pre_move(false);
+        e.left();
+        assert!(!e.has_selection());
+    }
+
+    #[test]
+    fn backspace_deletes_selection() {
+        let mut e = TextEdit::new("abcd");
+        e.select_all();
+        assert!(e.backspace());
+        assert_eq!(e.text(), "");
     }
 
     #[test]
