@@ -90,6 +90,64 @@ div().h(px(300.0)).w_full().child(self.split.clone())
 
 Events: `SplitPanelEvent::Resized(f32)` — emitted continuously while dragging.
 
+## PaneGroup (entity)
+
+A recursive tree of **tabbed** panes — the Zed / VS Code editor-group workspace
+model, where *splits contain tabs* (not tabs containing splits). The window is
+one tree of splits whose leaves are panes, and **each pane has its own tab
+bar**. Users drag a tab to reorder it, drop it on another pane's **center** to
+move it there, drop it on a pane **edge** to split, and resize with the
+dividers.
+
+`PaneGroup` owns the layout; the **host owns the items** (their real content
+entities) and supplies, per item, a content element and a title via builder
+closures (re-invoked each render, so content stays live). The host reacts to
+`PaneGroupEvent`s and drives the layout through the model methods. Items are
+opaque `ItemId`s — the unit that moves between panes; the host maps them to
+whatever it owns (editors, terminals, views).
+
+```rust
+let group = cx.new(|cx| {
+    PaneGroup::new(first_item_id, cx)
+        .on_item_title(|item, cx| my_title(item, cx))         // -> SharedString
+        .on_render_item(|item, window, cx| my_view(item, window, cx)) // -> AnyElement
+});
+cx.subscribe(&group, |this, group, event: &PaneGroupEvent, cx| match event {
+    PaneGroupEvent::NewRequested(pane) => {
+        let item = this.create_item(cx);                       // host makes the item
+        group.update(cx, |g, cx| g.add_item(*pane, item, cx));
+    }
+    PaneGroupEvent::CloseRequested(item) => {
+        this.drop_item(*item);                                 // host tears it down
+        group.update(cx, |g, cx| g.close_item(*item, cx));
+    }
+    PaneGroupEvent::Activated(_) | PaneGroupEvent::FocusChanged(_) => cx.notify(),
+})
+.detach();
+
+// In render: give it a sized parent; it fills it.
+div().size_full().child(self.group.clone())
+```
+
+| Method | Notes |
+| --- | --- |
+| `new(first_item, cx)` | one pane holding `first_item` |
+| `on_render_item(closure)` | `Fn(ItemId, &mut Window, &mut App) -> AnyElement`, per item, each frame |
+| `on_item_title(closure)` | `Fn(ItemId, &App) -> SharedString`, the tab title |
+| `add_item(pane, item, cx)` | add a tab to a pane and activate it |
+| `add_to_focused(item, cx)` | add a tab to the focused pane |
+| `split(pane, dir, first, item, cx)` | split a pane, put `item` in the new pane |
+| `activate(pane, item, cx)` | activate an item and focus its pane |
+| `close_item(item, cx)` | remove an item; collapse its pane if it empties |
+| `move_item(item, to_pane, edge, cx)` | move an item onto a pane (`edge = Some` splits, `None` adds as a tab) |
+| `reorder_in_pane(item, index, cx)` | reorder a tab within its pane |
+| `set_ratio(split, ratio, cx)` | set a divider ratio |
+| `items()` / `pane_of(item)` / `focused_pane()` / `active_item()` | queries |
+
+Events: `PaneGroupEvent::{Activated(ItemId), CloseRequested(ItemId),
+NewRequested(PaneId), FocusChanged(PaneId)}`. Window creation for a torn-off tab
+stays a host concern — subscribe and open a window yourself.
+
 Nesting works out of the box: gpui delivers `on_drag_move` for every active
 drag of a payload type anywhere in the window, so each divider's drag payload
 carries its owning entity id and an inner divider never resizes the outer
