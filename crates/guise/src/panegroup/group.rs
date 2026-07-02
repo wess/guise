@@ -20,7 +20,7 @@ use crate::SplitDirection;
 
 use super::drag::{drop_edge, drop_overlay, DropEdge, TabDrag};
 use super::tree::clamp_ratio;
-use super::{ItemId, Node, Pane, PaneId, PaneIds, PaneTree, SplitId};
+use super::{compute_layout, neighbor, Direction, ItemId, Node, Pane, PaneId, PaneIds, PaneTree, Rect, SplitId};
 
 /// Per-item content, re-invoked every render so content stays live.
 type RenderItem = Rc<dyn Fn(ItemId, &mut Window, &mut App) -> AnyElement>;
@@ -41,6 +41,9 @@ pub enum PaneGroupEvent {
     NewRequested(PaneId),
     /// The focused pane changed.
     FocusChanged(PaneId),
+    /// An item was torn off (via [`PaneGroup::tear_off`]); the host should move
+    /// its content into a new window. The item is already detached from here.
+    TearOff(ItemId),
 }
 
 /// The divider being dragged, identifying its split and owning group.
@@ -64,6 +67,8 @@ pub struct PaneGroup {
     /// The pane a tab is dragged over + the edge the drop would take (`None` =
     /// center = add as a tab). Drives the drop overlay; cleared on drop.
     drag_over: Option<(PaneId, Option<DropEdge>)>,
+    /// When set, the focused pane fills the group (the rest is hidden).
+    zoomed: bool,
 }
 
 impl EventEmitter<PaneGroupEvent> for PaneGroup {}
@@ -84,6 +89,7 @@ impl PaneGroup {
             render_item: None,
             item_title: None,
             drag_over: None,
+            zoomed: false,
         }
     }
 
@@ -286,6 +292,118 @@ impl PaneGroup {
         }
         cx.notify();
     }
+
+    // --- navigation -----------------------------------------------------
+
+    /// Focus the pane in `dir` from the focused one (via layout geometry).
+    pub fn focus_direction(&mut self, dir: Direction, cx: &mut Context<Self>) {
+        let layout = compute_layout(&self.tree, Rect::new(0.0, 0.0, 1000.0, 1000.0), 0.0);
+        if let Some(pane) = neighbor(&layout, self.focused, dir) {
+            self.set_focus(pane, cx);
+        }
+    }
+
+    /// Activate the next / previous tab in the focused pane (wrapping).
+    pub fn activate_next(&mut self, cx: &mut Context<Self>) {
+        self.cycle_focused(true, cx);
+    }
+
+    pub fn activate_prev(&mut self, cx: &mut Context<Self>) {
+        self.cycle_focused(false, cx);
+    }
+
+    fn cycle_focused(&mut self, next: bool, cx: &mut Context<Self>) {
+        if let Some(p) = self.panes.get_mut(&self.focused) {
+            if next {
+                p.activate_next();
+            } else {
+                p.activate_prev();
+            }
+            let item = p.active();
+            cx.emit(PaneGroupEvent::Activated(item));
+            cx.notify();
+        }
+    }
+
+    // --- split management -----------------------------------------------
+
+    /// Reset every divider to an even split.
+    pub fn equalize(&mut self, cx: &mut Context<Self>) {
+        for (split, _) in self.tree.list_dividers() {
+            self.tree.set_ratio(split, 0.5);
+        }
+        cx.notify();
+    }
+
+    /// Nudge the divider adjacent to the focused pane in a direction by `step`.
+    pub fn resize_focused(&mut self, dir: Direction, step: f32, cx: &mut Context<Self>) {
+        let (axis, delta) = match dir {
+            Direction::Left => (SplitDirection::Horizontal, -step),
+            Direction::Right => (SplitDirection::Horizontal, step),
+            Direction::Up => (SplitDirection::Vertical, -step),
+            Direction::Down => (SplitDirection::Vertical, step),
+        };
+        if let Some(split) = self.tree.nearest_split(self.focused, axis) {
+            if let Some(r) = self.tree.ratio(split) {
+                self.tree.set_ratio(split, r + delta);
+                cx.notify();
+            }
+        }
+    }
+
+    /// Toggle zoom: the focused pane fills the group.
+    pub fn toggle_zoom(&mut self, cx: &mut Context<Self>) {
+        self.zoomed = !self.zoomed;
+        cx.notify();
+    }
+
+    pub fn is_zoomed(&self) -> bool {
+        self.zoomed
+    }
+
+    // --- close / tear-off -----------------------------------------------
+
+    /// Ask the host to close the focused pane's active item (it drops the
+    /// content, then calls [`close_item`](Self::close_item)).
+    pub fn close_focused(&mut self, cx: &mut Context<Self>) {
+        if let Some(p) = self.panes.get(&self.focused) {
+            cx.emit(PaneGroupEvent::CloseRequested(p.active()));
+        }
+    }
+
+    /// Detach `item` and emit [`PaneGroupEvent::TearOff`] so the host can move
+    /// its content to a new window. The host wires the gesture (e.g. a tab
+    /// dragged outside the window, or a menu item).
+    pub fn tear_off(&mut self, item: ItemId, cx: &mut Context<Self>) {
+        if let Some(pane) = self.pane_of(item) {
+            // Don't tear off the group's last remaining item.
+            if self.tree.panes().len() == 1
+                && self.panes.get(&pane).is_some_and(|p| p.len() == 1)
+            {
+                return;
+            }
+            self.detach(pane, item);
+            if !self.tree.contains(self.focused) {
+                if let Some(&p) = self.tree.panes().first() {
+                    self.focused = p;
+                }
+            }
+        }
+        cx.emit(PaneGroupEvent::TearOff(item));
+        cx.notify();
+    }
+
+    // --- persistence accessors ------------------------------------------
+
+    /// The split tree (for serializing the layout).
+    pub fn tree(&self) -> &PaneTree {
+        &self.tree
+    }
+
+    /// The items of a pane, in tab order.
+    pub fn pane_items(&self, pane: PaneId) -> Option<&[ItemId]> {
+        self.panes.get(&pane).map(|p| p.items())
+    }
 }
 
 impl gpui::Focusable for PaneGroup {
@@ -299,10 +417,13 @@ impl Render for PaneGroup {
         let root = self.tree.root().clone();
         let render_item = self.render_item.clone();
         let item_title = self.item_title.clone();
-        div()
-            .size_full()
-            .track_focus(&self.focus)
-            .child(self.node_el(&root, &render_item, &item_title, window, cx))
+        // Zoomed: only the focused pane, filling the group.
+        let inner = if self.zoomed {
+            self.pane_el(self.focused, &render_item, &item_title, window, cx)
+        } else {
+            self.node_el(&root, &render_item, &item_title, window, cx)
+        };
+        div().size_full().track_focus(&self.focus).child(inner)
     }
 }
 

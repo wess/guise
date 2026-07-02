@@ -142,11 +142,21 @@ div().size_full().child(self.group.clone())
 | `move_item(item, to_pane, edge, cx)` | move an item onto a pane (`edge = Some` splits, `None` adds as a tab) |
 | `reorder_in_pane(item, index, cx)` | reorder a tab within its pane |
 | `set_ratio(split, ratio, cx)` | set a divider ratio |
+| `focus_direction(dir, cx)` | focus the pane up/down/left/right (via layout geometry) |
+| `activate_next(cx)` / `activate_prev(cx)` | cycle tabs in the focused pane |
+| `equalize(cx)` | reset every divider to an even split |
+| `resize_focused(dir, step, cx)` | nudge the divider adjacent to the focused pane |
+| `toggle_zoom(cx)` / `is_zoomed()` | focused pane fills the group |
+| `close_focused(cx)` | request close of the focused pane's active item |
+| `tear_off(item, cx)` | detach an item and emit `TearOff` for the host to re-home |
+| `tree()` / `pane_items(pane)` | read the layout for persistence |
 | `items()` / `pane_of(item)` / `focused_pane()` / `active_item()` | queries |
 
 Events: `PaneGroupEvent::{Activated(ItemId), CloseRequested(ItemId),
-NewRequested(PaneId), FocusChanged(PaneId)}`. Window creation for a torn-off tab
-stays a host concern — subscribe and open a window yourself.
+NewRequested(PaneId), FocusChanged(PaneId), TearOff(ItemId)}`. Window creation
+for a torn-off tab stays a host concern — subscribe to `TearOff` and open a
+window with the item's content. The host wires the tear-off *gesture* (a tab
+dragged outside the window, or a menu item) and calls `tear_off`.
 
 Nesting works out of the box: gpui delivers `on_drag_move` for every active
 drag of a payload type anywhere in the window, so each divider's drag payload
