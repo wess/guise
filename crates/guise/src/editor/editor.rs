@@ -58,6 +58,22 @@ pub enum EditorEvent {
 /// two editors in one window never react to each other's drags.
 struct EditorDrag(EntityId);
 
+/// Per-editor visual overrides. Unset fields fall back to the theme-derived
+/// defaults, so an empty style changes nothing.
+#[derive(Clone, Copy, Default)]
+pub struct EditorStyle {
+    /// Paint no frame border and no corner radius (an embedded strip).
+    pub bare: bool,
+    pub bg: Option<Hsla>,
+    pub text: Option<Hsla>,
+    pub caret: Option<Hsla>,
+    pub selection: Option<Hsla>,
+    pub active_line: Option<Hsla>,
+    pub gutter_fg: Option<Hsla>,
+    pub gutter_fg_active: Option<Hsla>,
+    pub placeholder: Option<Hsla>,
+}
+
 /// A multiline code editor. Create with `cx.new(|cx| Editor::new(cx))`.
 ///
 /// The text model is the unit-tested [`EditorModel`] (char-index cursor,
@@ -71,6 +87,9 @@ pub struct Editor {
     line_numbers: bool,
     font_size: f32,
     rows: Option<usize>,
+    token_palette: Option<[Hsla; 8]>,
+    style: EditorStyle,
+    highlights: Vec<(Pos, Pos, Hsla)>,
     focus: FocusHandle,
     scroll: ScrollHandle,
     hscroll: ScrollHandle,
@@ -100,6 +119,9 @@ impl Editor {
             line_numbers: true,
             font_size: 13.0,
             rows: None,
+            token_palette: None,
+            style: EditorStyle::default(),
+            highlights: Vec::new(),
             focus: cx.focus_handle(),
             scroll: ScrollHandle::new(),
             hscroll: ScrollHandle::new(),
@@ -161,6 +183,34 @@ impl Editor {
         self
     }
 
+    /// Override the syntax palette — one color per [`TokenKind`], in
+    /// [`TokenKind::ALL`] order. Defaults to the theme mapping
+    /// ([`token_color`]).
+    pub fn token_colors(mut self, colors: [Hsla; 8]) -> Self {
+        self.token_palette = Some(colors);
+        self
+    }
+
+    /// Per-editor visual overrides (see [`EditorStyle`]).
+    pub fn style(mut self, style: EditorStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    /// Replace the style at runtime (theme switches).
+    pub fn set_style(&mut self, style: EditorStyle, cx: &mut Context<Self>) {
+        self.style = style;
+        cx.notify();
+    }
+
+    /// Background rectangles painted under the text — search matches,
+    /// occurrence highlights. Document-position ranges; multi-line ranges
+    /// paint like selections.
+    pub fn set_highlights(&mut self, highlights: Vec<(Pos, Pos, Hsla)>, cx: &mut Context<Self>) {
+        self.highlights = highlights;
+        cx.notify();
+    }
+
     // ---- runtime API ----
 
     /// The current document text.
@@ -177,6 +227,53 @@ impl Editor {
     /// The editor's focus handle, so a host can focus it on open.
     pub fn focus_handle(&self) -> FocusHandle {
         self.focus.clone()
+    }
+
+    /// Read access to the underlying [`EditorModel`] — cursor, selection,
+    /// lines — for hosts that build features over the buffer (completion,
+    /// modal keymaps, search).
+    pub fn model(&self) -> &EditorModel {
+        &self.model
+    }
+
+    /// Mutate the [`EditorModel`] directly. Emits [`EditorEvent::Change`]
+    /// when the text changed, keeps the caret visible, and repaints — the
+    /// same bookkeeping every built-in edit goes through.
+    pub fn edit<R>(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        f: impl FnOnce(&mut EditorModel) -> R,
+    ) -> R {
+        let before = self.model.text();
+        let result = f(&mut self.model);
+        let after = self.model.text();
+        if after != before {
+            cx.emit(EditorEvent::Change(after));
+        }
+        self.ensure_cursor_visible(window);
+        cx.notify();
+        result
+    }
+
+    /// Window-space origin of the caret's cell — where a completion popup or
+    /// search bar anchors. Tracks both scroll axes; meaningless before the
+    /// first paint (returns the content origin).
+    pub fn caret_origin(&self, window: &Window) -> Point<Pixels> {
+        let cursor = self.model.cursor();
+        let x = match self.model.line(cursor.line) {
+            Some(line) => self.caret_x(line, cursor.col, window),
+            None => 0.0,
+        };
+        point(
+            self.text_bounds.origin.x + px(x),
+            self.text_bounds.origin.y + px(cursor.line as f32 * self.line_h),
+        )
+    }
+
+    /// The pixel height of one buffer line, as painted last frame.
+    pub fn line_height(&self) -> f32 {
+        self.line_h
     }
 
     /// Two-way bind this editor's text to a `Signal<String>`. The signal is
@@ -525,21 +622,25 @@ impl Render for Editor {
         let focused = self.focus.is_focused(window);
 
         let t = theme(cx);
+        let style = self.style;
         let frame_border = if focused {
             t.primary().hsla()
         } else {
             t.border().hsla()
         };
         let edge = t.border().hsla();
-        let bg = t.surface().hsla();
-        let text_color = t.text().hsla();
-        let dimmed = t.dimmed().hsla();
-        let caret_color = t.primary().hsla();
-        let selection_bg = t.primary().alpha(0.25);
-        let active_bg = t.surface_hover().alpha(0.55);
-        let gutter_fg = t.dimmed().alpha(0.7);
+        let bg = style.bg.unwrap_or_else(|| t.surface().hsla());
+        let text_color = style.text.unwrap_or_else(|| t.text().hsla());
+        let dimmed = style.placeholder.unwrap_or_else(|| t.dimmed().hsla());
+        let caret_color = style.caret.unwrap_or_else(|| t.primary().hsla());
+        let selection_bg = style.selection.unwrap_or_else(|| t.primary().alpha(0.25));
+        let active_bg = style.active_line.unwrap_or_else(|| t.surface_hover().alpha(0.55));
+        let gutter_fg = style.gutter_fg.unwrap_or_else(|| t.dimmed().alpha(0.7));
+        let gutter_fg_active = style.gutter_fg_active.unwrap_or(text_color);
         let radius = t.radius(t.default_radius);
-        let token_colors: [Hsla; 8] = TokenKind::ALL.map(|kind| token_color(kind, t));
+        let token_colors: [Hsla; 8] = self
+            .token_palette
+            .unwrap_or_else(|| TokenKind::ALL.map(|kind| token_color(kind, t)));
 
         // Resolve the mono font once per render and keep it on self: mouse
         // math shapes lines with the same font the glyphs are painted with.
@@ -584,7 +685,7 @@ impl Render for Editor {
                         .items_center()
                         .justify_end()
                         .text_color(if is_active && focused {
-                            text_color
+                            gutter_fg_active
                         } else {
                             gutter_fg
                         })
@@ -601,6 +702,24 @@ impl Render for Editor {
             let mut row = div().relative().h(px(line_h)).w_full();
             if focused && is_active {
                 row = row.bg(active_bg);
+            }
+            for (start, end, color) in &self.highlights {
+                if let Some((s, e, newline)) =
+                    line_selection(*start, *end, i, line.chars().count())
+                {
+                    let sx = f32::from(shaped.x_for_index(byte_for_col(line, s)));
+                    let ex = f32::from(shaped.x_for_index(byte_for_col(line, e)));
+                    let w = (ex - sx) + if newline { cell_w } else { 0.0 };
+                    row = row.child(
+                        div()
+                            .absolute()
+                            .top_0()
+                            .bottom_0()
+                            .left(px(sx))
+                            .w(px(w))
+                            .bg(*color),
+                    );
+                }
             }
             if let Some((start, end)) = selection {
                 if let Some((s, e, newline)) = line_selection(start, end, i, line.chars().count()) {
@@ -717,14 +836,11 @@ impl Render for Editor {
             body = body.min_h(px(rows as f32 * line_h + 2.0 * PAD_Y));
         }
 
-        div()
-            .flex()
-            .flex_col()
-            .w_full()
-            .h_full()
-            .rounded(px(radius))
-            .border_1()
-            .border_color(frame_border)
+        let mut frame = div().flex().flex_col().w_full().h_full();
+        if !style.bare {
+            frame = frame.rounded(px(radius)).border_1().border_color(frame_border);
+        }
+        frame
             .bg(bg)
             .overflow_hidden()
             .font_family(MONO_FAMILY)

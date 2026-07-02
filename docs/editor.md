@@ -39,6 +39,8 @@ cx.subscribe(&editor, |_this, _editor, event: &EditorEvent, _cx| match event {
 | `tab_size(usize)` | `4` | spaces per tab stop (min 1) |
 | `font_size(f32)` | `13.0` | buffer font size in px; line height is 1.5× |
 | `rows(usize)` | none | minimum height, in visible lines |
+| `token_colors([Hsla; 8])` | theme | override the syntax palette, one color per `TokenKind` in `TokenKind::ALL` order |
+| `style(EditorStyle)` | theme | per-editor visual overrides — see [Styling](#styling) |
 
 Runtime: `editor.read(cx).text()` reads the buffer;
 `editor.update(cx, |e, cx| e.set_text("…", cx))` replaces it (resetting
@@ -64,6 +66,52 @@ both directions prevent update loops.
 ```rust
 let source = use_state(cx, String::new());
 Editor::bind(&editor, &source, cx);
+```
+
+### Styling
+
+Every visual comes from the active theme by default. Pass an `EditorStyle` to
+override individual pieces — unset fields fall back to the theme, so an empty
+style changes nothing. `bare` drops the frame border and corner radius, for an
+editor embedded as a strip inside other chrome.
+
+```rust
+use guise::{Editor, EditorStyle, Language};
+
+let editor = cx.new(|cx| {
+    Editor::new(cx)
+        .language(Language::Sql)
+        .style(EditorStyle { bare: true, ..Default::default() })
+});
+```
+
+`EditorStyle` is `Copy` and `Default`. Its fields — every one except `bare` an
+`Option<Hsla>` — are `bare`, `bg`, `text`, `caret`, `selection`, `active_line`,
+`gutter_fg`, `gutter_fg_active`, and `placeholder`. Swap the whole style at
+runtime (a theme toggle) with `editor.update(cx, |e, cx| e.set_style(next, cx))`.
+To recolor only the syntax tokens, `token_colors([Hsla; 8])` replaces the
+per-`TokenKind` palette in `TokenKind::ALL` order.
+
+### Building on the buffer
+
+For features that live above the editor — autocomplete, find/replace, a modal
+keymap — the entity exposes its model and geometry:
+
+- `model() -> &EditorModel` reads the cursor, selection, and lines.
+- `edit(window, cx, |m| …)` mutates the [`EditorModel`](#editormodel-headless)
+  directly and runs the same bookkeeping as a built-in edit — emits
+  `EditorEvent::Change`, keeps the caret visible, and repaints.
+- `set_highlights(Vec<(Pos, Pos, Hsla)>, cx)` paints background rectangles under
+  the text — search matches, occurrence highlights. Ranges are document
+  positions; a multi-line range paints like a selection.
+- `caret_origin(window) -> Point<Pixels>` is where to anchor a completion popup
+  or inline widget, and `line_height()` is the painted height of one line.
+
+```rust
+// anchor a completion popup just below the caret
+let at = editor.read(cx).caret_origin(window);
+let row_h = editor.read(cx).line_height();
+// … position a floating list at (at.x, at.y + row_h) …
 ```
 
 ### Key map

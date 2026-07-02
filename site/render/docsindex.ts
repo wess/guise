@@ -12,7 +12,7 @@ const blurb: Record<string, string> = {
   buttons: "Button, ActionIcon, CloseButton, ThemeIcon, and CopyButton.",
   icons: "The Icon component and the IconName glyph set.",
   inputs: "TextInput, Select, Combobox, NumberInput, Slider, Rating, and more.",
-  editor: "A multiline code editor: gutter, syntax highlighting, and undo/redo.",
+  editor: "A multiline code editor: gutter, syntax highlighting, styling, highlights, and undo/redo.",
   typography: "Text, Title, Anchor, Code, Kbd, Mark, and Spoiler.",
   layout: "Stack, Group, SimpleGrid, Card, Paper, ScrollArea, and AppShell.",
   panels: "Panel header/footer framing, and SplitPanel's draggable divider.",

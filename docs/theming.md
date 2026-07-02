@@ -102,6 +102,24 @@ t.palette.shades(ColorName::Red).get(3);
 `Indigo`, `Blue`, `Cyan`, `Teal`, `Green`, `Lime`, `Yellow`, `Orange`.
 `ColorName::ALL` iterates them; `.label()` gives the lowercase name.
 
+Re-pin a whole ramp before `init` with `Palette::set_shades` — for example, to
+swap guise's neutral `Dark` scale for an app's own:
+
+```rust
+use guise::theme::{Color, Shades};
+
+let mut theme = Theme::dark();
+theme.palette.set_shades(
+    ColorName::Dark,
+    Shades(["#C1C2C5", "#A6A7AB", "#909296", "#5C5F66", "#373A40",
+            "#2C2E33", "#25262B", "#1A1B1E", "#141517", "#101113"].map(Color::hex)),
+);
+theme.init(cx);
+```
+
+Every semantic color (`body`, `surface`, `text`, `border`, …) then resolves
+against the replaced ramp.
+
 ### Semantic colors (scheme-aware)
 
 These resolve differently in light vs. dark mode — use them instead of hard-coding:

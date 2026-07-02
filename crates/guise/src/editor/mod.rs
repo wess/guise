@@ -28,6 +28,6 @@ mod editor;
 mod highlight;
 mod model;
 
-pub use editor::{Editor, EditorEvent};
+pub use editor::{Editor, EditorEvent, EditorStyle};
 pub use highlight::{token_color, Highlighter, Language, LineState, TokenKind};
 pub use model::{EditorModel, Pos};

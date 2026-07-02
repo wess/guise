@@ -108,7 +108,7 @@ pub use data::{
     SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs, Timeline,
     TreeNode, TreeView, TreeViewEvent,
 };
-pub use editor::{Editor, EditorEvent, EditorModel, Highlighter, Language, Pos, TokenKind};
+pub use editor::{Editor, EditorEvent, EditorModel, EditorStyle, Highlighter, Language, Pos, TokenKind};
 pub use feedback::{
     Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
 };
@@ -143,7 +143,7 @@ pub mod prelude {
         SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs,
         Timeline, TreeNode, TreeView, TreeViewEvent,
     };
-    pub use crate::editor::{Editor, EditorEvent, EditorModel, Language, Pos};
+    pub use crate::editor::{Editor, EditorEvent, EditorModel, EditorStyle, Language, Pos};
     pub use crate::feedback::{
         Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
     };
