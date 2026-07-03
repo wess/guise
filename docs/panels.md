@@ -158,6 +158,14 @@ for a torn-off tab stays a host concern — subscribe to `TearOff` and open a
 window with the item's content. The host wires the tear-off *gesture* (a tab
 dragged outside the window, or a menu item) and calls `tear_off`.
 
+**Titlebar integration.** `.titlebar(leading, trailing)` makes the group double
+as the window titlebar (Zed-style — the top pane's tab bar *is* the top row, no
+separate strip). The top-left pane's tab bar reserves `leading` px on the left
+(for the macOS traffic lights), the top-right pane's reserves `trailing` px on
+the right (for custom controls), and the filler after the top-right tabs becomes
+a window-drag region (double-click zooms). Render the group flush to the window
+top and overlay your own controls in the reserved insets.
+
 Nesting works out of the box: gpui delivers `on_drag_move` for every active
 drag of a payload type anywhere in the window, so each divider's drag payload
 carries its owning entity id and an inner divider never resizes the outer
