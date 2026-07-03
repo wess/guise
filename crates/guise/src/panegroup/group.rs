@@ -67,8 +67,14 @@ pub struct PaneGroup {
     /// The pane a tab is dragged over + the edge the drop would take (`None` =
     /// center = add as a tab). Drives the drop overlay; cleared on drop.
     drag_over: Option<(PaneId, Option<DropEdge>)>,
+    /// The item currently being dragged (tracked from `on_drag_move`); if the
+    /// drag is released *outside* the group it's torn off. Cleared on any drop.
+    dragging: Option<ItemId>,
     /// When set, the focused pane fills the group (the rest is hidden).
     zoomed: bool,
+    /// Height of each pane's tab bar in px (also the titlebar height when the
+    /// group doubles as the titlebar). Defaults to 28.
+    tab_height: f32,
     /// When set (`leading`, `trailing`) px, the group doubles as the window
     /// titlebar: the top-left pane's tab bar reserves `leading` px on the left
     /// (for window controls like the macOS traffic lights) and the top-right
@@ -96,9 +102,18 @@ impl PaneGroup {
             render_item: None,
             item_title: None,
             drag_over: None,
+            dragging: None,
+            tab_height: 28.0,
             zoomed: false,
             titlebar: None,
         }
+    }
+
+    /// Set the per-pane tab-bar height in px (also the titlebar height when the
+    /// group is the titlebar). Defaults to 28.
+    pub fn tab_height(mut self, px: f32) -> Self {
+        self.tab_height = px;
+        self
     }
 
     /// Make the group double as the window titlebar: the top-row tab bars
@@ -227,6 +242,7 @@ impl PaneGroup {
         cx: &mut Context<Self>,
     ) {
         self.drag_over = None;
+        self.dragging = None; // a drop landed inside; not a tear-off
         let Some(from) = self.pane_of(item) else {
             cx.notify();
             return;
@@ -264,6 +280,8 @@ impl PaneGroup {
 
     /// Reorder `item` within its pane to `index` (a tab-bar drop).
     pub fn reorder_in_pane(&mut self, item: ItemId, index: usize, cx: &mut Context<Self>) {
+        self.drag_over = None;
+        self.dragging = None;
         if let Some(pane) = self.pane_of(item) {
             if let Some(p) = self.panes.get_mut(&pane) {
                 if let Some(from) = p.index_of(item) {
@@ -392,6 +410,8 @@ impl PaneGroup {
     /// its content to a new window. The host wires the gesture (e.g. a tab
     /// dragged outside the window, or a menu item).
     pub fn tear_off(&mut self, item: ItemId, cx: &mut Context<Self>) {
+        self.drag_over = None;
+        self.dragging = None;
         if let Some(pane) = self.pane_of(item) {
             // Don't tear off the group's last remaining item.
             if self.tree.panes().len() == 1
@@ -462,7 +482,25 @@ impl Render for PaneGroup {
         } else {
             self.node_el(&root, &render_item, &item_title, window, cx)
         };
-        div().size_full().track_focus(&self.focus).child(inner)
+        div()
+            .size_full()
+            .track_focus(&self.focus)
+            // A tab released outside the group (past the panes / the window) is
+            // torn off into a new window (the host handles `TearOff`).
+            .on_mouse_up_out(
+                MouseButton::Left,
+                cx.listener(|this, _ev, _window, cx| {
+                    let dragged = this.dragging.take();
+                    // Clear any lingering drop overlay from the aborted/torn drag.
+                    if this.drag_over.take().is_some() {
+                        cx.notify();
+                    }
+                    if let Some(item) = dragged {
+                        this.tear_off(item, cx);
+                    }
+                }),
+            )
+            .child(inner)
     }
 }
 
@@ -576,6 +614,7 @@ impl PaneGroup {
         let text = t.text().hsla();
         let border = t.border().hsla();
         let active_bg = t.surface_hover().hsla();
+        let tab_h = self.tab_height;
 
         let active = p.active();
         let group = cx.entity().entity_id();
@@ -591,7 +630,7 @@ impl PaneGroup {
                 .items_center()
                 .gap_1()
                 .px_2()
-                .h(px(28.0))
+                .h(px(tab_h))
                 .when(is_active, |d| d.bg(active_bg))
                 .text_color(text)
                 .hover(|s| s.bg(active_bg))
@@ -638,7 +677,7 @@ impl PaneGroup {
             .flex_row()
             .items_center()
             .w_full()
-            .h(px(28.0))
+            .h(px(tab_h))
             .bg(surface)
             .border_b_1()
             .border_color(border)
@@ -649,7 +688,7 @@ impl PaneGroup {
                 div()
                     .id(("pg-newtab", pane.0 as usize))
                     .px_2()
-                    .h(px(28.0))
+                    .h(px(tab_h))
                     .flex()
                     .items_center()
                     .text_color(text)
@@ -688,6 +727,7 @@ impl PaneGroup {
             .overflow_hidden()
             .on_drag_move::<TabDrag>(cx.listener(
                 move |this, ev: &DragMoveEvent<TabDrag>, _w, cx| {
+                    this.dragging = Some(ev.drag(cx).item);
                     let edge = drop_edge(ev.bounds, ev.event.position);
                     if this.drag_over != Some((pane, edge)) {
                         this.drag_over = Some((pane, edge));
