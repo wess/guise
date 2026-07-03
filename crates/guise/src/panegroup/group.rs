@@ -11,7 +11,7 @@ use std::rc::Rc;
 use gpui::prelude::*;
 use gpui::{
     div, px, AnyElement, App, Context, DragMoveEvent, Empty, EntityId, EventEmitter, FocusHandle,
-    IntoElement, SharedString, Window,
+    IntoElement, MouseButton, SharedString, Window, WindowControlArea,
 };
 
 use crate::style::FlexExt;
@@ -69,6 +69,13 @@ pub struct PaneGroup {
     drag_over: Option<(PaneId, Option<DropEdge>)>,
     /// When set, the focused pane fills the group (the rest is hidden).
     zoomed: bool,
+    /// When set (`leading`, `trailing`) px, the group doubles as the window
+    /// titlebar: the top-left pane's tab bar reserves `leading` px on the left
+    /// (for window controls like the macOS traffic lights) and the top-right
+    /// pane's tab bar reserves `trailing` px on the right, with a
+    /// window-draggable filler after its tabs. The host overlays its own
+    /// controls in those insets and renders the group flush to the window top.
+    titlebar: Option<(f32, f32)>,
 }
 
 impl EventEmitter<PaneGroupEvent> for PaneGroup {}
@@ -90,7 +97,17 @@ impl PaneGroup {
             item_title: None,
             drag_over: None,
             zoomed: false,
+            titlebar: None,
         }
+    }
+
+    /// Make the group double as the window titlebar: the top-row tab bars
+    /// reserve `leading`/`trailing` px for the host's window controls and the
+    /// top-right filler becomes a window-drag region. Render the group flush to
+    /// the window top and overlay your controls in the insets.
+    pub fn titlebar(mut self, leading: f32, trailing: f32) -> Self {
+        self.titlebar = Some((leading, trailing));
+        self
     }
 
     /// Supply each item's content element (re-invoked every render).
@@ -406,6 +423,28 @@ impl PaneGroup {
     }
 }
 
+/// The leaf at the layout's top-left corner (descend `first` always).
+fn top_left(node: &Node) -> PaneId {
+    match node {
+        Node::Leaf(p) => *p,
+        Node::Split { first, .. } => top_left(first),
+    }
+}
+
+/// The leaf at the layout's top-right corner (right child of horizontal splits,
+/// top child of vertical splits).
+fn top_right(node: &Node) -> PaneId {
+    match node {
+        Node::Leaf(p) => *p,
+        Node::Split {
+            axis: SplitDirection::Horizontal,
+            second,
+            ..
+        } => top_right(second),
+        Node::Split { first, .. } => top_right(first),
+    }
+}
+
 impl gpui::Focusable for PaneGroup {
     fn focus_handle(&self, _cx: &App) -> FocusHandle {
         self.focus.clone()
@@ -588,7 +627,13 @@ impl PaneGroup {
                 )
         });
 
-        let tab_bar = div()
+        // Titlebar integration: the top-row tab bars reserve space for the
+        // host's window controls, and the top-right filler drags the window.
+        let is_top_left = self.titlebar.is_some() && top_left(self.tree.root()) == pane;
+        let is_top_right = self.titlebar.is_some() && top_right(self.tree.root()) == pane;
+        let (leading, trailing) = self.titlebar.unwrap_or((0.0, 0.0));
+
+        let mut tab_bar = div()
             .flex()
             .flex_row()
             .items_center()
@@ -597,6 +642,8 @@ impl PaneGroup {
             .bg(surface)
             .border_b_1()
             .border_color(border)
+            .when(is_top_left, |d| d.pl(px(leading)))
+            .when(is_top_right, |d| d.pr(px(trailing)))
             .children(tabs)
             .child(
                 div()
@@ -612,6 +659,18 @@ impl PaneGroup {
                         cx.emit(PaneGroupEvent::NewRequested(pane));
                     })),
             );
+        // A window-drag filler fills the rest of the top row (double-click
+        // zooms, per the platform titlebar convention).
+        if is_top_right {
+            tab_bar = tab_bar.child(
+                div()
+                    .id(("pg-titledrag", pane.0 as usize))
+                    .flex_1()
+                    .h_full()
+                    .window_control_area(WindowControlArea::Drag)
+                    .on_mouse_down(MouseButton::Left, |_, window, _| window.start_window_move()),
+            );
+        }
 
         let content = render_item
             .as_ref()
