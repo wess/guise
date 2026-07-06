@@ -33,23 +33,8 @@ jobs:
             gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
           fi
 
-  # Publish the `guise` crate to crates.io.
-  # Requires a CARGO_REGISTRY_TOKEN repository secret; skipped if unset.
-  publish-crate:
-    runs-on: macos-latest
-    env:
-      HAS_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Publish guise-ui to crates.io
-        if: ${{ env.HAS_TOKEN == 'true' }}
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p guise-ui --locked
-      - name: Note when token is missing
-        if: ${{ env.HAS_TOKEN != 'true' }}
-        run: echo "::notice::CARGO_REGISTRY_TOKEN is not set — skipped crates.io publish."
+  # crates.io publishing is intentionally omitted: the library builds against a
+  # pinned zed gpui git rev (see the root [patch.crates-io]), and `cargo publish`
+  # verifies against the crates.io gpui, which the components no longer target.
+  # Consume guise as a git dependency (mirror the patch section). Restore a
+  # publish job here if the library is moved back onto a released gpui.
