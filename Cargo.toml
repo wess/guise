@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/guise", "crates/gallery"]
+# `gallery` (the component showcase) is parked out of the workspace: it targets
+# the old crates.io gpui 0.2.2 API, while the library now builds against the
+# pinned zed gpui rev (see the patch below). Re-add it once it is ported to the
+# newer gpui API.
+members = ["crates/guise"]
+exclude = ["crates/gallery"]
 
 [workspace.package]
 version = "0.5.0"
@@ -16,6 +21,16 @@ categories = ["gui"]
 [workspace.dependencies]
 gpui = "0.2.2"
 guise-ui = { path = "crates/guise" }
+
+# The components track gpui's git line (newer than the crates.io 0.2.2 API), so
+# redirect the crates.io gpui that `guise-ui` requests onto the exact zed rev
+# they build against. Cargo patches don't propagate through git dependencies, so
+# a consumer pinning guise via git must mirror this section (async-process /
+# async-task are zed's own transitive patches).
+[patch.crates-io]
+gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
+async-process = { git = "https://github.com/zed-industries/async-process.git", rev = "0b6d6713570af61806e1e5cb40e0f757cb93fd9d" }
+async-task = { git = "https://github.com/smol-rs/async-task.git", rev = "b4486cd71e4e94fbda54ce6302444de14f4d190e" }
 
 [profile.dev]
 debug = "limited"
