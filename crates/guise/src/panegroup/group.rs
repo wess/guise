@@ -26,6 +26,10 @@ use super::{compute_layout, neighbor, Direction, ItemId, Node, Pane, PaneId, Pan
 type RenderItem = Rc<dyn Fn(ItemId, &mut Window, &mut App) -> AnyElement>;
 /// Per-item title for its tab.
 type ItemTitle = Rc<dyn Fn(ItemId, &App) -> SharedString>;
+/// Optional per-item status dot color for its tab (`None` = no dot). Lets the
+/// host surface a state indicator (e.g. an agent's working/blocked state) in the
+/// tab strip without the group knowing what the color means.
+type ItemDot = Rc<dyn Fn(ItemId, &App) -> Option<gpui::Hsla>>;
 
 /// Interactions the host reacts to. The component owns layout; the host owns
 /// items (creating/destroying their real content) and window management.
@@ -64,6 +68,7 @@ pub struct PaneGroup {
     focus: FocusHandle,
     render_item: Option<RenderItem>,
     item_title: Option<ItemTitle>,
+    item_dot: Option<ItemDot>,
     /// The pane a tab is dragged over + the edge the drop would take (`None` =
     /// center = add as a tab). Drives the drop overlay; cleared on drop.
     drag_over: Option<(PaneId, Option<DropEdge>)>,
@@ -101,6 +106,7 @@ impl PaneGroup {
             focus: cx.focus_handle(),
             render_item: None,
             item_title: None,
+            item_dot: None,
             drag_over: None,
             dragging: None,
             tab_height: 28.0,
@@ -137,6 +143,13 @@ impl PaneGroup {
     /// Supply each item's tab title.
     pub fn on_item_title(mut self, f: impl Fn(ItemId, &App) -> SharedString + 'static) -> Self {
         self.item_title = Some(Rc::new(f));
+        self
+    }
+
+    /// Supply each item's optional tab status-dot color (`None` = no dot),
+    /// re-invoked every render. The host decides what a color means.
+    pub fn on_item_dot(mut self, f: impl Fn(ItemId, &App) -> Option<gpui::Hsla> + 'static) -> Self {
+        self.item_dot = Some(Rc::new(f));
         self
     }
 
@@ -476,11 +489,12 @@ impl Render for PaneGroup {
         let root = self.tree.root().clone();
         let render_item = self.render_item.clone();
         let item_title = self.item_title.clone();
+        let item_dot = self.item_dot.clone();
         // Zoomed: only the focused pane, filling the group.
         let inner = if self.zoomed {
-            self.pane_el(self.focused, &render_item, &item_title, window, cx)
+            self.pane_el(self.focused, &render_item, &item_title, &item_dot, window, cx)
         } else {
-            self.node_el(&root, &render_item, &item_title, window, cx)
+            self.node_el(&root, &render_item, &item_title, &item_dot, window, cx)
         };
         div()
             .size_full()
@@ -511,11 +525,12 @@ impl PaneGroup {
         node: &Node,
         render_item: &Option<RenderItem>,
         item_title: &Option<ItemTitle>,
+        item_dot: &Option<ItemDot>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         match node {
-            Node::Leaf(pane) => self.pane_el(*pane, render_item, item_title, window, cx),
+            Node::Leaf(pane) => self.pane_el(*pane, render_item, item_title, item_dot, window, cx),
             Node::Split {
                 id,
                 axis,
@@ -527,8 +542,8 @@ impl PaneGroup {
                 let ratio = *ratio;
                 let split = *id;
                 let group = cx.entity().entity_id();
-                let f = self.node_el(first, render_item, item_title, window, cx);
-                let s = self.node_el(second, render_item, item_title, window, cx);
+                let f = self.node_el(first, render_item, item_title, item_dot, window, cx);
+                let s = self.node_el(second, render_item, item_title, item_dot, window, cx);
 
                 let line = theme(cx).border().hsla();
                 let grip = theme(cx).primary().alpha(0.35);
@@ -603,6 +618,7 @@ impl PaneGroup {
         pane: PaneId,
         render_item: &Option<RenderItem>,
         item_title: &Option<ItemTitle>,
+        item_dot: &Option<ItemDot>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
@@ -623,6 +639,7 @@ impl PaneGroup {
                 .as_ref()
                 .map(|f| f(item, cx))
                 .unwrap_or_else(|| SharedString::from("untitled"));
+            let dot = item_dot.as_ref().and_then(|f| f(item, cx));
             let is_active = item == active;
             div()
                 .id(("pg-tab", (pane.0 as usize) << 20 | i))
@@ -652,6 +669,16 @@ impl PaneGroup {
                     }
                     this.reorder_in_pane(d.item, i, cx);
                 }))
+                .when_some(dot, |d, color| {
+                    d.child(
+                        div()
+                            .flex_none()
+                            .w(px(6.0))
+                            .h(px(6.0))
+                            .rounded_full()
+                            .bg(color),
+                    )
+                })
                 .child(div().text_size(px(12.0)).child(title))
                 .child(
                     div()
