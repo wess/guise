@@ -21,7 +21,6 @@ pub use stack::Stack;
 use gpui::prelude::*;
 use gpui::Div;
 
-use crate::style::FlexExt;
 
 /// Cross-axis alignment of flex children.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

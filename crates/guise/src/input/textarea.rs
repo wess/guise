@@ -308,7 +308,7 @@ impl Render for TextArea {
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, _ev, window, cx| {
-                    window.focus(&this.focus);
+                    window.focus(&this.focus, cx);
                     cx.notify();
                 }),
             )

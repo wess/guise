@@ -39,6 +39,9 @@ pub enum WebViewEvent {
     LoadStarted,
     /// A page finished loading.
     LoadFinished,
+    /// The page posted a message to the host via `window.ipc.postMessage(...)`.
+    /// Carries the raw string payload; the host decides how to interpret it.
+    Message(SharedString),
 }
 
 /// What the view should display.
@@ -61,6 +64,15 @@ pub struct WebView {
     transparent: bool,
     width: Option<f32>,
     height: Option<f32>,
+    /// JavaScript injected at document start (before page scripts run). Hosts
+    /// use it to expose a native API the page can call via
+    /// `window.ipc.postMessage(...)`. Only applied when the `webview` feature is
+    /// on; the placeholder ignores it.
+    #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+    init_script: Option<SharedString>,
+    /// A directory served over an internal `guise://` origin (see [`WebView::serve`]).
+    #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+    serve_dir: Option<std::path::PathBuf>,
 
     #[cfg(feature = "webview")]
     inner: Option<Rc<wry::WebView>>,
@@ -82,6 +94,8 @@ impl WebView {
             transparent: false,
             width: None,
             height: None,
+            init_script: None,
+            serve_dir: None,
 
             #[cfg(feature = "webview")]
             inner: None,
@@ -90,6 +104,15 @@ impl WebView {
             #[cfg(feature = "webview")]
             draining: false,
         }
+    }
+
+    /// Inject JavaScript that runs at document start, before the page's own
+    /// scripts. Combined with [`WebViewEvent::Message`] (delivered when the page
+    /// calls `window.ipc.postMessage(str)`), this lets a host expose a native
+    /// API to the embedded page. No-op under the placeholder build.
+    pub fn init_script(mut self, js: impl Into<SharedString>) -> Self {
+        self.init_script = Some(js.into());
+        self
     }
 
     /// Load a URL (`https://…`, `file://…`, etc.).
@@ -101,6 +124,19 @@ impl WebView {
     /// Load an inline HTML document.
     pub fn html(mut self, html: impl Into<SharedString>) -> Self {
         self.source = Source::Html(html.into());
+        self
+    }
+
+    /// Serve files from `dir` over an internal `guise://localhost/` origin and
+    /// load `entry` from it. Prefer this over a `file://` [`WebView::url`] for
+    /// local content: `file://` pages are treated as an opaque/null origin, so
+    /// the JS bridge (`window.ipc.postMessage`) is dropped and ES modules /
+    /// `fetch` are blocked. A real origin fixes both.
+    pub fn serve(mut self, dir: impl Into<std::path::PathBuf>, entry: impl AsRef<str>) -> Self {
+        self.serve_dir = Some(dir.into());
+        self.source = Source::Url(
+            format!("guise://localhost/{}", entry.as_ref().trim_start_matches('/')).into(),
+        );
         self
     }
 
@@ -164,6 +200,18 @@ impl WebView {
         }
     }
 
+    /// Show or hide the native surface. The surface tracks its layout bounds only
+    /// while it is painted, so a host that stops rendering this view (e.g. a
+    /// collapsed drawer or a hidden tab) must hide it explicitly — otherwise the
+    /// OS view lingers on screen at its last position. A painted view re-shows
+    /// itself. No-op until the view exists.
+    pub fn set_visible(&mut self, _visible: bool) {
+        #[cfg(feature = "webview")]
+        if let Some(inner) = &self.inner {
+            let _ = inner.set_visible(_visible);
+        }
+    }
+
     /// Build the native view once a window handle is available, then start the
     /// loop that drains events from the wry handlers back onto the entity.
     #[cfg(feature = "webview")]
@@ -173,7 +221,8 @@ impl WebView {
         }
 
         let queue = self.queue.clone();
-        let (q_title, q_nav, q_load) = (queue.clone(), queue.clone(), queue.clone());
+        let (q_title, q_nav, q_load, q_ipc) =
+            (queue.clone(), queue.clone(), queue.clone(), queue.clone());
 
         let mut builder = WebViewBuilder::new()
             .with_bounds(rect_from(bounds))
@@ -194,7 +243,24 @@ impl WebView {
                     PageLoadEvent::Started => WebViewEvent::LoadStarted,
                     PageLoadEvent::Finished => WebViewEvent::LoadFinished,
                 });
+            })
+            // JS -> native: `window.ipc.postMessage(str)` in the page lands here.
+            .with_ipc_handler(move |req| {
+                q_ipc
+                    .borrow_mut()
+                    .push(WebViewEvent::Message(req.into_body().into()));
             });
+
+        if let Some(js) = &self.init_script {
+            builder = builder.with_initialization_script(js.to_string());
+        }
+
+        // Serve `serve_dir` over the `guise://` scheme used by `WebView::serve`.
+        if let Some(dir) = self.serve_dir.clone() {
+            builder = builder.with_custom_protocol("guise".to_string(), move |_id, request| {
+                serve_local(&dir, request.uri().path())
+            });
+        }
 
         builder = match &self.source {
             Source::Url(url) => builder.with_url(url.as_ref()),
@@ -272,6 +338,9 @@ impl Render for WebView {
             move |bounds, _state, _window, _app| {
                 if let Some(view) = &view {
                     let _ = view.set_bounds(rect_from(bounds));
+                    // Being painted means we're on screen; re-assert visibility so
+                    // a view that was hidden while unmounted shows again.
+                    let _ = view.set_visible(true);
                 }
             },
         )
@@ -326,4 +395,61 @@ fn frame(
         root = root.border_1().border_color(border).rounded(px(radius));
     }
     root
+}
+
+/// Serve a file from `dir` for a `guise://localhost/<path>` request. Rejects
+/// paths that try to escape `dir`; unknown files return 404.
+#[cfg(feature = "webview")]
+fn serve_local(
+    dir: &std::path::Path,
+    url_path: &str,
+) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
+    use std::borrow::Cow;
+    use wry::http::{Response, StatusCode};
+
+    let not_found = || {
+        Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Cow::Borrowed(&b"not found"[..]))
+            .unwrap()
+    };
+
+    let rel = url_path.trim_start_matches('/');
+    let rel = if rel.is_empty() { "index.html" } else { rel };
+    // No traversal or absolute escapes; only simple forward paths.
+    if rel.split('/').any(|c| c.is_empty() || c == "." || c == "..") {
+        return not_found();
+    }
+    match std::fs::read(dir.join(rel)) {
+        Ok(bytes) => Response::builder()
+            .status(StatusCode::OK)
+            .header("Content-Type", content_type(rel))
+            .header("Access-Control-Allow-Origin", "*")
+            .body(Cow::Owned(bytes))
+            .unwrap(),
+        Err(_) => not_found(),
+    }
+}
+
+/// A best-effort content type from a file's extension.
+#[cfg(feature = "webview")]
+fn content_type(rel: &str) -> &'static str {
+    match rel.rsplit('.').next() {
+        Some("html" | "htm") => "text/html; charset=utf-8",
+        Some("js" | "mjs") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("json") => "application/json; charset=utf-8",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("ico") => "image/x-icon",
+        Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("ttf") => "font/ttf",
+        Some("wasm") => "application/wasm",
+        Some("map") => "application/json; charset=utf-8",
+        _ => "application/octet-stream",
+    }
 }

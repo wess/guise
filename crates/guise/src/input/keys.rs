@@ -30,7 +30,13 @@ pub fn apply_key(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
     match ks.key.as_str() {
         "enter" => return KeyOutcome::Submit,
         "escape" => return KeyOutcome::Cancel,
+        // Cmd/Super+A selects the whole field (Ctrl+A stays Emacs line-start).
+        "a" if m.platform => {
+            edit.select_all();
+            return KeyOutcome::Edited;
+        }
         "left" => {
+            edit.pre_move(m.shift);
             if m.platform {
                 edit.home();
             } else if m.alt {
@@ -41,6 +47,7 @@ pub fn apply_key(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
             return KeyOutcome::Edited;
         }
         "right" => {
+            edit.pre_move(m.shift);
             if m.platform {
                 edit.end();
             } else if m.alt {
@@ -52,10 +59,12 @@ pub fn apply_key(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
         }
         // Single-line: vertical keys collapse to the line edges.
         "up" | "home" => {
+            edit.pre_move(m.shift);
             edit.home();
             return KeyOutcome::Edited;
         }
         "down" | "end" => {
+            edit.pre_move(m.shift);
             edit.end();
             return KeyOutcome::Edited;
         }

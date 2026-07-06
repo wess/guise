@@ -210,7 +210,7 @@ impl Render for Slider {
             overlay = overlay.child(
                 div()
                     .id(("guise-slider-seg", i))
-                    .flex_grow()
+                    .flex_grow(1.0)
                     .flex_basis(relative(0.0))
                     .h_full()
                     .on_click(cx.listener(move |this, _ev, _window, cx| this.set_value(raw, cx))),

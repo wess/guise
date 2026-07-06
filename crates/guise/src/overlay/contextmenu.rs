@@ -184,23 +184,23 @@ impl ContextMenu {
         self.position = position;
         self.open = true;
         self.prev_focus = window.focused(cx);
-        window.focus(&self.focus);
+        window.focus(&self.focus, cx);
         cx.notify();
     }
 
     /// Close the menu, handing focus back to whatever held it before `show`.
     pub fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.open = false;
-        self.restore_focus(window);
+        self.restore_focus(window, cx);
         cx.notify();
     }
 
     /// Hand focus back, unless something else (an item handler, a click into
     /// another field) already took it.
-    fn restore_focus(&mut self, window: &mut Window) {
+    fn restore_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(prev) = self.prev_focus.take() {
             if self.focus.is_focused(window) {
-                window.focus(&prev);
+                window.focus(&prev, cx);
             }
         }
     }
@@ -298,7 +298,7 @@ impl Render for ContextMenu {
                         this.open = false;
                         // Restore first: a handler that focuses something
                         // (rename → input) still wins.
-                        this.restore_focus(window);
+                        this.restore_focus(window, cx);
                         if let Entry::Item {
                             handler: Some(handler),
                             ..

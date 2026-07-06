@@ -5,12 +5,11 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
+    div, px, ClipboardItem, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
     MouseButton, SharedString, Window,
 };
 
 use super::{apply_key, control_metrics, edit::TextEdit, KeyOutcome};
-use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted as the user edits or submits the field.
@@ -115,43 +114,54 @@ impl TextInput {
         cx.notify();
     }
 
-    /// Two-way bind this input's text to a `Signal<String>`. The signal is
-    /// the source of truth: the field adopts its value now, edits write back
-    /// through [`Signal::set_if_changed`], and signal writes replace the text.
-    /// Equality guards on both directions prevent update loops.
-    pub fn bind(entity: &Entity<TextInput>, signal: &Signal<String>, cx: &mut App) {
-        let initial = signal.get(cx);
-        entity.update(cx, |this, cx| {
-            if this.text() != initial {
-                this.set_text(&initial, cx);
+    /// Copy the selection to the clipboard (never from a password field).
+    fn copy(&self, cx: &mut Context<Self>) {
+        if !self.password {
+            if let Some(text) = self.edit.selected_text() {
+                cx.write_to_clipboard(ClipboardItem::new_string(text));
             }
-        });
-        let sink = signal.clone();
-        cx.subscribe(entity, move |_input, event: &TextInputEvent, cx| {
-            if let TextInputEvent::Change(text) = event {
-                sink.set_if_changed(cx, text.clone());
+        }
+        cx.stop_propagation();
+    }
+
+    /// Cut the selection to the clipboard, removing it from the field.
+    fn cut(&mut self, cx: &mut Context<Self>) {
+        if !self.password {
+            if let Some(text) = self.edit.selected_text() {
+                cx.write_to_clipboard(ClipboardItem::new_string(text));
+                self.edit.delete_selection();
+                cx.emit(TextInputEvent::Change(self.edit.text()));
+                cx.notify();
             }
-        })
-        .detach();
-        // Weak handle: a strong clone would keep the input alive (and updated)
-        // for the signal's whole lifetime after the owning view is gone.
-        let input = entity.downgrade();
-        cx.observe(signal.entity(), move |observed, cx| {
-            let value = observed.read(cx).clone();
-            input
-                .update(cx, |this, cx| {
-                    if this.text() != value {
-                        this.set_text(&value, cx);
-                    }
-                })
-                .ok();
-        })
-        .detach();
+        }
+        cx.stop_propagation();
+    }
+
+    /// Paste clipboard text at the cursor, replacing any selection. Newlines are
+    /// flattened to spaces for this single-line field.
+    fn paste(&mut self, cx: &mut Context<Self>) {
+        if let Some(text) = cx.read_from_clipboard().and_then(|i| i.text()) {
+            self.edit.insert(&text.replace(['\n', '\r'], " "));
+            cx.emit(TextInputEvent::Change(self.edit.text()));
+            cx.notify();
+        }
+        cx.stop_propagation();
     }
 
     fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
         if self.disabled {
             return;
+        }
+        // Clipboard chords need clipboard (App) access, so handle them here
+        // rather than in the pure `apply_key`.
+        let m = &event.keystroke.modifiers;
+        if m.platform && !m.alt && !m.control {
+            match event.keystroke.key.as_str() {
+                "c" => return self.copy(cx),
+                "x" => return self.cut(cx),
+                "v" => return self.paste(cx),
+                _ => {}
+            }
         }
         match apply_key(&mut self.edit, &event.keystroke) {
             KeyOutcome::Submit => {
@@ -190,9 +200,7 @@ impl Render for TextInput {
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
         let caret_color = t.primary().hsla();
-        let error_color = t
-            .color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 })
-            .hsla();
+        let error_color = t.color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 }).hsla();
         let border = border.hsla();
         let font_sm = t.font_size(Size::Sm);
         let font_xs = t.font_size(Size::Xs);
@@ -205,18 +213,39 @@ impl Render for TextInput {
             }
         };
 
-        // The interior: caret split when focused, else value or placeholder.
+        let mut selection_bg = t.primary().hsla();
+        selection_bg.a = 0.30;
+
+        // The interior: a highlighted selection or a caret when focused, else
+        // the value or the placeholder.
         let interior = if focused {
-            let (before, after) = self.edit.split();
-            div()
-                .flex()
-                .items_center()
-                .text_color(text_color)
-                .child(SharedString::from(mask(before)))
-                .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret_color))
-                .child(SharedString::from(mask(after)))
+            if let Some((before, selected, after)) = self.edit.split_selection() {
+                div()
+                    .flex()
+                    .items_center()
+                    .text_color(text_color)
+                    .child(SharedString::from(mask(before)))
+                    .child(
+                        div()
+                            .bg(selection_bg)
+                            .rounded(px(2.0))
+                            .child(SharedString::from(mask(selected))),
+                    )
+                    .child(SharedString::from(mask(after)))
+            } else {
+                let (before, after) = self.edit.split();
+                div()
+                    .flex()
+                    .items_center()
+                    .text_color(text_color)
+                    .child(SharedString::from(mask(before)))
+                    .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret_color))
+                    .child(SharedString::from(mask(after)))
+            }
         } else if self.edit.is_empty() {
-            div().text_color(dimmed).child(self.placeholder.clone())
+            div()
+                .text_color(dimmed)
+                .child(self.placeholder.clone())
         } else {
             div()
                 .text_color(text_color)
@@ -230,7 +259,7 @@ impl Render for TextInput {
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, _ev, window, cx| {
-                    window.focus(&this.focus);
+                    window.focus(&this.focus, cx);
                     cx.notify();
                 }),
             )
