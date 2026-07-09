@@ -232,11 +232,19 @@ impl PaneGroup {
         };
         let emptied = self.panes.get_mut(&pane).map(|p| p.remove(item)).unwrap_or(false);
         if emptied {
+            // Capture the collapsing pane's traversal position before the
+            // tree forgets it, so focus can land on its neighbor instead of
+            // jumping to the first pane in the window.
+            let idx = self.tree.panes().iter().position(|&p| p == pane);
             self.panes.remove(&pane);
             // Last pane can't be removed from the tree; keep an empty group
             // valid by leaving it — but that shouldn't happen (host keeps ≥1).
             if self.tree.remove(pane) && self.focused == pane {
-                let next = self.tree.panes().first().copied().unwrap_or(pane);
+                let order = self.tree.panes();
+                let next = idx
+                    .and_then(|i| order.get(i.saturating_sub(1)).or_else(|| order.last()))
+                    .copied()
+                    .unwrap_or(pane);
                 self.set_focus(next, cx);
             }
         }
