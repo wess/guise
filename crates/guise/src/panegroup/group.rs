@@ -174,6 +174,19 @@ impl PaneGroup {
             .collect()
     }
 
+    /// Panes in traversal order, each with its items and active item.
+    pub fn panes_with_items(&self) -> Vec<(PaneId, Vec<ItemId>, ItemId)> {
+        self.tree
+            .panes()
+            .into_iter()
+            .filter_map(|p| {
+                self.panes
+                    .get(&p)
+                    .map(|pane| (p, pane.items().to_vec(), pane.active()))
+            })
+            .collect()
+    }
+
     pub fn pane_of(&self, item: ItemId) -> Option<PaneId> {
         self.panes
             .iter()
