@@ -42,6 +42,7 @@ pub mod feedback;
 pub mod flex;
 pub mod input;
 pub mod layout;
+pub mod markdown;
 pub mod nav;
 pub mod overlay;
 pub mod reactive;
@@ -122,6 +123,7 @@ pub use input::{
     TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent,
 };
 pub use layout::{Align, AppShell, Center, Container, Group, Justify, SimpleGrid, Space, Stack};
+pub use markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
 pub use nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
 pub use overlay::{
     tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
@@ -146,6 +148,7 @@ pub mod prelude {
         Timeline, TreeNode, TreeView, TreeViewEvent,
     };
     pub use crate::editor::{Editor, EditorEvent, EditorModel, EditorStyle, Language, Pos};
+    pub use crate::markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
     pub use crate::feedback::{
         Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
     };

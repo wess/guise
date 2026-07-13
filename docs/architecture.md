@@ -4,7 +4,7 @@
 
 ```
 guise/
-├── Cargo.toml            # workspace; gpui comes from crates.io
+├── Cargo.toml            # workspace; patches crates.io gpui onto a pinned zed rev
 ├── docs/                 # human docs (this directory)
 ├── site/                 # docs-website generator (Bun; one page per docs/*.md, via render/nav.ts)
 └── crates/
@@ -14,10 +14,14 @@ guise/
 
 ## The gpui dependency
 
-gpui ships on crates.io — the workspace depends on `gpui = "0.2.2"` in
-`[workspace.dependencies]` like any other crate. There is no git pin to a zed
-rev and no `[patch.crates-io]` block to mirror. (`thirdparty/block/` is a
-leftover from the earlier git-dependency era; no manifest references it.)
+The manifests request `gpui = "0.2.2"` from crates.io, but the root
+`[patch.crates-io]` block redirects that onto a pinned zed rev — the
+components track gpui's git line, which is newer than the crates.io API.
+Cargo patches don't propagate through git dependencies, so a consumer pinning
+guise via git must mirror the workspace's `[patch.crates-io]` section
+(including zed's own `async-process` / `async-task` patches).
+(`thirdparty/block/` is a leftover vendored crate; no manifest references
+it.)
 
 The library package is **`guise-ui`** — the `guise` name was taken on
 crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
@@ -33,6 +37,7 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 | `flex/` | Flutter-style `Row`, `Column`, `Container`, `Expanded`, … |
 | `input/` | `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field`, the `TextEdit` model, the shared single-line key map (`keys.rs`) |
 | `editor/` | `Editor` entity, the `EditorModel` buffer, `Language` highlighters (Rust / SQL / JSON) |
+| `markdown/` | `MarkdownEditor` entity (live-preview markdown) over pure `block` / `inline` / `layout` passes |
 | `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion` |
 | `chart/` | `Sparkline`, `LineChart`, `BarChart`, `PieChart` — canvas-painted builders |
 | `feedback/` | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |

@@ -26,6 +26,7 @@ bindings) — all on top of gpui's retained-mode renderer.
 - [Data display](data.md) — `Avatar`, `AvatarGroup`, `Badge`, `Indicator`, `Image`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion`
 - [Charts](charts.md) — `Sparkline`, `LineChart`, `BarChart`, `PieChart`
 - [Editor](editor.md) — `Editor`, a code editor entity with Rust / SQL / JSON highlighting
+- [Markdown editor](markdowneditor.md) — `MarkdownEditor`, an Obsidian-style live-preview markdown editor
 - [Overlays](overlays.md) — `Modal`, `Drawer`, `ConfirmModal`, `Menu`, `MenuBar`, `ContextMenu`, `Popover`, `HoverCard`, `LoadingOverlay`, `Spotlight`, `Tooltip`
 - [Navigation](navigation.md) — `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar`
 - [WebView](webview.md) — `WebView`, a native embedded web view (`wry`)

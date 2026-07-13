@@ -17,9 +17,10 @@ cargo build -p gallery    # full binary build
 
 ## Build constraints
 
-- gpui is a **crates.io dependency** (`gpui = "0.2.2"` in the root
-  `[workspace.dependencies]`). There is no `[patch.crates-io]` block anymore;
-  `thirdparty/block/` is a leftover vendored crate referenced by no manifest.
+- The manifests request `gpui = "0.2.2"` from crates.io, but the root
+  `[patch.crates-io]` block redirects it onto a **pinned zed rev** — consumers
+  pinning guise via git must mirror that patch section. `thirdparty/block/` is
+  a leftover vendored crate referenced by no manifest.
 - The library package is **`guise-ui`** (crates.io name) with `[lib] name = "guise"`,
   so cargo commands use `-p guise-ui` while code imports `use guise::...`.
 
@@ -34,7 +35,7 @@ cargo build -p gallery    # full binary build
    events. These are `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`,
    `PinInput`, `Select`, `Combobox`, `SegmentedControl`, `Slider`, `RangeSlider`,
    `ColorInput`, `TagsInput`, `Menu`, `ContextMenu`, `HoverCard`, `Tabs`,
-   `Accordion`, `Pagination`, `Editor`, `TableView`, `DataView`, `TreeView`,
+   `Accordion`, `Pagination`, `Editor`, `MarkdownEditor`, `TableView`, `DataView`, `TreeView`,
    `TabBar`, `SplitPanel`.
 
 Both patterns can two-way bind to the reactive layer (`guise::reactive`):

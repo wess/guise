@@ -34,7 +34,7 @@ Full docs live in [`docs/`](docs/readme.md):
 
 - **[Tutorial](docs/tutorial.md)** — build a complete app step by step ([web version](https://wess.github.io/guise/tutorial.html))
 - [Getting started](docs/gettingstarted.md) · [Theming](docs/theming.md) · [Component model](docs/components.md)
-- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [Editor](docs/editor.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
+- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [Editor](docs/editor.md) · [Markdown editor](docs/markdowneditor.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
 - Systems: [Flex layout](docs/flex.md) · [Macros](docs/macros.md) · [Transitions](docs/transitions.md) · [Reactive state](docs/reactive.md) · [Window menu](docs/windowmenu.md) · [Architecture](docs/architecture.md)
 
 ## Workspace
@@ -87,7 +87,7 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 | Surface | `Paper`, `Card`                                         |
 | Typography | `Text`, `Title`, `Mark`, `Blockquote`, `Spoiler`    |
 | Inputs  | `Button`, `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field` |
-| Editor  | `Editor` (syntax highlighting: `Language::Rust` / `Sql` / `Json`) |
+| Editor  | `Editor` (syntax highlighting: `Language::Rust` / `Sql` / `Json`), `MarkdownEditor` (Obsidian-style live preview) |
 | Overlays | `Modal`, `Drawer`, `Menu`, `MenuBar`, `ContextMenu`, `HoverCard`, `LoadingOverlay`, `ConfirmModal`, `Popover`, `Spotlight`, `Tooltip` |
 | Feedback | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
 | Data    | `Badge`, `Divider`, `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Image`, `Timeline`, `Tabs`, `Accordion` |
@@ -130,7 +130,9 @@ sorting and selection), `DataView<T>` (a list/grid bound to a
 `Signal<Vec<T>>` with filter/sort projections), `TreeView` (expandable
 hierarchy), and `TabBar` (a document-style tab strip with close/add buttons).
 `Editor` is a code
-editor entity with a line-number gutter and Rust / SQL / JSON highlighting, and
+editor entity with a line-number gutter and Rust / SQL / JSON highlighting,
+`MarkdownEditor` is an Obsidian-style live-preview markdown editor over the
+same text model, and
 the `chart` module's `Sparkline` / `BarChart` / `LineChart` / `PieChart` are
 stateless canvas-painted builders.
 
