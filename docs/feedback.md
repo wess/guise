@@ -12,7 +12,7 @@ An inline colored callout for info / success / warning / error.
 Alert::new("Your changes have been saved.")
     .title("Success")
     .color(ColorName::Teal)
-    .icon("✓")
+    .icon(IconName::Check)
     .on_close(cx.listener(|this, _ev, _w, cx| { this.show_alert = false; cx.notify(); }))
 ```
 
@@ -22,7 +22,7 @@ Alert::new("Your changes have been saved.")
 | `title(impl Into<SharedString>)` | none |
 | `variant(Variant)` | `Light` |
 | `color(ColorName)` | `Blue` |
-| `icon(impl Into<SharedString>)` | none (leading glyph) |
+| `icon(impl Into<Glyph>)` | none (a Lucide `IconName` or text) |
 | `on_close(handler)` | none (adds an `×`) |
 
 Filled variants render all text on the fill; light/outline keep readable body text.
@@ -92,11 +92,12 @@ job — this is the visual card.
 Notification::new("Deployment finished in 42s.")
     .title("Build complete")
     .color(ColorName::Teal)
-    .icon("✓")
+    .icon(IconName::Check)
     .on_close(cx.listener(|this, _, _, cx| { /* dismiss */ }))
 ```
 
-Methods: `new(message)`, `title`, `color` (default `Blue`), `icon`, `on_close`.
+Methods: `new(message)`, `title`, `color` (default `Blue`), `icon`
+(`impl Into<Glyph>`), `on_close`.
 
 ## ToastStack (entity)
 

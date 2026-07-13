@@ -143,6 +143,7 @@ struct Gallery {
 /// Each snippet carries both a plain and a macro variant.
 const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
     ("buttons", code::BUTTONS),
+    ("icons", code::ICONS),
     ("webview", code::WEBVIEW),
     ("badges", code::BADGES),
     ("inputs", code::INPUTS),
@@ -710,7 +711,7 @@ impl Gallery {
         body: impl IntoElement,
     ) -> impl IntoElement {
         let open = self.code_open.contains(key);
-        let toggle = ActionIcon::new(SharedString::from(format!("code-{key}")), "</>")
+        let toggle = ActionIcon::new(SharedString::from(format!("code-{key}")), IconName::CodeXml)
             .variant(if open {
                 Variant::Light
             } else {
@@ -755,22 +756,24 @@ impl Gallery {
     fn polish(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let icons = Group::new()
             .child(
-                ActionIcon::new("ai-edit", "✎")
+                ActionIcon::new("ai-edit", IconName::Pencil)
                     .variant(Variant::Light)
                     .color(ColorName::Blue),
             )
             .child(
-                ActionIcon::new("ai-del", "🗑")
+                ActionIcon::new("ai-del", IconName::Trash2)
                     .variant(Variant::Light)
                     .color(ColorName::Red),
             )
-            .child(ThemeIcon::new("★").color(ColorName::Yellow))
+            .child(ThemeIcon::new(IconName::Star).color(ColorName::Yellow))
             .child(
-                ThemeIcon::new("✓")
+                ThemeIcon::new(IconName::Check)
                     .color(ColorName::Teal)
                     .variant(Variant::Light),
             )
-            .child(Indicator::new(ThemeIcon::new("✉").color(ColorName::Grape)).label("3"))
+            .child(
+                Indicator::new(ThemeIcon::new(IconName::Mail).color(ColorName::Grape)).label("3"),
+            )
             .child(CloseButton::new("close-demo"));
 
         let typography = Group::new()
@@ -1019,8 +1022,8 @@ impl Gallery {
             .id("demo-panel")
             .title("Project status")
             .description("Weekly summary")
-            .icon(ThemeIcon::new("▦").color(ColorName::Blue))
-            .action(ActionIcon::new("panel-more", "…").size(Size::Sm))
+            .icon(ThemeIcon::new(IconName::LayoutGrid).color(ColorName::Blue))
+            .action(ActionIcon::new("panel-more", IconName::Ellipsis).size(Size::Sm))
             .collapsible()
             .collapsed(self.panel_collapsed)
             .on_toggle(cx.listener(|this, _, _, cx| {
@@ -1451,6 +1454,7 @@ impl Render for Gallery {
         // Build each section (body + "view source" toggle). Bodies that need
         // `cx` are bound first so `self.section(cx, …)` doesn't double-borrow it.
         let buttons = self.section(cx, "buttons", "Buttons", sections::buttons());
+        let icons = self.section(cx, "icons", "Icons", sections::icons());
         let webview_body = self.webview_demo(cx);
         let webview = self.section(cx, "webview", "WebView (native)", webview_body);
         let badges = self.section(cx, "badges", "Badges", sections::badges());
@@ -1527,6 +1531,7 @@ impl Render for Gallery {
                             .child(self.code_style.clone()),
                     )
                     .child(buttons)
+                    .child(icons)
                     .child(webview)
                     .child(badges)
                     .child(inputs)

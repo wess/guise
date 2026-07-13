@@ -34,7 +34,7 @@ let links = ["Dashboard", "Components", "Settings"];
 let sidebar = links.iter().enumerate().fold(Stack::new().gap(Size::Xs), |stack, (i, label)| {
     stack.child(
         NavLink::new(("nav", i), *label)
-            .icon("•")
+            .icon(IconName::House)
             .active(self.active == i)
             .on_click(cx.listener(move |this, _, _, cx| { this.active = i; cx.notify(); })),
     )
@@ -45,7 +45,7 @@ let sidebar = links.iter().enumerate().fold(Stack::new().gap(Size::Xs), |stack, 
 | --- | --- |
 | `new(id, label)` | — |
 | `description(s)` | none (second line) |
-| `icon(s)` | none |
+| `icon(impl Into<Glyph>)` | none (a Lucide `IconName` or text) |
 | `color(ColorName)` | `Blue` (active tint) |
 | `active(bool)` | `false` |
 | `on_click(handler)` | — |

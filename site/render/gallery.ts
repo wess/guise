@@ -2,7 +2,7 @@
 // grouped into numbered bands. Mocks reuse the `.g-*` classes from theme/style.css.
 
 import { shell } from "./shell";
-import { plate, ribbon } from "./bits";
+import { lucide, plate, ribbon } from "./bits";
 
 type Plate = { name: string; note: string; href: string; preview: string; wide?: boolean };
 type Band = { idx: string; kicker: string; plates: Plate[] };
@@ -25,14 +25,14 @@ const bands: Band[] = [
       },
       {
         name: "ActionIcon · ThemeIcon",
-        note: "compact icon buttons",
+        note: "compact icon buttons — Lucide built in",
         href: "buttons.html",
         preview: `<div class="g-group">
-          <span class="g-aicon is-blue">&#9881;</span>
-          <span class="g-aicon is-grape">&#9733;</span>
-          <span class="g-aicon is-teal">&#10003;</span>
-          <span class="g-aicon is-red">&#10005;</span>
-          <span class="g-themeicon is-violet">&#9658;</span>
+          <span class="g-aicon is-blue">${lucide("settings")}</span>
+          <span class="g-aicon is-grape">${lucide("star")}</span>
+          <span class="g-aicon is-teal">${lucide("check")}</span>
+          <span class="g-aicon is-red">${lucide("x")}</span>
+          <span class="g-themeicon is-violet">${lucide("play")}</span>
         </div>`,
       },
       {

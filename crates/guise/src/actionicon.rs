@@ -1,8 +1,9 @@
 //! `ActionIcon` — a square icon-only button.
 
 use gpui::prelude::*;
-use gpui::{div, px, App, ClickEvent, ElementId, IntoElement, SharedString, Window};
+use gpui::{div, px, App, ClickEvent, ElementId, IntoElement, Window};
 
+use crate::icon::Glyph;
 use crate::input::ClickHandler;
 use crate::style::{icon_size, surface, ColorValue, Variant};
 use crate::theme::{theme, ColorName, Size};
@@ -11,7 +12,7 @@ use crate::theme::{theme, ColorName, Size};
 #[derive(IntoElement)]
 pub struct ActionIcon {
     id: ElementId,
-    icon: SharedString,
+    icon: Glyph,
     variant: Variant,
     color: ColorValue,
     size: Size,
@@ -21,7 +22,7 @@ pub struct ActionIcon {
 }
 
 impl ActionIcon {
-    pub fn new(id: impl Into<ElementId>, icon: impl Into<SharedString>) -> Self {
+    pub fn new(id: impl Into<ElementId>, icon: impl Into<Glyph>) -> Self {
         ActionIcon {
             id: id.into(),
             icon: icon.into(),

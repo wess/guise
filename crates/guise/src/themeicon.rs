@@ -1,15 +1,16 @@
 //! `ThemeIcon` — a colored, rounded container for a single icon.
 
 use gpui::prelude::*;
-use gpui::{div, px, App, IntoElement, SharedString, Window};
+use gpui::{div, px, App, IntoElement, Window};
 
+use crate::icon::Glyph;
 use crate::style::{surface, Variant};
 use crate::theme::{theme, ColorName, Size};
 
 /// A decorative colored icon chip. The Mantine `ThemeIcon`.
 #[derive(IntoElement)]
 pub struct ThemeIcon {
-    icon: SharedString,
+    icon: Glyph,
     variant: Variant,
     color: ColorName,
     size: Size,
@@ -17,7 +18,7 @@ pub struct ThemeIcon {
 }
 
 impl ThemeIcon {
-    pub fn new(icon: impl Into<SharedString>) -> Self {
+    pub fn new(icon: impl Into<Glyph>) -> Self {
         ThemeIcon {
             icon: icon.into(),
             variant: Variant::Filled,

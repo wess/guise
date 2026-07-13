@@ -94,7 +94,8 @@ List::new().ordered(true).item("Step one").item("Step two")
 ```
 
 Methods: `new()`, `item(s)`, `items(iter)`, `ordered(bool)`, `size`,
-`spacing(Size)`, `icon(glyph)` (custom bullet).
+`spacing(Size)`, `icon(impl Into<Glyph>)` (custom bullet — a Lucide `IconName`
+or text).
 
 ## Table
 

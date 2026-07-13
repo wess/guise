@@ -212,11 +212,7 @@ impl RenderOnce for Panel {
                 } else {
                     IconName::ChevronDown
                 };
-                let mut toggle = ActionIcon::new(
-                    "guise-panel-toggle",
-                    SharedString::new_static(chevron.glyph()),
-                )
-                .size(Size::Sm);
+                let mut toggle = ActionIcon::new("guise-panel-toggle", chevron).size(Size::Sm);
                 if let Some(handler) = self.on_toggle.clone() {
                     toggle = toggle.on_click(move |ev, window, cx| handler(ev, window, cx));
                 }

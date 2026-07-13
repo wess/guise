@@ -3,6 +3,7 @@
 use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, FontWeight, IntoElement, SharedString, Window};
 
+use crate::icon::Glyph;
 use crate::input::ClickHandler;
 use crate::style::{surface, ColorValue, Variant};
 use crate::theme::{theme, Size};
@@ -14,7 +15,7 @@ pub struct Alert {
     message: SharedString,
     variant: Variant,
     color: ColorValue,
-    icon: Option<SharedString>,
+    icon: Option<Glyph>,
     on_close: Option<ClickHandler>,
 }
 
@@ -45,8 +46,8 @@ impl Alert {
         self
     }
 
-    /// A leading glyph (e.g. an icon character).
-    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
+    /// A leading glyph (a Lucide [`IconName`](crate::IconName) or a character).
+    pub fn icon(mut self, icon: impl Into<Glyph>) -> Self {
         self.icon = Some(icon.into());
         self
     }

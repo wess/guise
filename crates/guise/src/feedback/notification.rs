@@ -3,6 +3,7 @@
 use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, FontWeight, IntoElement, SharedString, Window};
 
+use crate::icon::Glyph;
 use crate::input::ClickHandler;
 use crate::theme::{theme, ColorName, Size};
 
@@ -13,7 +14,7 @@ pub struct Notification {
     title: Option<SharedString>,
     message: SharedString,
     color: ColorName,
-    icon: Option<SharedString>,
+    icon: Option<Glyph>,
     on_close: Option<ClickHandler>,
 }
 
@@ -38,7 +39,7 @@ impl Notification {
         self
     }
 
-    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
+    pub fn icon(mut self, icon: impl Into<Glyph>) -> Self {
         self.icon = Some(icon.into());
         self
     }

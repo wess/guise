@@ -3,6 +3,7 @@
 use gpui::prelude::*;
 use gpui::{div, px, App, ClickEvent, ElementId, FontWeight, IntoElement, SharedString, Window};
 
+use crate::icon::Glyph;
 use crate::input::ClickHandler;
 use crate::theme::{theme, ColorName, Size};
 
@@ -12,7 +13,7 @@ pub struct NavLink {
     id: ElementId,
     label: SharedString,
     description: Option<SharedString>,
-    icon: Option<SharedString>,
+    icon: Option<Glyph>,
     color: ColorName,
     active: bool,
     on_click: Option<ClickHandler>,
@@ -36,7 +37,7 @@ impl NavLink {
         self
     }
 
-    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
+    pub fn icon(mut self, icon: impl Into<Glyph>) -> Self {
         self.icon = Some(icon.into());
         self
     }

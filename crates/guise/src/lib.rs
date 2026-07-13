@@ -86,7 +86,7 @@ pub use closebutton::CloseButton;
 pub use code::Code;
 pub use copybutton::CopyButton;
 pub use divider::{Divider, Orientation};
-pub use icon::{Icon, IconName};
+pub use icon::{Glyph, Icon, IconName, LUCIDE_VERSION};
 pub use image::{Image, ObjectFit};
 pub use indicator::Indicator;
 pub use kbd::Kbd;
@@ -176,8 +176,8 @@ pub mod prelude {
     pub use crate::{card, center, col, hstack, modal, paper, row, vstack, wrap, zstack};
     pub use crate::{color, style};
     pub use crate::{
-        ActionIcon, Anchor, Chip, CloseButton, Code, CopyButton, Icon, IconName, Indicator, Kbd,
-        ScrollArea, Skeleton, ThemeIcon,
+        ActionIcon, Anchor, Chip, CloseButton, Code, CopyButton, Glyph, Icon, IconName, Indicator,
+        Kbd, ScrollArea, Skeleton, ThemeIcon,
     };
     pub use crate::{Badge, Button, Card, Divider, Panel, Paper, Text, Title};
     pub use crate::{Blockquote, Image, Mark, ObjectFit, Spoiler};

@@ -33,6 +33,24 @@ pub const BUTTONS: Snippet = Snippet {
 ];"#,
 };
 
+pub const ICONS: Snippet = Snippet {
+    plain: r#"// Lucide is the built-in icon set: every icon on lucide.dev is an
+// IconName variant, rendered from the font embedded in guise.
+Group::new().children([
+    Icon::new(IconName::Rocket).size(Size::Lg),
+    Icon::new(IconName::Heart).color(ColorName::Red),
+    Icon::new(IconName::Star).color(ColorName::Yellow),
+]);
+
+// The full set is iterable: IconName::all(), name() gives "arrow-right".
+"#,
+    macros: r#"hstack![
+    Icon::new(IconName::Rocket).size(Size::Lg),
+    Icon::new(IconName::Heart).color(ColorName::Red),
+    Icon::new(IconName::Star).color(ColorName::Yellow),
+];"#,
+};
+
 pub const WEBVIEW: Snippet = Snippet {
     plain: r#"// Stateful entity — owns a native OS web view via `wry`.
 let view = cx.new(|cx| {
@@ -166,12 +184,12 @@ pub const NAVIGATION: Snippet = Snippet {
 
 pub const POLISH: Snippet = Snippet {
     plain: r#"Group::new()
-    .child(ActionIcon::new("edit", "✎").variant(Variant::Light))
-    .child(ThemeIcon::new("★").color(ColorName::Yellow))
+    .child(ActionIcon::new("edit", IconName::Pencil).variant(Variant::Light))
+    .child(ThemeIcon::new(IconName::Star).color(ColorName::Yellow))
     .child(Chip::new("chip", "Notifications").checked(self.chip_on));"#,
     macros: r#"hstack![
-    ActionIcon::new("edit", "✎").variant(Variant::Light),
-    ThemeIcon::new("★").color(ColorName::Yellow),
+    ActionIcon::new("edit", IconName::Pencil).variant(Variant::Light),
+    ThemeIcon::new(IconName::Star).color(ColorName::Yellow),
     Chip::new("chip", "Notifications").checked(self.chip_on),
 ];"#,
 };

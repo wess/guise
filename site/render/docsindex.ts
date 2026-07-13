@@ -10,7 +10,7 @@ const blurb: Record<string, string> = {
   theming: "The palette, scales, color scheme, and semantic colors.",
   components: "RenderOnce builders vs. stateful entities, variants, and events.",
   buttons: "Button, ActionIcon, CloseButton, ThemeIcon, and CopyButton.",
-  icons: "The Icon component and the IconName glyph set.",
+  icons: "The Icon component and the embedded Lucide icon set.",
   inputs: "TextInput, Select, Combobox, NumberInput, Slider, Rating, and more.",
   editor: "A multiline code editor: gutter, syntax highlighting, styling, highlights, and undo/redo.",
   typography: "Text, Title, Anchor, Code, Kbd, Mark, and Spoiler.",

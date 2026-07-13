@@ -2,10 +2,12 @@
 // reuses the `.g-*` mock classes (styled in theme/style.css with guise's real
 // palette), so each doc opens with a rendered look at what it documents.
 
+import { lucide } from "./bits";
+
 const stages: Record<string, string> = {
   buttons: `<div class="pv-wrap">
     <div class="g-group"><button class="g-btn g-btn--filled">Filled</button><button class="g-btn g-btn--light">Light</button><button class="g-btn g-btn--outline">Outline</button><button class="g-btn g-btn--subtle">Subtle</button></div>
-    <div class="g-group"><span class="g-aicon is-blue">&#9881;</span><span class="g-aicon is-grape">&#9733;</span><span class="g-aicon is-teal">&#10003;</span><span class="g-aicon is-red">&#10005;</span><span class="g-themeicon is-violet">&#9658;</span></div>
+    <div class="g-group"><span class="g-aicon is-blue">${lucide("settings")}</span><span class="g-aicon is-grape">${lucide("star")}</span><span class="g-aicon is-teal">${lucide("check")}</span><span class="g-aicon is-red">${lucide("x")}</span><span class="g-themeicon is-violet">${lucide("play")}</span></div>
   </div>`,
 
   components: `<div class="pv-wrap">
@@ -27,7 +29,7 @@ const stages: Record<string, string> = {
   </div>`,
 
   icons: `<div class="g-group">
-    <span class="g-aicon is-blue">&#9728;</span><span class="g-aicon is-grape">&#9733;</span><span class="g-aicon is-teal">&#10003;</span><span class="g-aicon is-red">&#10007;</span><span class="g-aicon is-blue">&#9851;</span><span class="g-themeicon is-violet">&#9658;</span>
+    <span class="g-aicon is-blue">${lucide("sun")}</span><span class="g-aicon is-grape">${lucide("star")}</span><span class="g-aicon is-teal">${lucide("check")}</span><span class="g-aicon is-red">${lucide("x")}</span><span class="g-aicon is-teal">${lucide("leaf")}</span><span class="g-aicon is-red">${lucide("heart")}</span><span class="g-aicon is-blue">${lucide("zap")}</span><span class="g-themeicon is-violet">${lucide("play")}</span>
   </div>`,
 
   layout: `<div class="pv-grid">

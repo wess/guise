@@ -10,7 +10,9 @@ A [Mantine](https://mantine.dev)-inspired component library for
 framework that powers Zed.
 
 `guise` brings Mantine's ergonomics to gpui: a themed palette, sizing tokens,
-and composable components built on gpui's `RenderOnce` builder pattern.
+composable components built on gpui's `RenderOnce` builder pattern, and the
+full [Lucide](https://lucide.dev) icon set embedded as the default icons — no
+asset pipeline needed.
 
 ```rust
 use guise::prelude::*;
@@ -91,7 +93,7 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 | Data    | `Badge`, `Divider`, `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Image`, `Timeline`, `Tabs`, `Accordion` |
 | Charts  | `Sparkline`, `BarChart`, `LineChart`, `PieChart`        |
 | Navigation | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
-| Polish  | `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Anchor`, `Code`, `Kbd`, `Chip`, `Indicator`, `Skeleton`, `SegmentedControl` |
+| Polish  | `Icon` (all of [Lucide](https://lucide.dev) embedded), `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Anchor`, `Code`, `Kbd`, `Chip`, `Indicator`, `Skeleton`, `SegmentedControl` |
 | Motion  | `Transition`, `Collapse`                                |
 
 Inputs come in two flavors that match how each control behaves in gpui:

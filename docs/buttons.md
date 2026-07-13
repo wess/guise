@@ -13,7 +13,7 @@ Button::new("save", "Save changes")
     .variant(Variant::Filled)
     .color(ColorName::Blue)
     .size(Size::Md)
-    .left_section(Text::new("✓"))
+    .left_section(Icon::new(IconName::Check))
     .on_click(cx.listener(|this, _ev, _window, cx| {
         // ...
         cx.notify();
@@ -38,7 +38,7 @@ Button::new("save", "Save changes")
 A compact, square icon-only button. Same variant/color/size surface as `Button`.
 
 ```rust
-ActionIcon::new("edit", "✎")
+ActionIcon::new("edit", IconName::Pencil)
     .variant(Variant::Light)
     .color(ColorName::Blue)
     .on_click(cx.listener(|this, _, _, cx| { /* ... */ }))
@@ -46,7 +46,7 @@ ActionIcon::new("edit", "✎")
 
 | Method | Default |
 | --- | --- |
-| `new(id, icon)` | — |
+| `new(id, icon)` | — (`impl Into<Glyph>`: an `IconName` or text — see [icons](icons.md)) |
 | `variant(Variant)` | `Subtle` |
 | `color(ColorName)` | `Gray` |
 | `size(Size)` | `Md` (square: xs 18 … xl 44) |
@@ -76,12 +76,12 @@ CloseButton::new("close").on_click(cx.listener(|this, _, _, cx| {
 A decorative, non-interactive colored chip wrapping a single glyph.
 
 ```rust
-ThemeIcon::new("★").color(ColorName::Yellow).variant(Variant::Filled)
+ThemeIcon::new(IconName::Star).color(ColorName::Yellow).variant(Variant::Filled)
 ```
 
 | Method | Default |
 | --- | --- |
-| `new(icon)` | — |
+| `new(icon)` | — (`impl Into<Glyph>`) |
 | `variant(Variant)` | `Filled` |
 | `color(ColorName)` | `Blue` |
 | `size(Size)` | `Md` |

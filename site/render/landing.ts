@@ -73,6 +73,7 @@ const features: Feature[] = [
   { icon: "&#9707;", title: "Flex + macros", body: "A Flutter-style flexbox layer plus terse <code>row!</code> / <code>col!</code> / <code>zstack!</code> macros for dense layout." },
   { icon: "&#10022;", title: "Reactive state", body: "A lightweight React-style layer: <code>Signal</code>, <code>use_state</code>, <code>provide</code> / <code>use_context</code>, and <code>use_form</code> validation." },
   { icon: "&#9673;", title: "Native WebView", body: "Embed a real OS web view (WKWebView / WebView2 / WebKitGTK) via <code>wry</code>, positioned inside normal guise layout." },
+  { icon: "&#10038;", title: "Lucide icons built in", body: "Every <a href=\"https://lucide.dev\">Lucide</a> icon as an <code>IconName</code> variant, drawn from an embedded icon font — no asset pipeline, tinted and sized like text." },
 ];
 
 function bandHead(h: string, p: string, learnHref?: string, learnLabel?: string): string {

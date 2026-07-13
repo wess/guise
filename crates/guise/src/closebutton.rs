@@ -1,8 +1,9 @@
-//! `CloseButton` — a subtle square button with an `×` glyph.
+//! `CloseButton` — a subtle square button with a dismiss glyph.
 
 use gpui::prelude::*;
-use gpui::{div, px, App, ClickEvent, ElementId, IntoElement, SharedString, Window};
+use gpui::{div, px, App, ClickEvent, ElementId, IntoElement, Window};
 
+use crate::icon::{Glyph, IconName};
 use crate::input::ClickHandler;
 use crate::style::icon_size;
 use crate::theme::{theme, Size};
@@ -56,7 +57,7 @@ impl RenderOnce for CloseButton {
             .text_color(t.dimmed().hsla())
             .text_size(px(dim * 0.5))
             .hover(move |s| s.bg(hover_bg).text_color(hover_fg))
-            .child(SharedString::new_static("\u{00d7}"));
+            .child(Glyph::from(IconName::X));
         if let Some(handler) = self.on_click {
             el = el.on_click(handler);
         }

@@ -3,6 +3,7 @@
 use gpui::prelude::*;
 use gpui::{div, px, App, IntoElement, SharedString, Window};
 
+use crate::icon::Glyph;
 use crate::theme::{theme, Size};
 
 /// A bulleted or numbered list. The Mantine `List`.
@@ -13,7 +14,7 @@ pub struct List {
     size: Size,
     spacing: Size,
     /// Custom bullet glyph for unordered lists (defaults to a dot).
-    icon: Option<SharedString>,
+    icon: Option<Glyph>,
 }
 
 impl List {
@@ -56,7 +57,7 @@ impl List {
         self
     }
 
-    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
+    pub fn icon(mut self, icon: impl Into<Glyph>) -> Self {
         self.icon = Some(icon.into());
         self
     }
@@ -79,12 +80,12 @@ impl RenderOnce for List {
         let icon = self.icon.clone();
 
         let rows = self.items.into_iter().enumerate().map(move |(i, item)| {
-            let bullet: SharedString = if ordered {
-                SharedString::from(format!("{}.", i + 1))
+            let bullet: Glyph = if ordered {
+                Glyph::from(format!("{}.", i + 1))
             } else if let Some(glyph) = icon.clone() {
                 glyph
             } else {
-                SharedString::new_static("\u{2022}")
+                Glyph::from("\u{2022}")
             };
             div()
                 .flex()

@@ -16,7 +16,7 @@ pub fn header() -> impl IntoElement {
                 .child(
                     Button::new("toggle", "Toggle theme")
                         .variant(Variant::Default)
-                        .left_section(Text::new("◐"))
+                        .left_section(Icon::new(IconName::SunMoon).size(Size::Sm))
                         .on_click(|_, window, cx| crate::toggle_theme(window, cx)),
                 ),
         )
@@ -61,6 +61,83 @@ pub fn buttons() -> impl IntoElement {
         .child(variants)
         .child(colors)
         .child(sizes)
+}
+
+pub fn icons() -> impl IntoElement {
+    // A taste of the bundled Lucide set — every icon on lucide.dev is an
+    // `IconName` variant, drawn from the embedded icon font.
+    let sample = [
+        IconName::House,
+        IconName::Search,
+        IconName::Settings,
+        IconName::User,
+        IconName::Bell,
+        IconName::Calendar,
+        IconName::Camera,
+        IconName::Check,
+        IconName::CircleAlert,
+        IconName::Cloud,
+        IconName::Code,
+        IconName::Copy,
+        IconName::Download,
+        IconName::File,
+        IconName::Folder,
+        IconName::Globe,
+        IconName::Heart,
+        IconName::Mail,
+        IconName::MapPin,
+        IconName::Moon,
+        IconName::Palette,
+        IconName::Pencil,
+        IconName::Rocket,
+        IconName::Star,
+        IconName::Sun,
+        IconName::Terminal,
+        IconName::Trash2,
+        IconName::Wifi,
+    ];
+
+    let tiles = sample.map(|name| {
+        div()
+            .flex()
+            .flex_col()
+            .items_center()
+            .gap(px(6.0))
+            .w(px(96.0))
+            .py(px(8.0))
+            .child(Icon::new(name).size(Size::Lg))
+            .child(Text::new(name.name()).size(Size::Xs).dimmed())
+    });
+
+    let sizes = Group::new().align(Align::Center).children([
+        Icon::new(IconName::Rocket).size(Size::Xs),
+        Icon::new(IconName::Rocket).size(Size::Sm),
+        Icon::new(IconName::Rocket).size(Size::Md),
+        Icon::new(IconName::Rocket).size(Size::Lg),
+        Icon::new(IconName::Rocket).size(Size::Xl),
+    ]);
+
+    let colors = Group::new().align(Align::Center).children([
+        Icon::new(IconName::Heart).color(ColorName::Red),
+        Icon::new(IconName::Star).color(ColorName::Yellow),
+        Icon::new(IconName::Leaf).color(ColorName::Green),
+        Icon::new(IconName::Droplet).color(ColorName::Blue),
+        Icon::new(IconName::Zap).color(ColorName::Orange),
+    ]);
+
+    Stack::new()
+        .gap(Size::Md)
+        .child(div().flex().flex_wrap().children(tiles))
+        .child(Group::new().gap(Size::Xl).child(sizes).child(colors))
+        .child(
+            Text::new(format!(
+                "{} icons bundled from Lucide v{} — see IconName::all()",
+                IconName::all().len(),
+                guise::LUCIDE_VERSION,
+            ))
+            .size(Size::Sm)
+            .dimmed(),
+        )
 }
 
 pub fn badges() -> impl IntoElement {

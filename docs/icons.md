@@ -1,9 +1,10 @@
 # Icons
 
-`Icon` is a themed glyph — a single home for the symbols guise components draw
-(chevrons, checks, close, …) so they stay visually consistent. Icons are Unicode
-glyphs rather than SVG assets: no asset pipeline, and they inherit the
-surrounding text color by default.
+[Lucide](https://lucide.dev) is guise's built-in icon set. The Lucide icon font
+ships inside the crate and registers itself with gpui's text system the first
+time a glyph renders — no asset pipeline, no app setup. Because icons are font
+glyphs, they inherit the surrounding text color by default and tint/scale like
+text.
 
 ```rust
 Icon::new(IconName::Check)
@@ -22,13 +23,44 @@ Methods: `new(name)`, `size(Size)` (default `Md`; 14…32px), `color(ColorName)`
 
 ## IconName
 
+Every icon on [lucide.dev](https://lucide.dev/icons) is a variant, named by
+PascalCasing the kebab-case icon name (`arrow-right` → `IconName::ArrowRight`,
+`trash-2` → `IconName::Trash2`). Browse lucide.dev to pick one.
+
 ```rust
-pub enum IconName {
-    Check, Close, Minus, Plus,
-    ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-    Search, Dot, Info, Warning, Star, Copy, Menu, Ellipsis, ArrowRight, ArrowLeft,
-}
+Icon::new(IconName::Rocket)
+Icon::new(IconName::TriangleAlert).color(ColorName::Yellow)
 ```
 
-`IconName::glyph()` returns the underlying `&'static str` if you want to render it
-yourself.
+Helpers:
+
+| method | returns |
+| --- | --- |
+| `IconName::glyph()` | the `&'static str` font glyph, to render yourself |
+| `IconName::name()` | the upstream kebab-case name (`"arrow-right"`) |
+| `IconName::all()` | `&'static [IconName]` — the full set, in name order |
+| `LUCIDE_VERSION` | the bundled Lucide release |
+
+Names from the pre-Lucide glyph set that no longer exist upstream are kept as
+aliases: `IconName::Close` is `IconName::X`, `IconName::Warning` is
+`IconName::TriangleAlert`.
+
+## Glyph — icon slots on components
+
+Components with an icon slot (`ActionIcon`, `ThemeIcon`, `Alert`,
+`Notification`, `NavLink`, `List`) accept a `Glyph`: either a Lucide
+`IconName` or a short piece of text (an emoji, `"+"`, …). Both convert
+implicitly:
+
+```rust
+ActionIcon::new("edit", IconName::Pencil)   // Lucide icon
+ActionIcon::new("party", "🎉")              // plain text still works
+Alert::new("Saved.").icon(IconName::Check)
+```
+
+## Regenerating
+
+`bun scripts/icons.ts` re-fetches the font, codepoint table, and license from
+the `lucide-static` npm package and regenerates
+`crates/guise/src/icon/lucide.rs`. Lucide is ISC licensed; the license text is
+vendored at `crates/guise/assets/lucide/license.txt`.

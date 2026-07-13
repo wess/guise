@@ -58,6 +58,11 @@ Both patterns can two-way bind to the reactive layer (`guise::reactive`):
   Select dropdown).
 - Container components implement `ParentElement` (just `extend`); `.child`/`.children`
   come free.
+- **Icons are Lucide**, drawn from an icon font embedded in the crate
+  (`assets/lucide/`); it self-registers on first render, so consumers need no
+  asset setup. `src/icon/lucide.rs` is generated — never hand-edit it;
+  regenerate with `bun scripts/icons.ts`. Icon slots on components take
+  `impl Into<Glyph>` (a Lucide `IconName` or literal text).
 
 ## File/naming conventions
 

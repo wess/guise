@@ -33,7 +33,7 @@ use gpui::{
     MouseButton, SharedString, Window,
 };
 
-use crate::icon::{Icon, IconName};
+use crate::icon::{Glyph, Icon, IconName};
 use crate::reactive::Signal;
 use crate::theme::{theme, Size};
 
@@ -438,10 +438,10 @@ impl Render for TreeView {
                 .justify_center()
                 .text_color(dimmed);
             if is_branch {
-                chevron = chevron.child(SharedString::new_static(if row.expanded {
-                    IconName::ChevronDown.glyph()
+                chevron = chevron.child(Glyph::from(if row.expanded {
+                    IconName::ChevronDown
                 } else {
-                    IconName::ChevronRight.glyph()
+                    IconName::ChevronRight
                 }));
             }
 

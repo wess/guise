@@ -17,7 +17,7 @@ bindings) — all on top of gpui's retained-mode renderer.
 ## Components
 
 - [Buttons](buttons.md) — `Button`, `ActionIcon`, `CloseButton`, `ThemeIcon`, `CopyButton`
-- [Icons](icons.md) — `Icon`, `IconName`
+- [Icons](icons.md) — `Icon`, `IconName`, `Glyph` (the full Lucide set, embedded)
 - [Inputs](inputs.md) — `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `SegmentedControl`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Chip`, `Field`
 - [Typography](typography.md) — `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Mark`, `Blockquote`, `Spoiler`
 - [Layout](layout.md) — `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`, `Paper`, `Card`, `Divider`, `AppShell`, `Container`, `Space`
