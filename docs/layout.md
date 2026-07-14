@@ -205,3 +205,23 @@ AppShell::new()
 Region closures take `(&mut Window, &mut App)` and return any `IntoElement`.
 Every region is a flex column with `overflow_hidden`, so oversized content
 clips instead of breaking the frame.
+
+## Breakpoints
+
+Desktop windows resize like browser windows; `Breakpoint` and `Responsive`
+make layout react declaratively. Thresholds are Tailwind-flavored: `Sm` 640,
+`Md` 768, `Lg` 1024, `Xl` 1280 (narrower is `Xs`).
+
+```rust
+let bp = Breakpoint::from_window(window);      // read during render
+let columns = Responsive::new(1).md(2).xl(4).resolve(bp);
+SimpleGrid::new(columns).children(cards)
+
+if bp.at_least(Breakpoint::Lg) { /* show the sidebar */ }
+```
+
+`Responsive<T>` is mobile-first: the base value applies from `Xs` up, each
+override kicks in at its breakpoint **and above** (`.md(2)` also covers `Lg`
+unless `.lg(..)`/`.xl(..)` says otherwise). `for_window(window)` combines the
+read and the resolve. Because the value re-resolves every render, layouts
+adapt live as the window resizes — no listeners to wire.

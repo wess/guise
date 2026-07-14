@@ -3,6 +3,7 @@
 //! These map Mantine's flex helpers onto gpui's flex container.
 
 mod appshell;
+mod breakpoint;
 mod center;
 mod container;
 mod grid;
@@ -11,6 +12,7 @@ mod space;
 mod stack;
 
 pub use appshell::AppShell;
+pub use breakpoint::{Breakpoint, Responsive};
 pub use center::Center;
 pub use container::Container;
 pub use grid::SimpleGrid;

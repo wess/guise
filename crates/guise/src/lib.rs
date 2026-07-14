@@ -129,7 +129,10 @@ pub use input::{
     TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent, Time,
     TimePicker, TimePickerEvent, Weekday, MONTH_NAMES,
 };
-pub use layout::{Align, AppShell, Center, Container, Group, Justify, SimpleGrid, Space, Stack};
+pub use layout::{
+    Align, AppShell, Breakpoint, Center, Container, Group, Justify, Responsive, SimpleGrid, Space,
+    Stack,
+};
 pub use markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
 pub use nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
 pub use overlay::{
@@ -170,7 +173,9 @@ pub mod prelude {
     };
     pub use crate::input::{SegmentedControl, SegmentedControlEvent};
     pub use crate::layout::SimpleGrid;
-    pub use crate::layout::{Align, AppShell, Center, Container, Group, Justify, Space, Stack};
+    pub use crate::layout::{
+        Align, AppShell, Breakpoint, Center, Container, Group, Justify, Responsive, Space, Stack,
+    };
     pub use crate::nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
     pub use crate::overlay::{
         tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
