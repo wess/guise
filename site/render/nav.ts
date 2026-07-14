@@ -48,6 +48,7 @@ export const groups: DocGroup[] = [
       { slug: "flex", title: "Flex layout" },
       { slug: "macros", title: "Layout macros" },
       { slug: "transitions", title: "Transitions" },
+      { slug: "dnd", title: "Drag & drop" },
       { slug: "reactive", title: "Reactive state" },
       { slug: "windowmenu", title: "Window menu" },
     ],

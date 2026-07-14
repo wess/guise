@@ -37,6 +37,7 @@ pub use ::gpui;
 
 pub mod anim;
 pub mod chart;
+pub mod dnd;
 pub mod data;
 pub mod editor;
 pub mod feedback;
@@ -104,6 +105,7 @@ pub use text::Text;
 pub use themeicon::ThemeIcon;
 pub use title::Title;
 pub use anim::{Easing, Presence, PresenceEvent, Spring};
+pub use dnd::{apply_reorder, Draggable, DropTarget, SortableList};
 pub use transition::{Collapse, Transition, TransitionKind};
 pub use webview::{WebView, WebViewEvent};
 
@@ -193,6 +195,7 @@ pub mod prelude {
     pub use crate::{Blockquote, Image, Mark, ObjectFit, Spoiler};
     pub use crate::{Collapse, Transition, TransitionKind};
     pub use crate::{Easing, Presence, PresenceEvent, Spring};
+    pub use crate::dnd::{apply_reorder, Draggable, DropTarget, SortableList};
     pub use crate::{SplitDirection, SplitPanel, SplitPanelEvent};
     pub use crate::{WebView, WebViewEvent};
 }
