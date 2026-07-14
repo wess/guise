@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/guise", "crates/gallery"]
 
 [workspace.package]
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 license = "MIT"
 authors = ["Wess Cope <opensource@wess.io>"]
