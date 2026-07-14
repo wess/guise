@@ -12,6 +12,7 @@ export const groups: DocGroup[] = [
       { slug: "docs", title: "Overview" },
       { slug: "gettingstarted", title: "Installation" },
       { slug: "tutorial", title: "Tutorial" },
+      { slug: "appguide", title: "App walkthrough" },
     ],
   },
   {

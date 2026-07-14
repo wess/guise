@@ -31,23 +31,25 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 
 | Module | Contents |
 | --- | --- |
-| `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme` |
+| `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme`, JSON theme files (`Theme::from_json`), prebuilt presets (`Theme::preset`) |
 | `style.rs` | the `Variant` system and `surface()` resolver |
-| `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid`, `AppShell`, `Container`, `Space` |
+| `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid`, `AppShell`, `Container`, `Space`, plus `Breakpoint`/`Responsive` |
 | `flex/` | Flutter-style `Row`, `Column`, `Container`, `Expanded`, … |
-| `input/` | `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field`, the `TextEdit` model, the shared single-line key map (`keys.rs`) |
-| `editor/` | `Editor` entity, the `EditorModel` buffer, `Language` highlighters (Rust / SQL / JSON) |
+| `input/` | `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Field`, `Autocomplete`, `Calendar`, `DatePicker`, `TimePicker`, `FileInput`, `Dropzone`, `Transfer`, the `Date`/`Time` models, the `TextEdit` model, the shared single-line key map (`keys.rs`) |
+| `editor/` | `Editor` entity, the `EditorModel` buffer, `Language` highlighters (Rust, SQL, JSON, TOML, Python, JS/TS, Go, C, Markdown), `Diagnostic`/`Severity` |
 | `markdown/` | `MarkdownEditor` entity (live-preview markdown) over pure `block` / `inline` / `layout` passes |
-| `data/` | `Avatar`, `AvatarGroup`, `List`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion` |
-| `chart/` | `Sparkline`, `LineChart`, `BarChart`, `PieChart` — canvas-painted builders |
+| `data/` | `Avatar`, `AvatarGroup`, `List`, `VirtualList`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion` |
+| `chart/` | `Sparkline`, `LineChart`, `AreaChart`, `BarChart`, `ScatterChart`, `PieChart` — canvas-painted builders with optional axes/legends/hover |
 | `feedback/` | `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack` |
-| `overlay/` | `Modal`, `ConfirmModal`, `Drawer`, `Menu`, `MenuBar`, `ContextMenu`, `Popover`, `HoverCard`, `LoadingOverlay`, `Spotlight`, `Tooltip` |
-| `nav/` | `Breadcrumbs`, `NavLink`, `Stepper`, `Pagination`, `StatusBar` |
-| `reactive/` | `Signal`, `Binding`, Context/Provider, hooks (`use_state`/`watch`/`use_memo`/`use_effect`), `FormState` |
+| `overlay/` | `Modal`, `ConfirmModal`, `Drawer`, `Menu`, `MenuBar`, `ContextMenu`, `Popover`, `HoverCard`, `LoadingOverlay`, `Spotlight`, `Tooltip`, `Tour`, `OverlayHost` (window-level modal stack + toasts) |
+| `nav/` | `Breadcrumbs`, `NavLink`, `NavigationMenu`, `Stepper`, `Pagination`, `StatusBar` |
+| `reactive/` | `Signal`, `Binding`, Context/Provider, hooks (`use_state`/`watch`/`use_memo`/`use_effect`), `Form` (per-field signals) + `FormState` |
 | `macros.rs` | the `row!`/`col!`/… layout macros |
-| `transition.rs` | `Transition` / `Collapse` mount animations |
+| `anim/` | `Easing` curves, `Spring` physics, `Presence` (exit animations) |
+| `dnd/` | `Draggable`, `DropTarget`, `SortableList` — typed drag payloads |
+| `transition.rs` | `Transition` / `Collapse` (true height) animations |
 | `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
-| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea` |
+| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Carousel` |
 
 ## Conventions
 
