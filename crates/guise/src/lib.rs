@@ -35,6 +35,7 @@ pub use gpui::ParentElement as __ParentElement;
 #[doc(hidden)]
 pub use ::gpui;
 
+pub mod anim;
 pub mod chart;
 pub mod data;
 pub mod editor;
@@ -102,6 +103,7 @@ pub use spoiler::Spoiler;
 pub use text::Text;
 pub use themeicon::ThemeIcon;
 pub use title::Title;
+pub use anim::{Easing, Presence, PresenceEvent, Spring};
 pub use transition::{Collapse, Transition, TransitionKind};
 pub use webview::{WebView, WebViewEvent};
 
@@ -190,6 +192,7 @@ pub mod prelude {
     pub use crate::{Badge, Button, Card, Divider, Panel, Paper, Text, Title};
     pub use crate::{Blockquote, Image, Mark, ObjectFit, Spoiler};
     pub use crate::{Collapse, Transition, TransitionKind};
+    pub use crate::{Easing, Presence, PresenceEvent, Spring};
     pub use crate::{SplitDirection, SplitPanel, SplitPanelEvent};
     pub use crate::{WebView, WebViewEvent};
 }

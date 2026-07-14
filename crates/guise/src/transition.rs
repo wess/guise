@@ -1,18 +1,16 @@
 //! Mount transitions and `Collapse`, built on gpui's animation API.
 //!
-//! [`Transition`] plays a one-shot fade/slide as its child appears; [`Collapse`]
-//! reveals gated content with a fade. Both wrap the child and drive a
-//! `with_animation` pass — the same mechanism [`Loader`](crate::Loader) uses,
-//! but non-repeating.
-//!
-//! gpui has no transform/scale on elements, so motion is expressed through
-//! opacity and margin offsets. A true height-collapsing `Collapse` would need a
-//! measured content height; this one fades.
-
-use std::time::Duration;
+//! [`Transition`] plays a one-shot fade/slide as its child appears;
+//! [`Collapse`] reveals gated content — give it the content height and it
+//! animates that height open *and* closed (overflow clipped), falling back
+//! to a fade when the height is unknown. Both take an [`Easing`], including
+//! springs. For exit animations on arbitrary conditionals, see
+//! [`Presence`](crate::anim::Presence).
 
 use gpui::prelude::*;
-use gpui::{div, px, Animation, AnimationExt, AnyElement, App, ElementId, IntoElement, Window};
+use gpui::{div, px, AnimationExt, AnyElement, App, ElementId, IntoElement, Window};
+
+use crate::anim::Easing;
 
 /// The kind of entrance motion [`Transition`] plays.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +27,7 @@ pub enum TransitionKind {
 pub struct Transition {
     id: ElementId,
     kind: TransitionKind,
+    easing: Easing,
     duration: u64,
     child: Option<AnyElement>,
 }
@@ -38,6 +37,7 @@ impl Transition {
         Transition {
             id: id.into(),
             kind: TransitionKind::Fade,
+            easing: Easing::default(),
             duration: 200,
             child: None,
         }
@@ -45,6 +45,12 @@ impl Transition {
 
     pub fn kind(mut self, kind: TransitionKind) -> Self {
         self.kind = kind;
+        self
+    }
+
+    /// Timing curve, including `Easing::Spring(..)`.
+    pub fn easing(mut self, easing: Easing) -> Self {
+        self.easing = easing;
         self
     }
 
@@ -63,7 +69,7 @@ impl RenderOnce for Transition {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let child = self.child.unwrap_or_else(|| div().into_any_element());
         let kind = self.kind;
-        let animation = Animation::new(Duration::from_millis(self.duration));
+        let animation = self.easing.animation(self.duration);
         div()
             .child(child)
             .with_animation(self.id, animation, move |el, delta| {
@@ -79,11 +85,15 @@ impl RenderOnce for Transition {
     }
 }
 
-/// Reveals its child with a fade when `open`, renders nothing when closed.
+/// Reveals gated content. With a known content `height`, the box height
+/// animates open and closed (a real collapse, clipped while moving); without
+/// one it fades in and unmounts instantly on close.
 #[derive(IntoElement)]
 pub struct Collapse {
     id: ElementId,
     open: bool,
+    height: Option<f32>,
+    easing: Easing,
     duration: u64,
     child: Option<AnyElement>,
 }
@@ -93,6 +103,8 @@ impl Collapse {
         Collapse {
             id: id.into(),
             open: false,
+            height: None,
+            easing: Easing::default(),
             duration: 180,
             child: None,
         }
@@ -100,6 +112,19 @@ impl Collapse {
 
     pub fn open(mut self, open: bool) -> Self {
         self.open = open;
+        self
+    }
+
+    /// The content's height in px. Unlocks the true height animation — the
+    /// closed state keeps the child mounted at height 0 so it can animate
+    /// back open.
+    pub fn height(mut self, height: f32) -> Self {
+        self.height = Some(height.max(0.0));
+        self
+    }
+
+    pub fn easing(mut self, easing: Easing) -> Self {
+        self.easing = easing;
         self
     }
 
@@ -116,14 +141,37 @@ impl Collapse {
 
 impl RenderOnce for Collapse {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        if !self.open {
-            return div().into_any_element();
-        }
+        let animation = self.easing.animation(self.duration);
+
+        let Some(height) = self.height else {
+            // No measured height: fade in on open, vanish on close.
+            if !self.open {
+                return div().into_any_element();
+            }
+            let child = self.child.unwrap_or_else(|| div().into_any_element());
+            return div()
+                .child(child)
+                .with_animation(self.id, animation, |el, delta| el.opacity(delta))
+                .into_any_element();
+        };
+
         let child = self.child.unwrap_or_else(|| div().into_any_element());
-        let animation = Animation::new(Duration::from_millis(self.duration));
+        let open = self.open;
+        // Swapping the animation id replays the animation: one id per
+        // direction gives a real two-way collapse from stateless renders.
+        let direction = if open {
+            "guise-collapse-open"
+        } else {
+            "guise-collapse-close"
+        };
         div()
+            .id(self.id)
+            .overflow_hidden()
             .child(child)
-            .with_animation(self.id, animation, |el, delta| el.opacity(delta))
+            .with_animation(direction, animation, move |el, delta| {
+                let d = if open { delta } else { 1.0 - delta };
+                el.h(px(height * d)).opacity(d)
+            })
             .into_any_element()
     }
 }
