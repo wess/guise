@@ -149,7 +149,8 @@ div().size_full().child(self.group.clone())
 | `toggle_zoom(cx)` / `is_zoomed()` | focused pane fills the group |
 | `close_focused(cx)` | request close of the focused pane's active item |
 | `tear_off(item, cx)` | detach an item and emit `TearOff` for the host to re-home |
-| `tree()` / `pane_items(pane)` | read the layout for persistence |
+| `snapshot()` / `restore(&snapshot, cx)` | capture / replace the whole layout (see below) |
+| `tree()` / `pane_items(pane)` | read the layout structurally |
 | `items()` / `pane_of(item)` / `focused_pane()` / `active_item()` | queries |
 
 Events: `PaneGroupEvent::{Activated(ItemId), CloseRequested(ItemId),
@@ -157,6 +158,28 @@ NewRequested(PaneId), FocusChanged(PaneId), TearOff(ItemId)}`. Window creation
 for a torn-off tab stays a host concern — subscribe to `TearOff` and open a
 window with the item's content. The host wires the tear-off *gesture* (a tab
 dragged outside the window, or a menu item) and calls `tear_off`.
+
+**Layout persistence.** `group.snapshot()` captures the split/tab arrangement
+as a `LayoutSnapshot` (`guise::panegroup::LayoutSnapshot`), which encodes to a
+compact string and back:
+
+```rust
+// Save (e.g. on quit):
+let saved = group.read(cx).snapshot().encode();   // "h0.35(p1@1,2|p0@3)"
+
+// Restore (e.g. on launch), after re-registering content for the item ids:
+if let Ok(snapshot) = LayoutSnapshot::decode(&saved) {
+    group.update(cx, |g, cx| g.restore(&snapshot, cx));
+}
+```
+
+Item ids serialize as raw numbers — the host owns their meaning, so persist
+your own id → content mapping alongside the string and make sure
+`on_render_item`/`on_item_title` can serve every id the snapshot names before
+restoring. `restore` validates shape (no empty panes, no duplicate items;
+ratios re-clamp) and returns `false` leaving the layout untouched when the
+snapshot is unusable. `LayoutSnapshot::item_ids()` lists the ids in visual
+order — handy for pre-flight checks against what the host can rebuild.
 
 **Titlebar integration.** `.titlebar(leading, trailing)` makes the group double
 as the window titlebar (Zed-style — the top pane's tab bar *is* the top row, no

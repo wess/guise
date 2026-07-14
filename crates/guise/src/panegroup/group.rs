@@ -467,6 +467,120 @@ impl PaneGroup {
     // --- persistence accessors ------------------------------------------
 
     /// The split tree (for serializing the layout).
+    /// Capture the current split/tab arrangement (see
+    /// [`LayoutSnapshot`](super::LayoutSnapshot) for the encode/decode pair).
+    pub fn snapshot(&self) -> super::LayoutSnapshot {
+        fn walk(node: &Node, panes: &HashMap<PaneId, Pane>) -> super::LayoutSnapshot {
+            match node {
+                Node::Leaf(id) => {
+                    let pane = &panes[id];
+                    super::LayoutSnapshot::Pane {
+                        items: pane.items().iter().map(|item| item.0).collect(),
+                        active: pane.active_index(),
+                    }
+                }
+                Node::Split {
+                    axis,
+                    ratio,
+                    first,
+                    second,
+                    ..
+                } => super::LayoutSnapshot::Split {
+                    axis: *axis,
+                    ratio: *ratio,
+                    first: Box::new(walk(first, panes)),
+                    second: Box::new(walk(second, panes)),
+                },
+            }
+        }
+        walk(self.tree.root(), &self.panes)
+    }
+
+    /// Replace the whole layout with a snapshot. The host must be able to
+    /// render every item id the snapshot names (re-register content builders
+    /// first). Fails (returning `false`, layout untouched) when the snapshot
+    /// has an empty pane or duplicate item ids.
+    pub fn restore(&mut self, snapshot: &super::LayoutSnapshot, cx: &mut Context<Self>) -> bool {
+        let all_items = snapshot.item_ids();
+        if all_items.is_empty() {
+            return false;
+        }
+        let mut seen = std::collections::HashSet::new();
+        if !all_items.iter().all(|id| seen.insert(*id)) {
+            return false;
+        }
+
+        fn build(
+            snap: &super::LayoutSnapshot,
+            ids: &mut PaneIds,
+            panes: &mut HashMap<PaneId, Pane>,
+            splits: &mut u64,
+        ) -> Option<Node> {
+            match snap {
+                super::LayoutSnapshot::Pane { items, active } => {
+                    let (first, rest) = items.split_first()?;
+                    let pane_id = ids.next();
+                    let mut pane = Pane::new(ItemId(*first));
+                    for item in rest {
+                        pane.add(ItemId(*item), None);
+                    }
+                    pane.activate((*active).min(items.len() - 1));
+                    panes.insert(pane_id, pane);
+                    Some(Node::Leaf(pane_id))
+                }
+                super::LayoutSnapshot::Split {
+                    axis,
+                    ratio,
+                    first,
+                    second,
+                } => {
+                    *splits += 1;
+                    let id = SplitId(*splits);
+                    let first = build(first, ids, panes, splits)?;
+                    let second = build(second, ids, panes, splits)?;
+                    Some(Node::Split {
+                        id,
+                        axis: *axis,
+                        ratio: clamp_ratio(*ratio),
+                        first: Box::new(first),
+                        second: Box::new(second),
+                    })
+                }
+            }
+        }
+
+        let mut ids = PaneIds::new();
+        let mut panes = HashMap::new();
+        let mut splits = 0;
+        let Some(root) = build(snapshot, &mut ids, &mut panes, &mut splits) else {
+            return false;
+        };
+        let first_pane = {
+            let mut leaves = Vec::new();
+            fn collect(node: &Node, out: &mut Vec<PaneId>) {
+                match node {
+                    Node::Leaf(id) => out.push(*id),
+                    Node::Split { first, second, .. } => {
+                        collect(first, out);
+                        collect(second, out);
+                    }
+                }
+            }
+            collect(&root, &mut leaves);
+            leaves[0]
+        };
+
+        self.tree = PaneTree::from_parts(root, splits);
+        self.panes = panes;
+        self.ids = ids;
+        self.focused = first_pane;
+        self.zoomed = false;
+        self.drag_over = None;
+        self.dragging = None;
+        cx.notify();
+        true
+    }
+
     pub fn tree(&self) -> &PaneTree {
         &self.tree
     }

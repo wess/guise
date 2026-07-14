@@ -18,9 +18,11 @@ mod id;
 mod layout;
 mod nav;
 mod pane;
+mod snapshot;
 mod tree;
 
 pub use drag::{DropEdge, TabDrag};
+pub use snapshot::{LayoutSnapshot, SnapshotError};
 pub use id::{ItemId, ItemIds, PaneId, PaneIds, SplitId};
 pub use layout::{compute_layout, Layout, Rect};
 pub use nav::{neighbor, next, prev, Direction};

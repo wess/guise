@@ -39,6 +39,12 @@ impl PaneTree {
         }
     }
 
+    /// Assemble a tree from a prebuilt root (layout restore). `splits` must
+    /// be at least the highest `SplitId` in `root` so future ids stay unique.
+    pub(crate) fn from_parts(root: Node, splits: u64) -> Self {
+        Self { root, splits }
+    }
+
     pub fn root(&self) -> &Node {
         &self.root
     }
