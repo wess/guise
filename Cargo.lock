@@ -2127,7 +2127,7 @@ dependencies = [
 
 [[package]]
 name = "gallery"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "gpui",
  "gpui_platform",
@@ -2826,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "guise-ui"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "gpui",
  "gpui_platform",
