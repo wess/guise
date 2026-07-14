@@ -116,11 +116,13 @@ pub use feedback::{
     Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
 };
 pub use input::{
-    apply_key, Checkbox, CheckboxGroup, ColorInput, ColorInputEvent, Combobox, ComboboxEvent,
+    apply_key, days_in_month, is_leap_year, month_grid, Calendar, Checkbox, CheckboxGroup,
+    ColorInput, ColorInputEvent, Combobox, ComboboxEvent, Date, DatePicker, DatePickerEvent,
     Field, KeyOutcome, NumberInput, NumberInputEvent, PasswordInput, PasswordInputEvent, PinInput,
     PinInputEvent, Radio, RadioGroup, RangeSlider, RangeSliderEvent, Rating, SegmentedControl,
     SegmentedControlEvent, Select, SelectEvent, Slider, SliderEvent, Switch, TagsInput,
-    TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent,
+    TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent, Time,
+    TimePicker, TimePickerEvent, Weekday, MONTH_NAMES,
 };
 pub use layout::{Align, AppShell, Center, Container, Group, Justify, SimpleGrid, Space, Stack};
 pub use markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
@@ -153,11 +155,12 @@ pub mod prelude {
         Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
     };
     pub use crate::input::{
-        apply_key, Checkbox, CheckboxGroup, ColorInput, ColorInputEvent, Combobox, ComboboxEvent,
-        Field, KeyOutcome, NumberInput, NumberInputEvent, PasswordInput, PasswordInputEvent,
-        PinInput, PinInputEvent, Radio, RadioGroup, RangeSlider, RangeSliderEvent, Rating, Select,
-        SelectEvent, Slider, SliderEvent, Switch, TagsInput, TagsInputEvent, TextArea,
-        TextAreaEvent, TextEdit, TextInput, TextInputEvent,
+        apply_key, Calendar, Checkbox, CheckboxGroup, ColorInput, ColorInputEvent, Combobox,
+        ComboboxEvent, Date, DatePicker, DatePickerEvent, Field, KeyOutcome, NumberInput,
+        NumberInputEvent, PasswordInput, PasswordInputEvent, PinInput, PinInputEvent, Radio,
+        RadioGroup, RangeSlider, RangeSliderEvent, Rating, Select, SelectEvent, Slider,
+        SliderEvent, Switch, TagsInput, TagsInputEvent, TextArea, TextAreaEvent, TextEdit,
+        TextInput, TextInputEvent, Time, TimePicker, TimePickerEvent, Weekday,
     };
     pub use crate::input::{SegmentedControl, SegmentedControlEvent};
     pub use crate::layout::SimpleGrid;

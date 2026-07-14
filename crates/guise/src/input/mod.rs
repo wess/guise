@@ -9,10 +9,13 @@
 //!   `EventEmitter`) that own their buffer/open-state. Create with
 //!   `cx.new(|cx| TextInput::new(cx))` and subscribe for changes.
 
+mod calendar;
 mod checkbox;
 mod checkboxgroup;
 mod colorinput;
 mod combobox;
+mod date;
+mod datepicker;
 mod edit;
 mod field;
 mod keys;
@@ -30,11 +33,16 @@ mod switch;
 mod tags;
 mod text;
 mod textarea;
+mod time;
+mod timepicker;
 
+pub use calendar::Calendar;
 pub use checkbox::Checkbox;
 pub use checkboxgroup::CheckboxGroup;
 pub use colorinput::{ColorInput, ColorInputEvent};
 pub use combobox::{Combobox, ComboboxEvent};
+pub use date::{days_in_month, is_leap_year, month_grid, Date, Weekday, MONTH_NAMES};
+pub use datepicker::{DatePicker, DatePickerEvent};
 pub use edit::TextEdit;
 pub use field::Field;
 pub use keys::{apply_key, KeyOutcome};
@@ -52,6 +60,8 @@ pub use switch::Switch;
 pub use tags::{TagsInput, TagsInputEvent};
 pub use text::{TextInput, TextInputEvent};
 pub use textarea::{TextArea, TextAreaEvent};
+pub use time::Time;
+pub use timepicker::{TimePicker, TimePickerEvent};
 
 use gpui::{App, ClickEvent, Window};
 
