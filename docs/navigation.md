@@ -107,3 +107,27 @@ div().relative().size_full().flex().flex_col()
 
 `min_h(px(0.0))` lets the scroll area shrink inside the column so it scrolls
 instead of pushing the bar off-screen.
+
+## NavigationMenu (entity)
+
+A horizontal top-nav. Items are leaves (click → event) or menus (click opens
+a dropdown of entries); the active item — or the owner of the active entry —
+gets a primary tint.
+
+```rust
+let nav = cx.new(|cx| {
+    NavigationMenu::new(cx)
+        .item("home", "Home")
+        .menu("docs", "Docs", [("tutorial", "Tutorial"), ("api", "API")])
+        .item("about", "About")
+        .active("home")
+});
+cx.subscribe(&nav, |_this, _nav, NavigationMenuEvent(id), _cx| {
+    // route on id: "home", "tutorial", "api", "about"
+})
+.detach();
+```
+
+Methods: `item(id, label)`, `menu(id, label, entries)`, `active(id)` at
+construction, `set_active(id, cx)` at runtime (e.g. after routing). Picking
+an entry closes the dropdown and moves the highlight.

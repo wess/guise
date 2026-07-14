@@ -504,3 +504,53 @@ cx.subscribe(&topics, |_this, _input, event: &TagsInputEvent, _cx| {
 
 Emits `TagsInputEvent(Vec<String>)` with the full list on every add/remove.
 Committing a duplicate clears the query without emitting.
+
+## Autocomplete (entity)
+
+A freeform text field with suggestions. Unlike [Combobox](#combobox-entity)
+(pick one of the options), the value here is whatever the user types —
+suggestions are shortcuts, not constraints. Typing opens the list
+(case-insensitive substring match, empty query shows nothing), ↑/↓ walk it,
+Enter adopts the highlighted suggestion or commits the typed text, Escape
+closes.
+
+```rust
+let field = cx.new(|cx| {
+    Autocomplete::new(cx)
+        .suggestions(["Rust", "Ruby", "Python", "TypeScript"])
+        .label("Language")
+});
+cx.subscribe(&field, |_this, _f, event: &AutocompleteEvent, _cx| match event {
+    AutocompleteEvent::Change(text) => { /* every edit */ }
+    AutocompleteEvent::Commit(text) => { /* Enter or a suggestion click */ }
+})
+.detach();
+```
+
+Methods: `suggestions(iter)`, `value(text)`, `max_shown(n)` (default 8),
+`placeholder` / `label` / `size` / `disabled`, `text()` reads back. Two-way
+binding: `Autocomplete::bind(&entity, &Signal<String>, cx)`.
+
+## Transfer (entity)
+
+A dual-list membership editor: one item pool, two panes (available/chosen).
+Click rows to check them, move checked items with the middle buttons. Emits
+`TransferEvent(Vec<usize>)` — the chosen side's item indices — after every
+move.
+
+```rust
+let transfer = cx.new(|cx| {
+    Transfer::new(cx)
+        .data(["Alpha", "Bravo", "Charlie", "Delta"])
+        .chosen([1])
+        .titles("Bench", "Team")
+});
+cx.subscribe(&transfer, |_this, _t, TransferEvent(chosen), _cx| {
+    // chosen: indices into the original data, ascending
+})
+.detach();
+```
+
+Methods: `data(iter)`, `chosen(indices)`, `titles(left, right)`,
+`height(px)` (default 200), `disabled(bool)`, `chosen_indices()` reads back.
+Both panes scroll independently.

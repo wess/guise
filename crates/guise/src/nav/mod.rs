@@ -5,12 +5,14 @@
 //! - [`Pagination`] is a stateful entity that owns the current page.
 
 mod breadcrumbs;
+mod navigationmenu;
 mod navlink;
 mod pagination;
 mod statusbar;
 mod stepper;
 
 pub use breadcrumbs::Breadcrumbs;
+pub use navigationmenu::{NavigationMenu, NavigationMenuEvent};
 pub use navlink::NavLink;
 pub use pagination::{Pagination, PaginationEvent};
 pub use statusbar::StatusBar;

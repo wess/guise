@@ -10,6 +10,7 @@
 //!   `cx.new(|cx| TextInput::new(cx))` and subscribe for changes.
 
 mod accept;
+mod autocomplete;
 mod calendar;
 mod checkbox;
 mod checkboxgroup;
@@ -35,10 +36,12 @@ mod slider;
 mod switch;
 mod tags;
 mod text;
+mod transfer;
 mod textarea;
 mod time;
 mod timepicker;
 
+pub use autocomplete::{Autocomplete, AutocompleteEvent};
 pub use calendar::Calendar;
 pub use checkbox::Checkbox;
 pub use checkboxgroup::CheckboxGroup;
@@ -66,6 +69,7 @@ pub use tags::{TagsInput, TagsInputEvent};
 pub use text::{TextInput, TextInputEvent};
 pub use textarea::{TextArea, TextAreaEvent};
 pub use time::Time;
+pub use transfer::{Transfer, TransferEvent};
 pub use timepicker::{TimePicker, TimePickerEvent};
 
 use gpui::{App, ClickEvent, Window};

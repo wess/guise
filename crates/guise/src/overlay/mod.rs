@@ -25,6 +25,7 @@ mod modal;
 mod popover;
 mod spotlight;
 mod tooltip;
+mod tour;
 
 pub use confirm::ConfirmModal;
 pub use contextmenu::ContextMenu;
@@ -38,3 +39,4 @@ pub use modal::Modal;
 pub use popover::{Placement, Popover};
 pub use spotlight::Spotlight;
 pub use tooltip::{tooltip, Tooltip};
+pub use tour::{Tour, TourEvent};

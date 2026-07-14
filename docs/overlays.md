@@ -378,3 +378,30 @@ div()
 
 `tooltip(label)` returns `impl Fn(&mut Window, &mut App) -> AnyView`. The
 `Tooltip` view itself is public if you need a custom builder.
+
+## Tour (entity)
+
+A step-by-step onboarding overlay: titled steps as a centered card over a
+scrim, with Back / Next (Finish on the last step) / Skip, a step counter, and
+progress dots.
+
+```rust
+let tour = cx.new(|cx| {
+    Tour::new(cx)
+        .step("Welcome", "This is your workspace.")
+        .step("Panels", "Drag tabs between panes; edges split.")
+        .step("Command palette", "Cmd+K opens Spotlight.")
+});
+tour.update(cx, |t, cx| t.start(cx));
+cx.subscribe(&tour, |_this, _t, event: &TourEvent, _cx| match event {
+    TourEvent::Step(i) => { /* highlight the relevant UI */ }
+    TourEvent::Finished => { /* mark onboarding done */ }
+    TourEvent::Skipped => { /* respect the dismissal */ }
+})
+.detach();
+```
+
+Render it as a child of a full-size root (like `Modal`). Anchoring to
+specific elements stays a host concern — react to `TourEvent::Step` and
+highlight your own chrome. Methods: `step(title, body)`, `start(cx)`,
+`next(cx)` / `back(cx)` / `skip(cx)`, `is_open()`, `current()`.

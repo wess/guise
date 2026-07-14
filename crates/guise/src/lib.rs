@@ -55,6 +55,7 @@ mod badge;
 mod blockquote;
 mod button;
 mod card;
+mod carousel;
 mod chip;
 mod closebutton;
 mod code;
@@ -84,6 +85,7 @@ pub use badge::Badge;
 pub use blockquote::Blockquote;
 pub use button::Button;
 pub use card::Card;
+pub use carousel::{Carousel, CarouselEvent};
 pub use chip::Chip;
 pub use closebutton::CloseButton;
 pub use code::Code;
@@ -123,24 +125,29 @@ pub use feedback::{
     Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
 };
 pub use input::{
-    apply_key, days_in_month, is_leap_year, month_grid, Calendar, Checkbox, CheckboxGroup,
+    apply_key, days_in_month, is_leap_year, month_grid, Autocomplete, AutocompleteEvent,
+    Calendar, Checkbox, CheckboxGroup,
     ColorInput, ColorInputEvent, Combobox, ComboboxEvent, Date, DatePicker, DatePickerEvent,
     Dropzone, Field, FileInput, FileInputEvent, KeyOutcome, NumberInput, NumberInputEvent,
     PasswordInput, PasswordInputEvent, PinInput,
     PinInputEvent, Radio, RadioGroup, RangeSlider, RangeSliderEvent, Rating, SegmentedControl,
     SegmentedControlEvent, Select, SelectEvent, Slider, SliderEvent, Switch, TagsInput,
     TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent, Time,
-    TimePicker, TimePickerEvent, Weekday, MONTH_NAMES,
+    TimePicker, TimePickerEvent, Transfer, TransferEvent, Weekday, MONTH_NAMES,
 };
 pub use layout::{
     Align, AppShell, Breakpoint, Center, Container, Group, Justify, Responsive, SimpleGrid, Space,
     Stack,
 };
 pub use markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
-pub use nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
+pub use nav::{
+    Breadcrumbs, NavLink, NavigationMenu, NavigationMenuEvent, Pagination, PaginationEvent,
+    StatusBar, Stepper,
+};
 pub use overlay::{
     tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
     MenuColumn, Modal, ModalCloser, OverlayHost, Placement, Popover, Side, Spotlight, Tooltip,
+    Tour, TourEvent,
 };
 pub use reactive::{
     provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators, Binding,
@@ -168,23 +175,29 @@ pub mod prelude {
         Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
     };
     pub use crate::input::{
-        apply_key, Calendar, Checkbox, CheckboxGroup, ColorInput, ColorInputEvent, Combobox,
+        apply_key, Autocomplete, AutocompleteEvent, Calendar, Checkbox, CheckboxGroup,
+        ColorInput, ColorInputEvent, Combobox,
         ComboboxEvent, Date, DatePicker, DatePickerEvent, Dropzone, Field, FileInput,
         FileInputEvent, KeyOutcome, NumberInput,
         NumberInputEvent, PasswordInput, PasswordInputEvent, PinInput, PinInputEvent, Radio,
         RadioGroup, RangeSlider, RangeSliderEvent, Rating, Select, SelectEvent, Slider,
         SliderEvent, Switch, TagsInput, TagsInputEvent, TextArea, TextAreaEvent, TextEdit,
-        TextInput, TextInputEvent, Time, TimePicker, TimePickerEvent, Weekday,
+        TextInput, TextInputEvent, Time, TimePicker, TimePickerEvent, Transfer, TransferEvent,
+        Weekday,
     };
     pub use crate::input::{SegmentedControl, SegmentedControlEvent};
     pub use crate::layout::SimpleGrid;
     pub use crate::layout::{
         Align, AppShell, Breakpoint, Center, Container, Group, Justify, Responsive, Space, Stack,
     };
-    pub use crate::nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
+    pub use crate::nav::{
+        Breadcrumbs, NavLink, NavigationMenu, NavigationMenuEvent, Pagination, PaginationEvent,
+        StatusBar, Stepper,
+    };
     pub use crate::overlay::{
         tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
         MenuColumn, Modal, ModalCloser, OverlayHost, Placement, Popover, Side, Spotlight, Tooltip,
+        Tour, TourEvent,
     };
     pub use crate::reactive::{
         provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators,
@@ -201,7 +214,7 @@ pub mod prelude {
         ActionIcon, Anchor, Chip, CloseButton, Code, CopyButton, Glyph, Icon, IconName, Indicator,
         Kbd, ScrollArea, Skeleton, ThemeIcon,
     };
-    pub use crate::{Badge, Button, Card, Divider, Panel, Paper, Text, Title};
+    pub use crate::{Badge, Button, Card, Carousel, CarouselEvent, Divider, Panel, Paper, Text, Title};
     pub use crate::{Blockquote, Image, Mark, ObjectFit, Spoiler};
     pub use crate::{Collapse, Transition, TransitionKind};
     pub use crate::{Easing, Presence, PresenceEvent, Spring};

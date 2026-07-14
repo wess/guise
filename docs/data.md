@@ -408,3 +408,23 @@ Methods: `new(cx)`, `item(label, |window, app| content)`, `multiple(bool)`,
 
 > Panel content closures take `(&mut Window, &mut App)` and return any
 > `IntoElement`. They run every frame, so keep them cheap and side-effect-free.
+
+## Carousel (entity)
+
+A slide deck with arrows, dots, and optional autoplay. Slides are content
+builders re-invoked every frame (live data, same rule as Tabs panels).
+
+```rust
+let deck = cx.new(|cx| {
+    Carousel::new(cx)
+        .slide(|_w, _cx| Image::new("shot1.png"))
+        .slide(|_w, _cx| Text::new("Second slide"))
+        .height(260.0)
+});
+cx.subscribe(&deck, |_this, _deck, CarouselEvent(index), _cx| { /* … */ }).detach();
+```
+
+Methods: `slide(builder)`, `height(px)` (default 220), `no_wrap()` (stop at
+the ends instead of cycling), `autoplay(Duration, cx)` (auto-advance; any
+manual navigation reschedules the timer), `current()`, `go_to(i, cx)`,
+`next(cx)` / `prev(cx)`. The active dot stretches into a pill.
