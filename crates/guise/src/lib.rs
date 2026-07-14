@@ -22,6 +22,9 @@
 #[macro_use]
 mod macros;
 
+#[cfg(test)]
+mod apptests;
+
 pub mod style;
 pub mod theme;
 

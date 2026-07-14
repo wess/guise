@@ -39,3 +39,6 @@ wry = { version = "0.55", optional = true }
 # back to a noop text system and no glyphs raster.
 [dev-dependencies]
 gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit"] }
+# Entity-level tests (`#[gpui::test]` + `TestAppContext`) — the same harness
+# zed's own tests run on. Resolves to the patched rev like the main dep.
+gpui = { version = "0.2.2", features = ["test-support"] }
