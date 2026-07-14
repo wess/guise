@@ -27,8 +27,26 @@ Variants: `Linear`, `EaseIn`, `EaseOut` (default), `EaseInOut`, `EaseInCubic`,
 `Spring(Spring)`.
 
 The raw curves are plain functions in `guise::anim::ease` if you're driving
-`with_animation` yourself. `Easing::animation(duration_ms)` builds a ready
-gpui `Animation` with the curve installed.
+`with_animation` yourself. Two ways to get a gpui `Animation` from an
+`Easing`:
+
+- `animation(duration_ms)` — the curve installed in gpui's easing slot,
+  **clamped** into `0..=1`. gpui debug-asserts easing output into that range,
+  which overshooting curves (`Spring`, `EaseOutBack`, `EaseOutElastic`)
+  violate by design — unclamped they abort any debug build. The clamp
+  flattens overshoot peaks.
+- `clock(duration_ms)` — the un-eased linear clock (springs still size it by
+  `settle_seconds()`). Apply the curve yourself inside the animator, where
+  overshoot is legal — this is what `Transition`/`Collapse`/`Presence` do,
+  so their springs keep the full overshoot:
+
+```rust
+el.with_animation(id, easing.clock(200), move |el, t| {
+    let delta = easing.apply(t);            // may pass 1.0 and settle back
+    el.ml(px((1.0 - delta) * 8.0))          // offsets may overshoot
+        .opacity(delta.clamp(0.0, 1.0))     // opacity must not
+})
+```
 
 ### Springs
 

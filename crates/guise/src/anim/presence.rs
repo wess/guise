@@ -135,7 +135,11 @@ impl Render for Presence {
         let child = builder(window, cx);
         let kind = self.kind;
         let entering = self.phase == Phase::Open;
-        let animation = self.easing.animation(self.duration_ms);
+        // Linear clock + animator-side curve, so overshooting easings
+        // (springs) never pass through gpui's 0..=1-asserted easing slot;
+        // see `Transition::render`.
+        let easing = self.easing;
+        let animation = easing.clock(self.duration_ms);
         let id = (
             if entering {
                 "guise-presence-in"
@@ -147,16 +151,18 @@ impl Render for Presence {
 
         div()
             .child(child)
-            .with_animation(id, animation, move |el, delta| {
+            .with_animation(id, animation, move |el, t| {
                 // Exit runs the same curve toward zero visibility.
+                let delta = easing.apply(t);
                 let d = if entering { delta } else { 1.0 - delta };
+                let opacity = d.clamp(0.0, 1.0);
                 let shift = (1.0 - d) * 8.0;
                 match kind {
-                    TransitionKind::Fade => el.opacity(d),
-                    TransitionKind::SlideUp => el.opacity(d).mt(px(shift)),
-                    TransitionKind::SlideDown => el.opacity(d).mt(px(-shift)),
-                    TransitionKind::SlideLeft => el.opacity(d).ml(px(shift)),
-                    TransitionKind::SlideRight => el.opacity(d).ml(px(-shift)),
+                    TransitionKind::Fade => el.opacity(opacity),
+                    TransitionKind::SlideUp => el.opacity(opacity).mt(px(shift)),
+                    TransitionKind::SlideDown => el.opacity(opacity).mt(px(-shift)),
+                    TransitionKind::SlideLeft => el.opacity(opacity).ml(px(shift)),
+                    TransitionKind::SlideRight => el.opacity(opacity).ml(px(-shift)),
                 }
             })
             .into_any_element()

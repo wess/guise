@@ -66,14 +66,38 @@ impl Easing {
         }
     }
 
-    /// A gpui [`Animation`] running this curve. `duration_ms` is ignored for
-    /// springs — they settle on their own clock.
+    /// A gpui [`Animation`] running this curve, **clamped** into `0..=1`.
+    /// `duration_ms` is ignored for springs — they settle on their own clock.
+    ///
+    /// gpui debug-asserts that an animation's easing output stays within
+    /// `0..=1`, which overshooting curves (`Spring`, `EaseOutBack`,
+    /// `EaseOutElastic`, wide cubic-beziers) violate by design — unclamped
+    /// they abort any debug build. The clamp flattens the overshoot peaks;
+    /// to keep them, run [`clock`](Self::clock) and apply the curve inside
+    /// the animator closure, where any value is legal:
+    ///
+    /// ```ignore
+    /// el.with_animation(id, easing.clock(200), move |el, t| {
+    ///     let delta = easing.apply(t); // may overshoot past 1.0
+    ///     el.ml(px((1.0 - delta) * 8.0))
+    /// })
+    /// ```
     pub fn animation(self, duration_ms: u64) -> Animation {
+        self.clock(duration_ms)
+            .with_easing(move |t| self.apply(t).clamp(0.0, 1.0))
+    }
+
+    /// The un-eased gpui [`Animation`] for this curve: a linear clock sized
+    /// for it (springs use their settle time). Pair with
+    /// [`apply`](Self::apply) in the animator closure — see
+    /// [`animation`](Self::animation) for why overshooting curves must run
+    /// animator-side.
+    pub fn clock(self, duration_ms: u64) -> Animation {
         let duration = match self {
             Easing::Spring(spring) => Duration::from_secs_f32(spring.settle_seconds()),
             _ => Duration::from_millis(duration_ms),
         };
-        Animation::new(duration).with_easing(move |t| self.apply(t))
+        Animation::new(duration)
     }
 }
 
@@ -102,6 +126,24 @@ mod tests {
         for easing in variants {
             assert!(easing.apply(0.0).abs() < 1e-3, "{easing:?} at 0");
             assert!((easing.apply(1.0) - 1.0).abs() < 1e-3, "{easing:?} at 1");
+        }
+    }
+
+    /// Overshoot is a feature of these curves — and exactly why the entity
+    /// animators run them via `clock()` + `apply()` instead of gpui's easing
+    /// slot, which debug-asserts its output into `0..=1`.
+    #[test]
+    fn overshooting_curves_really_overshoot() {
+        let overshooters = [
+            Easing::EaseOutBack,
+            Easing::EaseOutElastic,
+            Easing::Spring(Spring::default()),
+        ];
+        for easing in overshooters {
+            let peak = (1..100)
+                .map(|i| easing.apply(i as f32 / 100.0))
+                .fold(f32::MIN, f32::max);
+            assert!(peak > 1.0, "{easing:?} never exceeded 1.0 (peak {peak})");
         }
     }
 }

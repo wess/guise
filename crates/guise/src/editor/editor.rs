@@ -1,7 +1,8 @@
 //! `Editor` — a multiline code editor (gpui entity).
 //!
 //! Renders an [`EditorModel`] with a line-number gutter, syntax highlighting
-//! (a [`Language`] or anything implementing [`Highlighter`](super::Highlighter)),
+//! (a built-in [`Language`] tokenizer, or a whole-document
+//! [`DocumentHighlighter`] such as the `treesitter` feature's adapter),
 //! selection, caret, and the full macOS-convention keyboard map. Emits
 //! [`EditorEvent::Change`] on every edit and [`EditorEvent::Run`] on
 //! Cmd+Enter, so a host can execute the buffer (a query console, a REPL).
@@ -31,8 +32,9 @@ use gpui::{
     Window,
 };
 
+use super::cache::HighlightCache;
 use super::diagnostic::{line_message, line_severity, Diagnostic};
-use super::highlight::{token_color, Highlighter, Language, LineState, TokenKind};
+use super::highlight::{token_color, DocumentHighlighter, Language, TokenKind};
 use super::model::{EditorModel, Pos};
 use crate::reactive::Signal;
 use crate::theme::theme;
@@ -83,6 +85,13 @@ pub struct EditorStyle {
 pub struct Editor {
     model: EditorModel,
     language: Language,
+    /// Whole-document highlighter; overrides `language` while set.
+    doc_highlighter: Option<Box<dyn DocumentHighlighter>>,
+    /// Whether `doc_highlighter` must reparse before the next paint.
+    doc_dirty: bool,
+    /// Per-line tokens for the `language` path, revalidated each frame and
+    /// re-tokenized only for lines that changed.
+    hl_cache: HighlightCache,
     placeholder: SharedString,
     read_only: bool,
     line_numbers: bool,
@@ -116,6 +125,9 @@ impl Editor {
         Editor {
             model: EditorModel::new(""),
             language: Language::None,
+            doc_highlighter: None,
+            doc_dirty: true,
+            hl_cache: HighlightCache::new(),
             placeholder: SharedString::default(),
             read_only: false,
             line_numbers: true,
@@ -147,6 +159,16 @@ impl Editor {
     /// Syntax highlighting language (default [`Language::None`]).
     pub fn language(mut self, language: Language) -> Self {
         self.language = language;
+        self.hl_cache.clear();
+        self
+    }
+
+    /// Highlight with a whole-document backend (a tree-sitter adapter)
+    /// instead of the line-based `language` tokenizer. Takes precedence over
+    /// [`language`](Self::language) while set.
+    pub fn highlighter(mut self, highlighter: impl DocumentHighlighter + 'static) -> Self {
+        self.doc_highlighter = Some(Box::new(highlighter));
+        self.doc_dirty = true;
         self
     }
 
@@ -206,6 +228,26 @@ impl Editor {
         cx.notify();
     }
 
+    /// Switch the highlighting language at runtime (a file-type change).
+    /// Ignored while a document highlighter is set.
+    pub fn set_language(&mut self, language: Language, cx: &mut Context<Self>) {
+        self.language = language;
+        self.hl_cache.clear();
+        cx.notify();
+    }
+
+    /// Install or replace the document highlighter at runtime; `None` falls
+    /// back to the line-based `language` tokenizer.
+    pub fn set_highlighter(
+        &mut self,
+        highlighter: Option<Box<dyn DocumentHighlighter>>,
+        cx: &mut Context<Self>,
+    ) {
+        self.doc_highlighter = highlighter;
+        self.doc_dirty = true;
+        cx.notify();
+    }
+
     /// Background rectangles painted under the text — search matches,
     /// occurrence highlights. Document-position ranges; multi-line ranges
     /// paint like selections.
@@ -243,6 +285,7 @@ impl Editor {
     /// Replace the document, resetting cursor, selection, and history.
     pub fn set_text(&mut self, value: &str, cx: &mut Context<Self>) {
         self.model.set_text(value);
+        self.doc_dirty = true;
         cx.notify();
     }
 
@@ -271,6 +314,7 @@ impl Editor {
         let result = f(&mut self.model);
         let after = self.model.text();
         if after != before {
+            self.doc_dirty = true;
             cx.emit(EditorEvent::Change(after));
         }
         self.ensure_cursor_visible(window);
@@ -597,6 +641,7 @@ impl Editor {
     }
 
     fn after_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.doc_dirty = true;
         cx.emit(EditorEvent::Change(self.model.text()));
         self.ensure_cursor_visible(window);
         cx.notify();
@@ -693,7 +738,22 @@ impl Render for Editor {
         let gutter_w = digits as f32 * cell_w + 2.0 * GUTTER_PAD;
         let mut max_line_w: f32 = 0.0;
 
-        let mut hl_state = LineState::default();
+        // Re-highlight only what changed, never per frame: the document
+        // highlighter reparses on its dirty flag; the line cache revalidates
+        // against the lines and re-tokenizes only the ones that moved.
+        match &mut self.doc_highlighter {
+            Some(doc) => {
+                if self.doc_dirty {
+                    let text = self.model.text();
+                    doc.update(&text);
+                    self.doc_dirty = false;
+                }
+            }
+            None => {
+                self.hl_cache.sync(&self.language, self.model.lines());
+            }
+        }
+
         let mut gutter_rows: Vec<Div> = Vec::with_capacity(line_count);
         let mut text_rows: Vec<Div> = Vec::with_capacity(line_count);
         for (i, line) in self.model.lines().iter().enumerate() {
@@ -793,11 +853,12 @@ impl Render for Editor {
                         .bg(diag.severity.color(t)),
                 );
             }
-            // Tokenize every line (even empty ones) so block-comment state
-            // carries through blank lines.
-            let tokens = self.language.line(line, &mut hl_state);
+            let tokens = match &self.doc_highlighter {
+                Some(doc) => doc.tokens(i),
+                None => self.hl_cache.tokens(i),
+            };
             if !line.is_empty() {
-                let runs: Vec<TextRun> = spans(line.len(), &tokens)
+                let runs: Vec<TextRun> = spans(line.len(), tokens)
                     .into_iter()
                     .map(|(len, kind)| TextRun {
                         len,

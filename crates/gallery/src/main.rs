@@ -44,6 +44,24 @@ fn code_block(cx: &App, source: &str) -> impl IntoElement {
         .children(lines)
 }
 
+/// Rust highlighting for the editor showcase: the tree-sitter backend when
+/// built with `--features treesitter`, the built-in line tokenizer otherwise.
+#[cfg(feature = "treesitter")]
+fn rust_highlighting(editor: Editor) -> Editor {
+    match guise::TreeSitterHighlighter::new(
+        tree_sitter_rust::LANGUAGE.into(),
+        tree_sitter_rust::HIGHLIGHTS_QUERY,
+    ) {
+        Ok(hl) => editor.highlighter(hl),
+        Err(_) => editor.language(Language::Rust),
+    }
+}
+
+#[cfg(not(feature = "treesitter"))]
+fn rust_highlighting(editor: Editor) -> Editor {
+    editor.language(Language::Rust)
+}
+
 /// A child view that shares the gallery's counter purely through context —
 /// it never receives the `Signal` directly, it reads it via `use_context`.
 struct Counter {
@@ -518,8 +536,7 @@ impl Gallery {
 
         // Editor: syntax-highlighted Rust buffer; Cmd+Enter emits Run.
         let editor = cx.new(|cx| {
-            Editor::new(cx)
-                .language(Language::Rust)
+            rust_highlighting(Editor::new(cx))
                 .rows(8)
                 .placeholder("Type some Rust…")
                 .value(EDITOR_DEMO_SOURCE)

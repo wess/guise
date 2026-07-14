@@ -2,9 +2,10 @@
 
 `Editor` is a stateful entity — a multiline code editor with a line-number
 gutter, syntax highlighting, selection, and undo/redo. It renders the pure,
-headless `EditorModel`, and highlighting is line-based through the
-`Highlighter` trait; `Language` ships built-in tokenizers for Rust, SQL, and
-JSON.
+headless `EditorModel`. Highlighting has two backends: the zero-dependency
+line-based `Language` tokenizers (the default), and whole-document
+[`DocumentHighlighter`](#tree-sitter-treesitter-feature) backends — the
+`treesitter` feature ships an adapter that plugs any tree-sitter grammar in.
 
 ## Editor (entity)
 
@@ -33,6 +34,7 @@ cx.subscribe(&editor, |_this, _editor, event: &EditorEvent, _cx| match event {
 | `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
 | `value(&str)` | `""` | initial text (`text()` is the getter, like `TextInput`) |
 | `language(Language)` | `None` | built-in tokenizers — see [Languages](#languages) |
+| `highlighter(impl DocumentHighlighter)` | none | whole-document backend (tree-sitter); overrides `language` while set |
 | `placeholder(text)` | none | dimmed hint while empty and unfocused |
 | `read_only(bool)` | `false` | blocks edits; selection, copy, and ⌘Enter still work — cut degrades to copy, the caret hides |
 | `line_numbers(bool)` | `true` | gutter; the active line's number brightens while focused |
@@ -44,8 +46,9 @@ cx.subscribe(&editor, |_this, _editor, event: &EditorEvent, _cx| match event {
 
 Runtime: `editor.read(cx).text()` reads the buffer;
 `editor.update(cx, |e, cx| e.set_text("…", cx))` replaces it (resetting
-cursor, selection, and history); `focus_handle()` lets a host focus it on
-open. Content scrolls on both axes once it outgrows the element, and edits
+cursor, selection, and history); `set_language(lang, cx)` and
+`set_highlighter(Some(Box::new(hl)), cx)` switch highlighting (a file-type
+change); `focus_handle()` lets a host focus it on open. Content scrolls on both axes once it outgrows the element, and edits
 and movement auto-scroll the caret into view — give the editor a bounded
 parent (or `rows(n)`) and the viewport comes free.
 
@@ -217,10 +220,63 @@ boundaries (multibyte-safe — ready for gpui `TextRun` lengths). Uncovered
 gaps render unstyled. Feed lines in document order so `LineState` (the open
 block-comment depth) stays correct.
 
+Inside the entity, `Language` output is cached per line
+(`guise::editor::HighlightCache`) and revalidated against the text and the
+entering `LineState` — a keystroke re-tokenizes only the edited line, and
+later lines only when a block construct actually changed the state reaching
+them. Nothing re-tokenizes frame to frame.
+
 > **Note** `Editor::language` takes the built-in `Language` enum — a custom
-> `Highlighter` can't be plugged into the entity yet. Implement the trait to
-> tokenize additional languages for your own rendering: pair it with
-> `EditorModel` for the text and `token_color` for the theme mapping.
+> line-based `Highlighter` still can't be plugged into the entity. For a
+> custom backend, implement `DocumentHighlighter` (below) instead; the
+> line-based trait remains for tokenizing with `EditorModel` +
+> `token_color` in your own rendering.
+
+## DocumentHighlighter (trait)
+
+The whole-document seam. Where `Highlighter` re-scans line by line, a
+`DocumentHighlighter` parses the full buffer once per edit and serves
+per-line tokens from that parse — the shape a parse-tree backend wants:
+
+```rust
+pub trait DocumentHighlighter {
+    fn update(&mut self, text: &str);                            // reparse; called once per edit
+    fn tokens(&self, line: usize) -> &[(Range<usize>, TokenKind)]; // same shape as Highlighter::line
+}
+```
+
+Plug one in with `.highlighter(hl)` at build time or
+`set_highlighter(Some(Box::new(hl)), cx)` at runtime; it overrides
+`language` while set, and `set_highlighter(None, cx)` falls back. The editor
+calls `update` only when the text changed — never per frame.
+
+## Tree-sitter (`treesitter` feature)
+
+`TreeSitterHighlighter` is a `DocumentHighlighter` over
+[tree-sitter](https://tree-sitter.github.io/) — real parse-tree highlighting
+(context-aware, injection-capable grammars) instead of keyword scanning.
+guise ships **no grammars**: you pass a grammar crate's language and
+highlight query, so only the languages your app uses get compiled in.
+
+```toml
+guise-ui = { version = "…", features = ["treesitter"] }
+tree-sitter-rust = "0.24"   # each grammar is its own crate
+```
+
+```rust
+let rust = guise::TreeSitterHighlighter::new(
+    tree_sitter_rust::LANGUAGE.into(),
+    tree_sitter_rust::HIGHLIGHTS_QUERY,
+)?; // errors = query/grammar version mismatch
+
+let editor = cx.new(|cx| Editor::new(cx).highlighter(rust).value(source));
+```
+
+Capture names from the query (`keyword`, `function.method`,
+`punctuation.bracket`, …) map onto the eight `TokenKind`s by their root
+segment, so the theme palette and `token_colors` overrides apply unchanged;
+unrecognized captures render unstyled. The gallery's editor showcase runs on
+this backend when built with `cargo run -p gallery --features treesitter`.
 
 ## EditorModel (headless)
 

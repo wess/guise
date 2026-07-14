@@ -72,6 +72,22 @@ pub trait Highlighter {
     fn line(&self, text: &str, state: &mut LineState) -> Vec<(Range<usize>, TokenKind)>;
 }
 
+/// Whole-document highlighter — the seam for parse-tree backends (the
+/// `treesitter` feature's `TreeSitterHighlighter`). Where [`Highlighter`]
+/// re-scans line by line, an implementation parses the full document once
+/// per edit and serves per-line tokens from that parse. The editor calls
+/// [`update`](Self::update) only when the text changed, never per frame.
+pub trait DocumentHighlighter {
+    /// The document changed; reparse. `text` is the full buffer.
+    fn update(&mut self, text: &str);
+
+    /// Tokens for line `i` of the text last passed to
+    /// [`update`](Self::update): ascending, non-overlapping byte ranges into
+    /// that line, shaped like [`Highlighter::line`] output. Empty for
+    /// out-of-range lines.
+    fn tokens(&self, line: usize) -> &[(Range<usize>, TokenKind)];
+}
+
 /// Built-in languages with keyword/scanner tokenizers.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Language {
@@ -665,7 +681,7 @@ fn classify_word(syntax: &Syntax, word: &str, chars: &[(usize, char)], end: usiz
 
 /// Merge adjacent tokens of the same kind with contiguous ranges, so a run
 /// of punctuation becomes one span.
-fn coalesce(tokens: Vec<(Range<usize>, TokenKind)>) -> Vec<(Range<usize>, TokenKind)> {
+pub(crate) fn coalesce(tokens: Vec<(Range<usize>, TokenKind)>) -> Vec<(Range<usize>, TokenKind)> {
     let mut out: Vec<(Range<usize>, TokenKind)> = Vec::new();
     for (range, kind) in tokens {
         if let Some((last, last_kind)) = out.last_mut() {

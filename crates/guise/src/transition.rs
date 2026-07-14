@@ -69,17 +69,23 @@ impl RenderOnce for Transition {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let child = self.child.unwrap_or_else(|| div().into_any_element());
         let kind = self.kind;
-        let animation = self.easing.animation(self.duration);
+        // Linear clock + animator-side curve: overshooting easings (springs)
+        // return deltas past 1.0, which gpui's easing slot debug-asserts
+        // against but the animator accepts — margins overshoot and settle,
+        // opacity clamps to its legal range.
+        let easing = self.easing;
         div()
             .child(child)
-            .with_animation(self.id, animation, move |el, delta| {
+            .with_animation(self.id, easing.clock(self.duration), move |el, t| {
+                let delta = easing.apply(t);
+                let opacity = delta.clamp(0.0, 1.0);
                 let shift = (1.0 - delta) * 8.0;
                 match kind {
-                    TransitionKind::Fade => el.opacity(delta),
-                    TransitionKind::SlideUp => el.opacity(delta).mt(px(shift)),
-                    TransitionKind::SlideDown => el.opacity(delta).mt(px(-shift)),
-                    TransitionKind::SlideLeft => el.opacity(delta).ml(px(shift)),
-                    TransitionKind::SlideRight => el.opacity(delta).ml(px(-shift)),
+                    TransitionKind::Fade => el.opacity(opacity),
+                    TransitionKind::SlideUp => el.opacity(opacity).mt(px(shift)),
+                    TransitionKind::SlideDown => el.opacity(opacity).mt(px(-shift)),
+                    TransitionKind::SlideLeft => el.opacity(opacity).ml(px(shift)),
+                    TransitionKind::SlideRight => el.opacity(opacity).ml(px(-shift)),
                 }
             })
     }
@@ -141,7 +147,9 @@ impl Collapse {
 
 impl RenderOnce for Collapse {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        let animation = self.easing.animation(self.duration);
+        // Linear clock + animator-side curve; see `Transition::render`.
+        let easing = self.easing;
+        let animation = easing.clock(self.duration);
 
         let Some(height) = self.height else {
             // No measured height: fade in on open, vanish on close.
@@ -151,7 +159,9 @@ impl RenderOnce for Collapse {
             let child = self.child.unwrap_or_else(|| div().into_any_element());
             return div()
                 .child(child)
-                .with_animation(self.id, animation, |el, delta| el.opacity(delta))
+                .with_animation(self.id, animation, move |el, t| {
+                    el.opacity(easing.apply(t).clamp(0.0, 1.0))
+                })
                 .into_any_element();
         };
 
@@ -168,9 +178,15 @@ impl RenderOnce for Collapse {
             .id(self.id)
             .overflow_hidden()
             .child(child)
-            .with_animation(direction, animation, move |el, delta| {
-                let d = if open { delta } else { 1.0 - delta };
-                el.h(px(height * d)).opacity(d)
+            .with_animation(direction, animation, move |el, t| {
+                let d = if open {
+                    easing.apply(t)
+                } else {
+                    1.0 - easing.apply(t)
+                };
+                // A springy open overshoots the height and settles back;
+                // opacity and the closing height stay in legal range.
+                el.h(px(height * d.max(0.0))).opacity(d.clamp(0.0, 1.0))
             })
             .into_any_element()
     }

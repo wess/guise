@@ -28,9 +28,15 @@ default = ["webview"]
 # WebKitGTK dev libs (`libwebkit2gtk-4.1-dev`). Disable for headless/docs-only
 # builds; `WebView` then renders a themed placeholder with the same API.
 webview = ["dep:wry"]
+# Tree-sitter syntax highlighting for `Editor` (`TreeSitterHighlighter`).
+# Ships no grammars — pass a grammar crate's `LANGUAGE` and highlight query,
+# so only the languages an app actually uses get compiled in.
+treesitter = ["dep:tree-sitter", "dep:tree-sitter-highlight"]
 
 [dependencies]
 gpui.workspace = true
+tree-sitter = { version = "0.25", optional = true }
+tree-sitter-highlight = { version = "0.25", optional = true }
 wry = { version = "0.55", optional = true }
 
 # Examples only: the app bootstrap (`application()`) lives outside gpui on
@@ -42,3 +48,8 @@ gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1
 # Entity-level tests (`#[gpui::test]` + `TestAppContext`) — the same harness
 # zed's own tests run on. Resolves to the patched rev like the main dep.
 gpui = { version = "0.2.2", features = ["test-support"] }
+# The tree-sitter adapter compiles under `cfg(any(test, feature))`, so plain
+# `cargo test` exercises it against a real grammar without the feature.
+tree-sitter = "0.25"
+tree-sitter-highlight = "0.25"
+tree-sitter-rust = "0.24"

@@ -9,7 +9,13 @@ publish = false
 name = "gallery"
 path = "src/main.rs"
 
+[features]
+# Swap the editor showcase onto the tree-sitter backend:
+#   cargo run -p gallery --features treesitter
+treesitter = ["guise-ui/treesitter", "dep:tree-sitter-rust"]
+
 [dependencies]
 gpui.workspace = true
 gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit"] }
 guise-ui.workspace = true
+tree-sitter-rust = { version = "0.24", optional = true }

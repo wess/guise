@@ -121,9 +121,11 @@ pub use data::{
     TreeNode, TreeView, TreeViewEvent, VirtualList,
 };
 pub use editor::{
-    Diagnostic, Editor, EditorEvent, EditorModel, EditorStyle, Highlighter, Language, Pos,
-    Severity, TokenKind,
+    Diagnostic, DocumentHighlighter, Editor, EditorEvent, EditorModel, EditorStyle, Highlighter,
+    Language, Pos, Severity, TokenKind,
 };
+#[cfg(feature = "treesitter")]
+pub use editor::TreeSitterHighlighter;
 pub use feedback::{
     Alert, Loader, LoaderVariant, Notification, Progress, RingProgress, ToastStack,
 };
