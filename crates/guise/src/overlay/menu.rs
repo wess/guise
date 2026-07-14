@@ -179,7 +179,7 @@ impl Render for Menu {
                 this.open = !this.open;
                 if this.open {
                     this.highlight = this.item_indices().first().copied().unwrap_or(0);
-                    window.focus(&this.focus, cx);
+                    window.focus(&this.focus);
                 }
                 cx.notify();
             }));

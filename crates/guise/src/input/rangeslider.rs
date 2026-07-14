@@ -201,7 +201,7 @@ impl RangeSlider {
         if self.disabled {
             return;
         }
-        window.focus(&self.focus, cx);
+        window.focus(&self.focus);
         // A press on a knob starts a drag (the knobs' `on_drag` doesn't stop
         // this event from bubbling here) — jumping a thumb toward the press
         // would move it by up to half a knob, or move the *other* thumb when

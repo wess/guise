@@ -4,7 +4,7 @@
 
 ```
 guise/
-├── Cargo.toml            # workspace; patches crates.io gpui onto a pinned zed rev
+├── Cargo.toml            # workspace manifest (plain crates.io gpui)
 ├── docs/                 # human docs (this directory)
 ├── site/                 # docs-website generator (Bun; one page per docs/*.md, via render/nav.ts)
 └── crates/
@@ -14,14 +14,12 @@ guise/
 
 ## The gpui dependency
 
-The manifests request `gpui = "0.2.2"` from crates.io, but the root
-`[patch.crates-io]` block redirects that onto a pinned zed rev — the
-components track gpui's git line, which is newer than the crates.io API.
-Cargo patches don't propagate through git dependencies, so a consumer pinning
-guise via git must mirror the workspace's `[patch.crates-io]` section
-(including zed's own `async-process` / `async-task` patches).
-(`thirdparty/block/` is a leftover vendored crate; no manifest references
-it.)
+Everything builds against **crates.io `gpui = "0.2.2"`** — no git pins and
+no `[patch.crates-io]` section, so `guise-ui` installs as a plain registry
+dependency and publishes cleanly. The few style/scroll APIs the crates.io
+snapshot lacks are shimmed in `style.rs` (`FlexExt`) via gpui's raw
+`StyleRefinement`. (`thirdparty/block/` is a leftover vendored crate; no
+manifest references it.)
 
 The library package is **`guise-ui`** — the `guise` name was taken on
 crates.io — with `[lib] name = "guise"`. Cargo commands address the package as

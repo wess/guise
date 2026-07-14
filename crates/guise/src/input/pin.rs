@@ -351,7 +351,7 @@ impl Render for PinInput {
                 .on_mouse_down(
                     MouseButton::Left,
                     cx.listener(move |this, _ev, window, cx| {
-                        window.focus(&this.focus, cx);
+                        window.focus(&this.focus);
                         this.model.cursor = i.min(this.model.len() - 1);
                         cx.notify();
                     }),

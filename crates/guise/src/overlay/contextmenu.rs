@@ -184,7 +184,7 @@ impl ContextMenu {
         self.position = position;
         self.open = true;
         self.prev_focus = window.focused(cx);
-        window.focus(&self.focus, cx);
+        window.focus(&self.focus);
         cx.notify();
     }
 
@@ -197,10 +197,10 @@ impl ContextMenu {
 
     /// Hand focus back, unless something else (an item handler, a click into
     /// another field) already took it.
-    fn restore_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn restore_focus(&mut self, window: &mut Window, _cx: &mut Context<Self>) {
         if let Some(prev) = self.prev_focus.take() {
             if self.focus.is_focused(window) {
-                window.focus(&prev, cx);
+                window.focus(&prev);
             }
         }
     }

@@ -39,14 +39,9 @@ tree-sitter = { version = "0.25", optional = true }
 tree-sitter-highlight = { version = "0.25", optional = true }
 wry = { version = "0.55", optional = true }
 
-# Examples only: the app bootstrap (`application()`) lives outside gpui on
-# the git line. Pin it to the same rev as the `[patch.crates-io]` gpui so the
-# types unify. `font-kit` is required — without it the macOS platform falls
-# back to a noop text system and no glyphs raster.
 [dev-dependencies]
-gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit"] }
 # Entity-level tests (`#[gpui::test]` + `TestAppContext`) — the same harness
-# zed's own tests run on. Resolves to the patched rev like the main dep.
+# zed's own tests run on.
 gpui = { version = "0.2.2", features = ["test-support"] }
 # The tree-sitter adapter compiles under `cfg(any(test, feature))`, so plain
 # `cargo test` exercises it against a real grammar without the feature.

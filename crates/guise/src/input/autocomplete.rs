@@ -245,7 +245,7 @@ impl Render for Autocomplete {
             .on_key_down(cx.listener(Self::on_key))
             .on_click(cx.listener(|this, _ev, window, cx| {
                 if !this.disabled {
-                    window.focus(&this.focus, cx);
+                    window.focus(&this.focus);
                     cx.notify();
                 }
             }))

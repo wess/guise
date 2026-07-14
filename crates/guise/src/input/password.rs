@@ -254,7 +254,7 @@ impl Render for PasswordInput {
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, _ev, window, cx| {
-                    window.focus(&this.focus, cx);
+                    window.focus(&this.focus);
                     cx.notify();
                 }),
             )

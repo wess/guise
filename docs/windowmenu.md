@@ -32,7 +32,6 @@ Call `cx.set_menus(...)` in your `run` closure. Use the fully-qualified
 cx.set_menus(vec![
     gpui::Menu {
         name: SharedString::new_static("My App"),
-        disabled: false,
         items: vec![
             gpui::MenuItem::action("Toggle Theme", ToggleThemeAction),
             gpui::MenuItem::separator(),
@@ -41,14 +40,13 @@ cx.set_menus(vec![
     },
     gpui::Menu {
         name: SharedString::new_static("View"),
-        disabled: false,
         items: vec![gpui::MenuItem::action("Toggle Theme", ToggleThemeAction)],
     },
 ]);
 ```
 
-`gpui::Menu` has a required `disabled` field. `MenuItem` also offers
-`MenuItem::submenu(menu)` and `MenuItem::os_action(...)` for standard OS roles.
+`MenuItem` also offers `MenuItem::submenu(menu)` and
+`MenuItem::os_action(...)` for standard OS roles.
 
 ## Handle the actions
 
@@ -71,7 +69,7 @@ view's root element with `.on_action(cx.listener(Self::handler))`.
 ## Full wiring
 
 ```rust
-gpui_platform::application().run(|cx: &mut App| {
+gpui::Application::new().run(|cx: &mut App| {
     Theme::dark().init(cx);
 
     cx.set_menus(/* … as above … */);

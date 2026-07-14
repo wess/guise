@@ -5,7 +5,6 @@ use gpui::prelude::*;
 use gpui::{
     div, px, size, App, Bounds, Context, Entity, IntoElement, Window, WindowBounds, WindowOptions,
 };
-use gpui_platform::application;
 use guise::markdown::{MarkdownEditor, MarkdownEditorEvent};
 use guise::theme::Theme;
 
@@ -70,7 +69,7 @@ impl Render for Demo {
 }
 
 fn main() {
-    application().run(|cx: &mut App| {
+    gpui::Application::new().run(|cx: &mut App| {
         Theme::dark().init(cx);
         let bounds = Bounds::centered(None, size(px(760.0), px(820.0)), cx);
         cx.open_window(

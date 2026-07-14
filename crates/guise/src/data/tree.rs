@@ -358,7 +358,7 @@ impl TreeView {
     /// Scroll the visible row at `i` into view (virtualized mode only).
     fn reveal(&mut self, i: usize) {
         if self.height.is_some() {
-            self.scroll.scroll_to_item(i, ScrollStrategy::Nearest);
+            self.scroll.scroll_to_item(i, ScrollStrategy::Top);
         }
     }
 
@@ -513,7 +513,7 @@ impl Render for TreeView {
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, _ev, window, cx| {
-                    window.focus(&this.focus, cx);
+                    window.focus(&this.focus);
                     cx.notify();
                 }),
             )
@@ -531,7 +531,7 @@ impl Render for TreeView {
                 )
                 .h(px(height))
                 .w_full()
-                .track_scroll(&self.scroll),
+                .track_scroll(self.scroll.clone()),
             )
         } else {
             root.gap(px(2.0)).children(self.render_rows(0..count, cx))

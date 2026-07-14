@@ -568,7 +568,7 @@ impl Editor {
     }
 
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.focus, cx);
+        window.focus(&self.focus);
         let (line, col) = self.hit(ev.position, window);
         match ev.click_count {
             2 => {
@@ -906,7 +906,7 @@ impl Render for Editor {
             .relative()
             .flex()
             .flex_col()
-            .flex_grow(1.0)
+            .flex_grow()
             .min_w(px(content_w))
             .whitespace_nowrap()
             .child(probe)

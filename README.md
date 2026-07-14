@@ -67,7 +67,7 @@ of July 2026:
 | Drag & drop | typed payloads, sortable lists | panel docking | draggable + sortable |
 | Date/time pickers | yes | yes (incl. range presets) | yes |
 | Tests | 300+ incl. gpui entity harness | ~580 incl. render tests | minimal |
-| gpui dependency | pinned zed rev (git + patch) | crates.io releases; dev tracks zed main | a custom gpui fork |
+| gpui dependency | crates.io releases | crates.io releases; dev tracks zed main | a custom gpui fork |
 | License | MIT | Apache-2.0 | MIT |
 
 Reach for **guise** if you want Mantine's ergonomics, SwiftUI-style two-way
@@ -244,28 +244,24 @@ Colored components share Mantine's variant system: `Filled`, `Light`,
 
 ## Installation
 
-`guise` currently builds against a **pinned zed rev** of gpui (newer than the
-crates.io `gpui 0.2` API), so consume it as a git dependency and mirror the
-workspace's patch section:
+`guise` builds against **crates.io gpui 0.2.2** — no git pins, no patch
+sections:
 
 ```toml
 [dependencies]
-guise-ui = { git = "https://github.com/wess/guise", tag = "v0.9.0" }
+guise-ui = "0.10"
 gpui = "0.2.2"
-
-# Cargo patches don't propagate through git dependencies — mirror guise's
-# [patch.crates-io] block (see the workspace Cargo.toml for the exact revs):
-[patch.crates-io]
-gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
 ```
 
 > The crate is named **`guise-ui`** (the `guise` name was taken on crates.io),
 > but its library is named `guise` — so you still write
-> `use guise::prelude::*;`. The versions published on crates.io track the
-> older gpui `0.2` API line.
+> `use guise::prelude::*;`.
 
-See [Architecture](docs/architecture.md#the-gpui-dependency) for the full
-patch block (including zed's own `async-process` / `async-task` patches).
+Pinning via git works too:
+
+```toml
+guise-ui = { git = "https://github.com/wess/guise", tag = "v0.10.0" }
+```
 
 ## Building
 

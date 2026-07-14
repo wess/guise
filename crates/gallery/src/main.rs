@@ -6,7 +6,6 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use gpui::prelude::*;
-use gpui_platform::application;
 use gpui::{
     div, px, size, App, Bounds, Context, Entity, IntoElement, MouseButton,
     MouseDownEvent, SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions,
@@ -1860,14 +1859,13 @@ pub fn toggle_theme(window: &mut Window, cx: &mut App) {
 }
 
 fn main() {
-    application().run(|cx: &mut App| {
+    gpui::Application::new().run(|cx: &mut App| {
         Theme::dark().init(cx);
 
         // The native window menu. Actions dispatch to the global handlers below.
         cx.set_menus(vec![
             gpui::Menu {
                 name: SharedString::new_static("guise gallery"),
-                disabled: false,
                 items: vec![
                     gpui::MenuItem::action("Toggle Theme", ToggleThemeAction),
                     gpui::MenuItem::separator(),
@@ -1876,7 +1874,6 @@ fn main() {
             },
             gpui::Menu {
                 name: SharedString::new_static("View"),
-                disabled: false,
                 items: vec![gpui::MenuItem::action("Toggle Theme", ToggleThemeAction)],
             },
         ]);
