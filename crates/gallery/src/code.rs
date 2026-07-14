@@ -775,3 +775,82 @@ pub const PALETTE: Snippet = Snippet {
         }));
 }"#,
 };
+
+pub const DATES: Snippet = Snippet {
+    plain: r#"let picker = cx.new(|cx| DatePicker::new(cx).label("Ship date"));
+cx.subscribe(&picker, |_, event: &DatePickerEvent, _| match event {
+    DatePickerEvent::Selected(date) => { /* date.format("MMM D, YYYY") */ }
+    DatePickerEvent::Range(start, end) => { /* range_mode() */ }
+}).detach();
+
+let time = cx.new(|cx| TimePicker::new(cx).label("Standup"));
+let file = cx.new(|cx| FileInput::new(cx).accept(["png", "jpg"]));
+
+Dropzone::new("uploads")
+    .label("Drop files here")
+    .on_files(|paths, _cx| { /* Vec<PathBuf> */ });"#,
+    macros: r#"// Same wiring — pickers are entities, so the builder/macro split
+// only affects the surrounding layout:
+vstack![
+    // cx.new(|cx| DatePicker::new(cx)), cx.new(|cx| TimePicker::new(cx)) …
+];"#,
+};
+
+pub const DND: Snippet = Snippet {
+    plain: r#"SortableList::new("queue", items.len(), move |i, _w, _cx| {
+    Text::new(items[i].clone()).into_any_element()
+})
+.on_reorder(move |from, to, _w, cx| {
+    view.update(cx, |this, cx| {
+        guise::dnd::apply_reorder(&mut this.items, from, to);
+        cx.notify();
+    }).ok();
+});
+
+// Typed payloads between arbitrary elements:
+Draggable::new("card", CardId(3)).label("Q3 report").child(card);
+DropTarget::<CardId>::new("done").on_drop(|id, _w, _cx| { /* … */ });"#,
+    macros: r#"// dnd wiring is identical in macro layouts — wrap the list:
+vstack![text!("Drag rows to reorder").dimmed()]; // + SortableList as above"#,
+};
+
+pub const MOTION: Snippet = Snippet {
+    plain: r#"Collapse::new("details")
+    .open(self.expanded)
+    .height(88.0)                       // real height animation, both ways
+    .easing(Easing::EaseInOutCubic)
+    .child(detail_panel());
+
+Transition::new("hero")
+    .kind(TransitionKind::SlideUp)
+    .easing(Easing::Spring(Spring::default()))
+    .child(content);
+
+// Exit animations for conditionals: Presence latches the element
+// through its exit, then emits PresenceEvent::Hidden."#,
+    macros: r#"// Easing curves compose with any layout style:
+// Easing::EaseOutBack, Easing::CubicBezier(0.25, 0.1, 0.25, 1.0),
+// Easing::Spring(Spring::wobbly()) …"#,
+};
+
+pub const MISC: Snippet = Snippet {
+    plain: r#"let nav = cx.new(|cx| NavigationMenu::new(cx)
+    .item("home", "Home")
+    .menu("docs", "Docs", [("tutorial", "Tutorial"), ("api", "API")])
+    .active("home"));
+
+let deck = cx.new(|cx| Carousel::new(cx)
+    .slide(|_w, _cx| slide_one()).slide(|_w, _cx| slide_two()));
+
+let field = cx.new(|cx| Autocomplete::new(cx)
+    .suggestions(["Rust", "Ruby", "Python"]));
+
+let transfer = cx.new(|cx| Transfer::new(cx)
+    .data(["Ada", "Grace", "Linus"]).titles("Bench", "Team"));
+
+let tour = cx.new(|cx| Tour::new(cx)
+    .step("Welcome", "…").step("Panels", "…"));
+tour.update(cx, |t, cx| t.start(cx));"#,
+    macros: r#"// Entities are created with cx.new either way; macros wrap layout:
+vstack![ /* nav, deck, field … */ ];"#,
+};

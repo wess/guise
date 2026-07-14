@@ -313,11 +313,33 @@ pub fn charts() -> impl IntoElement {
             .size(120.0),
     ]);
 
+    // The full frame: axes with nice-number ticks, legends, hover readouts.
+    let multi = LineChart::series("Revenue", [12.0, 18.0, 24.0, 30.0, 28.0])
+        .add_series("Costs", [8.0, 11.0, 13.0, 16.0, 18.0])
+        .axis()
+        .labels(["Q1", "Q2", "Q3", "Q4", "Q5"])
+        .hover()
+        .height(140.0);
+
+    let area = AreaChart::series("Free", [40.0, 42.0, 45.0, 48.0, 52.0])
+        .add_series("Pro", [12.0, 15.0, 21.0, 26.0, 30.0])
+        .axis()
+        .labels(["Mar", "Apr", "May", "Jun", "Jul"])
+        .height(140.0);
+
+    let scatter = ScatterChart::series("Trial A", [(1.0, 3.2), (2.0, 4.1), (3.5, 2.8), (4.2, 5.0)])
+        .add_series("Trial B", [(1.5, 2.0), (2.5, 5.5), (3.8, 4.2)])
+        .hover()
+        .height(160.0);
+
     Stack::new()
         .gap(Size::Lg)
         .child(sparklines)
         .child(bars)
         .child(line)
+        .child(multi)
+        .child(area)
+        .child(scatter)
         .child(pies)
 }
 

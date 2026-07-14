@@ -6,8 +6,9 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use gpui::prelude::*;
+use gpui_platform::application;
 use gpui::{
-    div, px, size, App, Application, Bounds, Context, Entity, IntoElement, MouseButton,
+    div, px, size, App, Bounds, Context, Entity, IntoElement, MouseButton,
     MouseDownEvent, SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions,
 };
 
@@ -130,6 +131,22 @@ struct Gallery {
     tabbar: Entity<TabBar>,
     // Typography extras
     spoiler_open: bool,
+    // Dates & files
+    datepicker: Entity<DatePicker>,
+    timepicker: Entity<TimePicker>,
+    fileinput: Entity<FileInput>,
+    picked_date: SharedString,
+    drop_note: SharedString,
+    // Drag & drop
+    queue: Vec<SharedString>,
+    // Motion
+    collapse_open: bool,
+    // Misc components
+    carousel: Entity<Carousel>,
+    navmenu: Entity<NavigationMenu>,
+    autocomplete: Entity<Autocomplete>,
+    transfer: Entity<Transfer>,
+    tour: Entity<Tour>,
     /// Section keys whose "view source" panel is currently expanded.
     code_open: HashSet<&'static str>,
     /// One copy button per section, keyed by section key.
@@ -155,6 +172,10 @@ const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
     ("tableview", code::TABLEVIEW),
     ("tree", code::TREE),
     ("charts", code::CHARTS),
+    ("dates", code::DATES),
+    ("dnd", code::DND),
+    ("motion", code::MOTION),
+    ("misc", code::MISC),
     ("editor", code::EDITOR),
     ("navigation", code::NAVIGATION),
     ("shell", code::SHELL),
@@ -648,6 +669,68 @@ impl Gallery {
         })
         .detach();
 
+        // Dates & files: pickers emit events; the drop/file status lines live
+        // on the gallery itself.
+        let datepicker = cx.new(|cx| DatePicker::new(cx).label("Ship date"));
+        cx.subscribe(&datepicker, |this, _picker, event: &DatePickerEvent, cx| {
+            if let DatePickerEvent::Selected(date) = event {
+                this.picked_date =
+                    SharedString::from(format!("picked {}", date.format("MMM D, YYYY")));
+                cx.notify();
+            }
+        })
+        .detach();
+        let timepicker = cx.new(|cx| TimePicker::new(cx).label("Standup"));
+        let fileinput = cx.new(|cx| FileInput::new(cx).label("Attachment"));
+
+        // Misc components.
+        let carousel = cx.new(|cx| {
+            let slide = |title: &'static str| {
+                move |_: &mut Window, _: &mut App| {
+                    div()
+                        .size_full()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(Title::new(title).order(2))
+                }
+            };
+            Carousel::new(cx)
+                .slide(slide("Slide one"))
+                .slide(slide("Slide two"))
+                .slide(slide("Slide three"))
+                .height(150.0)
+        });
+        let navmenu = cx.new(|cx| {
+            NavigationMenu::new(cx)
+                .item("home", "Home")
+                .menu(
+                    "docs",
+                    "Docs",
+                    [("tutorial", "Tutorial"), ("api", "API reference")],
+                )
+                .item("about", "About")
+                .active("home")
+        });
+        let autocomplete = cx.new(|cx| {
+            Autocomplete::new(cx)
+                .label("Language")
+                .suggestions(["Rust", "Ruby", "Python", "TypeScript", "Go", "Swift"])
+        });
+        let transfer = cx.new(|cx| {
+            Transfer::new(cx)
+                .data(["Ada", "Grace", "Linus", "Margaret", "Alan"])
+                .chosen([0])
+                .titles("Bench", "Team")
+                .height(150.0)
+        });
+        let tour = cx.new(|cx| {
+            Tour::new(cx)
+                .step("Welcome", "This gallery shows every guise component.")
+                .step("View source", "The </> toggle reveals each section's code.")
+                .step("Theming", "Toggle light/dark from the header button.")
+        });
+
         Gallery {
             agree: false,
             notifications: true,
@@ -693,6 +776,23 @@ impl Gallery {
             confirm_open: false,
             tabbar,
             spoiler_open: false,
+            datepicker,
+            timepicker,
+            fileinput,
+            picked_date: SharedString::from("no date picked yet"),
+            drop_note: SharedString::from("nothing dropped yet"),
+            queue: vec![
+                SharedString::new_static("Design review"),
+                SharedString::new_static("Fix flaky test"),
+                SharedString::new_static("Ship 0.8"),
+                SharedString::new_static("Write changelog"),
+            ],
+            collapse_open: true,
+            carousel,
+            navmenu,
+            autocomplete,
+            transfer,
+            tour,
             code_open: HashSet::new(),
             copy_buttons,
             code_style,
@@ -1411,6 +1511,118 @@ impl Gallery {
             .child(table)
     }
 
+    fn dates(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let host = cx.entity().downgrade();
+        Stack::new()
+            .gap(Size::Md)
+            .child(
+                Group::new()
+                    .grow(true)
+                    .align(Align::Start)
+                    .child(div().flex_1().child(self.datepicker.clone()))
+                    .child(div().flex_1().child(self.timepicker.clone())),
+            )
+            .child(Text::new(self.picked_date.clone()).size(Size::Sm).dimmed())
+            .child(self.fileinput.clone())
+            .child(
+                Dropzone::new("gallery-dropzone")
+                    .label("Drop files here")
+                    .hint("any type — the count lands below")
+                    .height(110.0)
+                    .on_files(move |paths, cx| {
+                        host.update(cx, |this, cx| {
+                            this.drop_note =
+                                SharedString::from(format!("dropped {} file(s)", paths.len()));
+                            cx.notify();
+                        })
+                        .ok();
+                    }),
+            )
+            .child(Text::new(self.drop_note.clone()).size(Size::Sm).dimmed())
+    }
+
+    fn dnd(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let queue = self.queue.clone();
+        let labels = self.queue.clone();
+        let host = cx.entity().downgrade();
+        let list = SortableList::new("gallery-queue", queue.len(), move |i, _window, cx| {
+            let t = theme(cx);
+            div()
+                .px(px(10.0))
+                .py(px(7.0))
+                .rounded(px(6.0))
+                .bg(t.surface_hover().hsla())
+                .child(Text::new(queue[i].clone()).size(Size::Sm))
+        })
+        .label_of(move |i| labels[i].clone())
+        .on_reorder(move |from, to, _window, cx| {
+            host.update(cx, |this, cx| {
+                guise::dnd::apply_reorder(&mut this.queue, from, to);
+                cx.notify();
+            })
+            .ok();
+        });
+
+        Stack::new()
+            .gap(Size::Sm)
+            .child(Text::new("Drag rows to reorder").size(Size::Sm).dimmed())
+            .child(list)
+    }
+
+    fn motion(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let toggle = Button::new(
+            "motion-toggle",
+            if self.collapse_open { "Collapse" } else { "Expand" },
+        )
+        .variant(Variant::Light)
+        .on_click(cx.listener(|this, _ev, _window, cx| {
+            this.collapse_open = !this.collapse_open;
+            cx.notify();
+        }));
+
+        Stack::new()
+            .gap(Size::Sm)
+            .child(Group::new().child(toggle))
+            .child(
+                Collapse::new("motion-collapse")
+                    .open(self.collapse_open)
+                    .height(88.0)
+                    .easing(Easing::EaseInOutCubic)
+                    .child(Card::new().child(
+                        Text::new("A real height collapse — opening and closing both animate.")
+                            .size(Size::Sm),
+                    )),
+            )
+            .child(
+                Transition::new("motion-enter")
+                    .kind(TransitionKind::SlideUp)
+                    .easing(Easing::Spring(Spring::default()))
+                    .child(Text::new("Spring-eased entrance").size(Size::Sm).dimmed()),
+            )
+    }
+
+    fn misc(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let start_tour = Button::new("misc-tour", "Start tour")
+            .variant(Variant::Default)
+            .on_click(cx.listener(|this, _ev, _window, cx| {
+                this.tour.update(cx, |tour, cx| tour.start(cx));
+            }));
+
+        Stack::new()
+            .gap(Size::Md)
+            .child(self.navmenu.clone())
+            .child(self.carousel.clone())
+            .child(
+                Group::new()
+                    .grow(true)
+                    .align(Align::End)
+                    .child(div().flex_1().child(self.autocomplete.clone()))
+                    .child(start_tour),
+            )
+            .child(self.transfer.clone())
+            .child(self.tour.clone())
+    }
+
     fn close_modal(&mut self, _: &gpui::ClickEvent, _: &mut Window, cx: &mut Context<Self>) {
         self.modal_open = false;
         cx.notify();
@@ -1479,6 +1691,14 @@ impl Render for Gallery {
         let tree_body = self.tree_demo();
         let tree = self.section(cx, "tree", "TreeView", tree_body);
         let charts = self.section(cx, "charts", "Charts", sections::charts());
+        let dates_body = self.dates(cx);
+        let dates = self.section(cx, "dates", "Dates & files", dates_body);
+        let dnd_body = self.dnd(cx);
+        let dnd = self.section(cx, "dnd", "Drag & drop", dnd_body);
+        let motion_body = self.motion(cx);
+        let motion = self.section(cx, "motion", "Motion", motion_body);
+        let misc_body = self.misc(cx);
+        let misc = self.section(cx, "misc", "Carousel & more", misc_body);
         let editor_body = self.editor_demo();
         let editor = self.section(cx, "editor", "Editor", editor_body);
         let nav_body = self.navigation(cx);
@@ -1536,6 +1756,7 @@ impl Render for Gallery {
                     .child(badges)
                     .child(inputs)
                     .child(inputs2)
+                    .child(dates)
                     .child(overlays)
                     .child(overlays2)
                     .child(feedback)
@@ -1543,8 +1764,11 @@ impl Render for Gallery {
                     .child(tableview)
                     .child(tree)
                     .child(charts)
+                    .child(dnd)
+                    .child(motion)
                     .child(editor)
                     .child(navigation)
+                    .child(misc)
                     .child(shell)
                     .child(panels)
                     .child(polish)
@@ -1619,13 +1843,14 @@ pub fn toggle_theme(window: &mut Window, cx: &mut App) {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    application().run(|cx: &mut App| {
         Theme::dark().init(cx);
 
         // The native window menu. Actions dispatch to the global handlers below.
         cx.set_menus(vec![
             gpui::Menu {
                 name: SharedString::new_static("guise gallery"),
+                disabled: false,
                 items: vec![
                     gpui::MenuItem::action("Toggle Theme", ToggleThemeAction),
                     gpui::MenuItem::separator(),
@@ -1634,6 +1859,7 @@ fn main() {
             },
             gpui::Menu {
                 name: SharedString::new_static("View"),
+                disabled: false,
                 items: vec![gpui::MenuItem::action("Toggle Theme", ToggleThemeAction)],
             },
         ]);

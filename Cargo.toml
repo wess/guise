@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-# `gallery` (the component showcase) is parked out of the workspace: it targets
-# the old crates.io gpui 0.2.2 API, while the library now builds against the
-# pinned zed gpui rev (see the patch below). Re-add it once it is ported to the
-# newer gpui API.
-members = ["crates/guise"]
-exclude = ["crates/gallery"]
+members = ["crates/guise", "crates/gallery"]
 
 [workspace.package]
 version = "0.7.0"

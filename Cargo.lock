@@ -2126,6 +2126,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gallery"
+version = "0.7.0"
+dependencies = [
+ "gpui",
+ "gpui_platform",
+ "guise-ui",
+]
+
+[[package]]
 name = "gdk"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

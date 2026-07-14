@@ -11,4 +11,5 @@ path = "src/main.rs"
 
 [dependencies]
 gpui.workspace = true
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit"] }
 guise-ui.workspace = true

@@ -5,11 +5,12 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, ClipboardItem, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
-    MouseButton, SharedString, Window,
+    div, px, App, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, IntoElement,
+    KeyDownEvent, MouseButton, SharedString, Window,
 };
 
 use super::{apply_key, control_metrics, edit::TextEdit, KeyOutcome};
+use crate::reactive::Signal;
 use crate::theme::{theme, ColorName, Size};
 
 /// Emitted as the user edits or submits the field.
@@ -112,6 +113,36 @@ impl TextInput {
     pub fn set_text(&mut self, value: &str, cx: &mut Context<Self>) {
         self.edit = TextEdit::new(value);
         cx.notify();
+    }
+
+    /// Two-way bind the text to a `Signal<String>`. The signal is the source
+    /// of truth: the field adopts its value now, edits write back through
+    /// [`Signal::set_if_changed`], and signal writes replace the text without
+    /// emitting. Equality guards on both directions prevent update loops.
+    pub fn bind(entity: &Entity<TextInput>, signal: &Signal<String>, cx: &mut App) {
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_text(initial, cx));
+        let sink = signal.clone();
+        cx.subscribe(entity, move |_input, event: &TextInputEvent, cx| {
+            if let TextInputEvent::Change(text) = event {
+                sink.set_if_changed(cx, text.clone());
+            }
+        })
+        .detach();
+        let field = entity.downgrade();
+        cx.observe(signal.entity(), move |observed, cx| {
+            let text = observed.read(cx).clone();
+            field.update(cx, |this, cx| this.sync_text(text, cx)).ok();
+        })
+        .detach();
+    }
+
+    /// Programmatic set: repaint without emitting an event.
+    fn sync_text(&mut self, text: String, cx: &mut Context<Self>) {
+        if self.edit.text() != text {
+            self.edit = TextEdit::new(&text);
+            cx.notify();
+        }
     }
 
     /// Copy the selection to the clipboard (never from a password field).
