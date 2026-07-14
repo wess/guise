@@ -2,22 +2,30 @@
 
 ## Requirements
 
-Rust stable. Both `guise` and `gpui` come straight from crates.io — there is
-no git pin and no `[patch.crates-io]` recipe anymore. See
+Rust stable. `guise` currently builds against a **pinned zed rev** of gpui
+(newer than the crates.io `gpui 0.2` API), so consume it as a git dependency
+and mirror the workspace's patch section. See
 [Architecture](architecture.md#the-gpui-dependency).
 
 ## Add the dependency
 
-```sh
-cargo add guise-ui gpui
-```
-
-or in `Cargo.toml`:
-
 ```toml
 [dependencies]
-guise-ui = "0.2"
-gpui = "0.2"
+guise-ui = { git = "https://github.com/wess/guise", tag = "v0.8.0" }
+gpui = "0.2.2"
+
+# Cargo patches don't propagate through git dependencies — mirror guise's
+# [patch.crates-io] block (see the workspace Cargo.toml for the exact revs,
+# including zed's own async-process / async-task patches):
+[patch.crates-io]
+gpui = { git = "https://github.com/zed-industries/zed", rev = "96285fc1" }
+```
+
+For the app bootstrap (`application()`), also add `gpui_platform` pinned to
+the same rev:
+
+```toml
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "96285fc1", features = ["font-kit"] }
 ```
 
 > **Note** The crate is published as **`guise-ui`** (the `guise` name was taken
@@ -29,9 +37,9 @@ gpui = "0.2"
 ```rust
 use gpui::prelude::*;
 use gpui::{
-    div, px, size, App, Application, Bounds, Context, IntoElement, Window, WindowBounds,
-    WindowOptions,
+    div, px, size, App, Bounds, Context, IntoElement, Window, WindowBounds, WindowOptions,
 };
+use gpui_platform::application;
 use guise::prelude::*;
 
 struct Hello;
@@ -55,7 +63,7 @@ impl Render for Hello {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    application().run(|cx: &mut App| {
         // 1. Install a theme exactly once, before opening any window.
         Theme::dark().init(cx);
 

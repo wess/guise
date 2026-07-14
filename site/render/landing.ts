@@ -125,7 +125,7 @@ export function renderLanding(): string {
     <p class="lead">
       guise brings <a href="https://mantine.dev" rel="noreferrer">Mantine's</a> ergonomics to
       <a href="https://github.com/zed-industries/zed" rel="noreferrer">gpui</a> — a themed palette,
-      sizing tokens, and roughly sixty composable components, GPU-rendered at native speed.
+      sizing tokens, and over a hundred and twenty composable components, GPU-rendered at native speed.
     </p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="gettingstarted.html">Get started</a>
@@ -171,7 +171,7 @@ export function renderLanding(): string {
 
 <section class="band band-grape">
   <div class="container">
-    ${bandHead(`Roughly sixty components, <span class="gw">one palette</span>.`, "From buttons to a native web view — a selection of the families below.")}
+    ${bandHead(`Over 120 components, <span class="gw">one palette</span>.`, "From buttons to a native web view — a selection of the families below.")}
     <div class="plate-grid">${teaser}</div>
     <a class="more-link" href="gallery.html">See every component in the gallery &#8594;</a>
   </div>
