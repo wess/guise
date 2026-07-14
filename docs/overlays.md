@@ -2,12 +2,47 @@
 
 UI that paints above the page. `Modal`, `ConfirmModal`, `Drawer`,
 `LoadingOverlay`, `Tooltip` are stateless builders; `Menu`, `MenuBar`,
-`ContextMenu`, `Popover`, `HoverCard`, `Spotlight` are stateful entities. Most
-are built on the same mechanism: a `deferred()` layer (optionally `occlude()`d)
-so it overlays sibling content.
+`ContextMenu`, `Popover`, `HoverCard`, `Spotlight`, `OverlayHost` are stateful
+entities. Most are built on the same mechanism: a `deferred()` layer
+(optionally `occlude()`d) so it overlays sibling content.
 
 `Popover` is the reusable anchored-floating primitive; `Menu`/`Select` predate
 it and still hand-roll their own dropdown, but new flyouts should build on it.
+
+## OverlayHost (entity)
+
+Window-level overlay services: one host owns the **modal stack** and the
+**toast queue**, so opening a dialog is a call from any handler — no
+`opened` flags threaded through views. The host records what was focused
+when a modal opens and **restores focus when it closes**; Escape (with focus
+anywhere inside) closes the top modal; stacked modals layer in open order.
+
+```rust
+// At the root view: create once, render last (so overlays paint above).
+let overlays = cx.new(OverlayHost::new);
+div().child(page_content).child(overlays.clone())
+
+// From any handler:
+overlays.update(cx, |host, cx| {
+    host.toast("Saved", cx);
+    host.toast_titled("Deploy failed", "web-3 timed out", ColorName::Red, cx);
+    host.open_modal(window, cx, |close, _window, _cx| {
+        Modal::new()
+            .title("Settings")
+            .on_close(move |_ev, window, cx| close(window, cx))
+            .child(settings_form())
+            .into_any_element()
+    });
+});
+```
+
+The modal builder is re-invoked every frame (live content, same rule as
+Tabs/Accordion panels) and receives a `ModalCloser` — wire it to whatever
+should dismiss the dialog (`Modal::on_close` covers the × button and the
+backdrop click). `open_modal` returns an id for programmatic
+`close_modal(id, window, cx)`; `close_top` pops the stack;
+`toast_stack()` exposes the inner [`ToastStack`](feedback.md#toaststack-entity)
+for duration control.
 
 ## Modal
 

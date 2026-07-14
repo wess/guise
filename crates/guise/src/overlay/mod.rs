@@ -10,9 +10,12 @@
 //! - [`HoverCard`] is a stateful entity: a `Popover` that opens on hover.
 //! - [`LoadingOverlay`] is a stateless dimming layer for a `.relative()` parent.
 //! - [`ConfirmModal`] is a controlled confirm/cancel dialog built on `Modal`.
+//! - [`OverlayHost`] is a stateful entity owning the window's modal stack and
+//!   toast queue: open dialogs from any handler, focus restores on close.
 
 mod confirm;
 mod contextmenu;
+mod host;
 mod drawer;
 mod hovercard;
 mod loading;
@@ -26,6 +29,7 @@ mod tooltip;
 pub use confirm::ConfirmModal;
 pub use contextmenu::ContextMenu;
 pub use drawer::{Drawer, Side};
+pub use host::{ModalCloser, OverlayHost};
 pub use hovercard::HoverCard;
 pub use loading::LoadingOverlay;
 pub use menu::Menu;

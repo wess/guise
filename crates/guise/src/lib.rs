@@ -132,7 +132,7 @@ pub use markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};
 pub use nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
 pub use overlay::{
     tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
-    MenuColumn, Modal, Placement, Popover, Side, Spotlight, Tooltip,
+    MenuColumn, Modal, ModalCloser, OverlayHost, Placement, Popover, Side, Spotlight, Tooltip,
 };
 pub use reactive::{
     provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators, Binding,
@@ -172,7 +172,7 @@ pub mod prelude {
     pub use crate::nav::{Breadcrumbs, NavLink, Pagination, PaginationEvent, StatusBar, Stepper};
     pub use crate::overlay::{
         tooltip, ConfirmModal, ContextMenu, Drawer, HoverCard, LoadingOverlay, Menu, MenuBar,
-        MenuColumn, Modal, Placement, Popover, Side, Spotlight, Tooltip,
+        MenuColumn, Modal, ModalCloser, OverlayHost, Placement, Popover, Side, Spotlight, Tooltip,
     };
     pub use crate::reactive::{
         provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators,
