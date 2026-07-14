@@ -11,7 +11,7 @@ and mirror the workspace's patch section. See
 
 ```toml
 [dependencies]
-guise-ui = { git = "https://github.com/wess/guise", tag = "v0.8.0" }
+guise-ui = { git = "https://github.com/wess/guise", tag = "v0.9.0" }
 gpui = "0.2.2"
 
 # Cargo patches don't propagate through git dependencies — mirror guise's
