@@ -7,12 +7,16 @@
 
 mod color;
 mod css;
+mod json;
 mod palette;
+mod presets;
 mod tokens;
 
 pub use color::Color;
 pub use css::{css, hsl, hsla, rgb, rgba, CssColorError};
+pub use json::ThemeJsonError;
 pub use palette::{mantine, ColorName, Palette, Shades};
+pub use presets::PRESET_NAMES;
 pub use tokens::{Scale, Size};
 
 use gpui::{App, Global, SharedString};
@@ -74,6 +78,10 @@ pub struct Overrides {
     pub text: Option<Color>,
     pub dimmed: Option<Color>,
     pub border: Option<Color>,
+    pub success: Option<Color>,
+    pub warning: Option<Color>,
+    pub danger: Option<Color>,
+    pub info: Option<Color>,
 }
 
 impl Global for Theme {}
@@ -165,6 +173,30 @@ impl Theme {
         self
     }
 
+    /// Override the success/positive accent.
+    pub fn with_success(mut self, color: impl Into<gpui::Hsla>) -> Self {
+        self.overrides.success = Some(Color::from_hsla(color.into()));
+        self
+    }
+
+    /// Override the warning accent.
+    pub fn with_warning(mut self, color: impl Into<gpui::Hsla>) -> Self {
+        self.overrides.warning = Some(Color::from_hsla(color.into()));
+        self
+    }
+
+    /// Override the danger/destructive accent.
+    pub fn with_danger(mut self, color: impl Into<gpui::Hsla>) -> Self {
+        self.overrides.danger = Some(Color::from_hsla(color.into()));
+        self
+    }
+
+    /// Override the informational accent.
+    pub fn with_info(mut self, color: impl Into<gpui::Hsla>) -> Self {
+        self.overrides.info = Some(Color::from_hsla(color.into()));
+        self
+    }
+
     // --- Token lookups -----------------------------------------------------
 
     pub fn spacing(&self, size: Size) -> f32 {
@@ -251,6 +283,36 @@ impl Theme {
             ColorScheme::Light => self.color(ColorName::Gray, 3),
             ColorScheme::Dark => self.color(ColorName::Dark, 4),
         })
+    }
+
+    // --- Feedback accents (scheme-aware) ------------------------------------
+
+    /// Success / positive accent (confirmations, valid states).
+    pub fn success(&self) -> Color {
+        self.overrides
+            .success
+            .unwrap_or_else(|| self.color(ColorName::Green, self.primary_shade()))
+    }
+
+    /// Warning accent (caution states).
+    pub fn warning(&self) -> Color {
+        self.overrides
+            .warning
+            .unwrap_or_else(|| self.color(ColorName::Yellow, self.primary_shade()))
+    }
+
+    /// Danger / destructive accent (errors, deletes).
+    pub fn danger(&self) -> Color {
+        self.overrides
+            .danger
+            .unwrap_or_else(|| self.color(ColorName::Red, self.primary_shade()))
+    }
+
+    /// Informational accent (notices, hints).
+    pub fn info(&self) -> Color {
+        self.overrides
+            .info
+            .unwrap_or_else(|| self.color(ColorName::Cyan, self.primary_shade()))
     }
 }
 

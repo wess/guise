@@ -141,7 +141,7 @@ pub use reactive::{
 pub use style::{surface, ColorValue, StyleExt, Surface, Variant};
 pub use theme::{
     css, hsl, hsla, rgb, rgba, theme, Color, ColorName, ColorScheme, CssColorError, Palette, Scale,
-    Shades, Size, Theme,
+    Shades, Size, Theme, ThemeJsonError, PRESET_NAMES,
 };
 
 pub mod prelude {

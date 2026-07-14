@@ -133,6 +133,10 @@ These resolve differently in light vs. dark mode — use them instead of hard-co
 | `t.dimmed()` | secondary text |
 | `t.border()` | borders and dividers |
 | `t.primary()` | the primary color at its scheme shade |
+| `t.success()` | positive accents (confirmations, valid states) |
+| `t.warning()` | caution accents |
+| `t.danger()` | errors, destructive actions |
+| `t.info()` | notices and hints |
 
 ```rust
 div().bg(t.surface().hsla()).text_color(t.text().hsla())
@@ -153,7 +157,62 @@ Theme::dark()
 
 The setters are named `with_*` (not `body`/`primary`) to avoid clashing with the
 same-named getters; each accepts anything `Into<Hsla>` — a `color!`, `css(..)`,
-or a palette `Color`.
+or a palette `Color`. The full override set: `with_primary`, `with_body`,
+`with_surface`, `with_surface_hover`, `with_text`, `with_dimmed`,
+`with_border`, `with_success`, `with_warning`, `with_danger`, `with_info`.
+
+## Prebuilt themes
+
+Six well-known palettes ship as ready themes — every override slot set:
+
+```rust
+Theme::catppuccin().init(cx);   // Catppuccin Mocha (dark)
+Theme::nord().init(cx);
+Theme::tokyonight().init(cx);
+Theme::gruvbox().init(cx);
+Theme::dracula().init(cx);
+Theme::solarized_light().init(cx);
+
+// Or by name (see PRESET_NAMES):
+if let Some(theme) = Theme::preset("dracula") { theme.init(cx); }
+```
+
+## JSON theme files
+
+`Theme::from_json(source)` loads a theme from a **flat JSON object of string
+values** — deliberately flat so the parser stays dependency-free and files
+diff cleanly. Colors take any form `css()` accepts (hex, `rgb()`, `hsl()`):
+
+```json
+{
+  "name": "midnight",
+  "scheme": "dark",
+  "primary": "#7aa2f7",
+  "body": "#1a1b26",
+  "surface": "#16161e",
+  "surfacehover": "#292e42",
+  "text": "#c0caf5",
+  "dimmed": "#565f89",
+  "border": "#3b4261",
+  "success": "rgb(158, 206, 106)",
+  "warning": "#e0af68",
+  "danger": "#f7768e",
+  "info": "#7dcfff",
+  "fontfamily": "Inter",
+  "radius": "md"
+}
+```
+
+```rust
+let theme = Theme::from_json(&std::fs::read_to_string("theme.json")?)?;
+theme.init(cx);
+```
+
+Every key is optional (`scheme` defaults to `dark`; unset colors keep the
+scheme defaults), but unknown keys are rejected with
+`ThemeJsonError::UnknownKey` — they're almost always typos. Bad colors and
+tokens name the offending key in `ThemeJsonError::BadValue`. `name` and
+`$schema` are accepted and ignored, so files can self-describe.
 
 ## Sizing tokens
 
