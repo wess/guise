@@ -97,6 +97,28 @@ Methods: `new()`, `item(s)`, `items(iter)`, `ordered(bool)`, `size`,
 `spacing(Size)`, `icon(impl Into<Glyph>)` (custom bullet — a Lucide `IconName`
 or text).
 
+`List` builds all its children eagerly — it's for content-sized lists. For
+big flat collections reach for [`VirtualList`](#virtuallist) below, or bind a
+signal with [`DataView`](#dataview-entity) and give it a `height`.
+
+## VirtualList
+
+Windowed rendering for large flat collections: only the rows in view are
+built each frame, so a 100k-item list renders as cheaply as a 20-item one.
+Items come from a factory closure and must share one height — that
+uniformity is what makes the scroll math O(1).
+
+```rust
+VirtualList::new("log", lines.len(), move |i, _window, _cx| {
+    Text::new(lines[i].clone()).size(Size::Sm)
+})
+.height(400.0)
+```
+
+Methods: `new(id, count, fn(usize, &mut Window, &mut App) -> impl IntoElement)`,
+`height(px)` (viewport height, default `240.0`). The factory runs per visible
+index, every frame — keep it cheap.
+
 ## Table
 
 A simple table of string cells; columns size equally.
@@ -228,6 +250,7 @@ todos.update(cx, |list| list.push("Celebrate".into()));
 | `gap(Size)` | `Sm` | spacing between items (and grid cells) |
 | `empty(closure)` | dimmed "Nothing to show" | shown when the projection yields nothing |
 | `selectable()` | off | single selection: hover highlight, primary-tint selected item |
+| `height(px)` | content-sized | **virtualizes**: only the items in view are built; items (or grid rows) must share one height |
 
 Emits `DataViewEvent::Selected(usize)` with the clicked item's **source**
 index (stays valid under any filter/sort). Read back with `selected_index()`.
@@ -271,6 +294,7 @@ cx.subscribe(&tree, |_this, _tree, event: &TreeViewEvent, _cx| match event {
 | `bind_nodes(&Signal<Vec<TreeNode>>, cx)` | — | live data from a [`Signal`](reactive.md#signal); expansion and selection survive updates (keyed by node id) |
 | `expand(id)` / `collapse(id)` | all collapsed | per-branch initial expansion |
 | `default_expanded(bool)` | `false` | start with every branch expanded (also applies to nodes assigned later) |
+| `height(px)` | content-sized | **virtualizes**: only the rows in view are built; keyboard selection scrolls into view |
 
 `TreeNode` builders: `new(id, label)`, `icon(IconName)` (branches fall back to
 `IconName::Menu`, leaves to `IconName::Dot`), `child(node)`, `children(iter)`;

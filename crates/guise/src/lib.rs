@@ -111,7 +111,7 @@ pub use chart::{BarChart, LineChart, PieChart, Sparkline};
 pub use data::{
     Accordion, Avatar, AvatarGroup, Column, DataView, DataViewEvent, DataViewLayout, List,
     SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs, Timeline,
-    TreeNode, TreeView, TreeViewEvent,
+    TreeNode, TreeView, TreeViewEvent, VirtualList,
 };
 pub use editor::{Editor, EditorEvent, EditorModel, EditorStyle, Highlighter, Language, Pos, TokenKind};
 pub use feedback::{
@@ -150,7 +150,7 @@ pub mod prelude {
     pub use crate::data::{
         Accordion, Avatar, AvatarGroup, Column, DataView, DataViewEvent, DataViewLayout, List,
         SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs,
-        Timeline, TreeNode, TreeView, TreeViewEvent,
+        Timeline, TreeNode, TreeView, TreeViewEvent, VirtualList,
     };
     pub use crate::editor::{Editor, EditorEvent, EditorModel, EditorStyle, Language, Pos};
     pub use crate::markdown::{MarkdownEditor, MarkdownEditorEvent, MarkdownStyle};

@@ -27,9 +27,13 @@
 //! ```
 
 use std::cmp::Ordering;
+use std::ops::Range;
 
 use gpui::prelude::*;
-use gpui::{div, px, AnyElement, App, Context, EventEmitter, IntoElement, SharedString, Window};
+use gpui::{
+    div, px, uniform_list, AnyElement, App, Context, EventEmitter, IntoElement, SharedString,
+    Window,
+};
 
 use super::Content;
 use crate::reactive::Signal;
@@ -72,6 +76,7 @@ pub struct DataView<T: 'static> {
     empty: Option<Content>,
     selectable: bool,
     selected: Option<usize>,
+    height: Option<f32>,
 }
 
 impl<T: 'static> EventEmitter<DataViewEvent> for DataView<T> {}
@@ -101,7 +106,16 @@ impl<T: 'static> DataView<T> {
             empty: None,
             selectable: false,
             selected: None,
+            height: None,
         }
+    }
+
+    /// Fix the view height (px) and virtualize: only the items in view are
+    /// built each frame. Items (or grid rows) must share one height. Applies
+    /// to both layouts — a `Grid(n)` virtualizes whole rows of `n` cells.
+    pub fn height(mut self, height: f32) -> Self {
+        self.height = Some(height.max(0.0));
+        self
     }
 
     /// The item template, re-invoked every frame with the borrowed item and
@@ -180,21 +194,24 @@ fn projection<T>(items: &[T], filter: FilterRef<'_, T>, sort: SortRef<'_, T>) ->
     order
 }
 
-impl<T: 'static> Render for DataView<T> {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl<T: 'static> DataView<T> {
+    /// Build the wrapped cells for a range of **display** positions. The
+    /// projected items are built while the source entity is leased; the
+    /// template borrows each item in place — no clone of the collection.
+    fn build_cells(
+        &mut self,
+        display: Range<usize>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
         let t = theme(cx);
-        let gap = t.spacing(self.gap);
         let radius = t.radius(t.default_radius);
         let hover_bg = t.surface_hover().hsla();
-        let dimmed = t.dimmed().hsla();
-        let font_sm = t.font_size(Size::Sm);
         // Same treatment as an active NavLink: the primary color's Light
         // (tinted) surface.
         let sel = surface(t, t.primary_color, Variant::Light);
         let (selected_bg, selected_fg) = (sel.bg, sel.fg);
 
-        // Build the projected items while the source entity is leased; the
-        // template borrows each item in place — no clone of the collection.
         let template = self.item.as_ref();
         let filter = self.filter.as_deref();
         let sort = self.sort.as_deref();
@@ -204,6 +221,8 @@ impl<T: 'static> Render for DataView<T> {
             match template {
                 Some(build) => order
                     .into_iter()
+                    .skip(display.start)
+                    .take(display.len())
                     .map(|i| (i, build(&items[i], i, window, cx)))
                     .collect(),
                 None => Vec::new(),
@@ -215,24 +234,7 @@ impl<T: 'static> Render for DataView<T> {
         // is always valid for the current collection.
         let selected = self.selected;
 
-        if built.is_empty() {
-            let content = match &self.empty {
-                Some(build) => build(window, cx),
-                None => div()
-                    .text_size(px(font_sm))
-                    .text_color(dimmed)
-                    .child(SharedString::new_static("Nothing to show"))
-                    .into_any_element(),
-            };
-            return div()
-                .w_full()
-                .flex()
-                .justify_center()
-                .py(px(16.0))
-                .child(content);
-        }
-
-        let cells: Vec<AnyElement> = built
+        built
             .into_iter()
             .map(|(source_ix, element)| {
                 if !selectable {
@@ -258,14 +260,115 @@ impl<T: 'static> Render for DataView<T> {
                 };
                 cell.into_any_element()
             })
-            .collect();
+            .collect()
+    }
 
+    /// One virtualized grid row: `cols` equal-width cells, padded at the tail.
+    fn build_grid_row(
+        &mut self,
+        row_ix: usize,
+        cols: usize,
+        gap: f32,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let start = row_ix * cols;
+        let cells = self.build_cells(start..start + cols, window, cx);
+        let mut wrapped: Vec<_> = cells
+            .into_iter()
+            .map(|cell| div().flex_1().min_w(px(0.0)).child(cell))
+            .collect();
+        while wrapped.len() < cols {
+            wrapped.push(div().flex_1().min_w(px(0.0)));
+        }
+        div()
+            .flex()
+            .gap(px(gap))
+            .pb(px(gap))
+            .children(wrapped)
+            .into_any_element()
+    }
+
+    /// Length of the current projection (display item count).
+    fn projected_len(&mut self, cx: &mut Context<Self>) -> usize {
+        let filter = self.filter.as_deref();
+        let sort = self.sort.as_deref();
+        let entity = self.source.entity().clone();
+        entity.update(cx, |items, _| projection(items, filter, sort).len())
+    }
+}
+
+impl<T: 'static> Render for DataView<T> {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let t = theme(cx);
+        let gap = t.spacing(self.gap);
+        let dimmed = t.dimmed().hsla();
+        let font_sm = t.font_size(Size::Sm);
+
+        let count = if self.item.is_some() {
+            self.projected_len(cx)
+        } else {
+            0
+        };
+
+        if count == 0 {
+            let content = match &self.empty {
+                Some(build) => build(window, cx),
+                None => div()
+                    .text_size(px(font_sm))
+                    .text_color(dimmed)
+                    .child(SharedString::new_static("Nothing to show"))
+                    .into_any_element(),
+            };
+            return div()
+                .w_full()
+                .flex()
+                .justify_center()
+                .py(px(16.0))
+                .child(content)
+                .into_any_element();
+        }
+
+        // Virtualized: uniform_list over display items (List) or whole rows
+        // of `cols` cells (Grid). Only the viewport slice is built per frame.
+        if let Some(height) = self.height {
+            let list = match self.layout {
+                DataViewLayout::List => uniform_list(
+                    "guise-dataview-body",
+                    count,
+                    cx.processor(move |this, range: Range<usize>, window, cx| {
+                        this.build_cells(range, window, cx)
+                            .into_iter()
+                            .map(|cell| div().pb(px(gap)).child(cell).into_any_element())
+                            .collect::<Vec<_>>()
+                    }),
+                ),
+                DataViewLayout::Grid(cols) => {
+                    let cols = cols.max(1);
+                    let rows = count.div_ceil(cols);
+                    uniform_list(
+                        "guise-dataview-body",
+                        rows,
+                        cx.processor(move |this, range: Range<usize>, window, cx| {
+                            range
+                                .map(|row_ix| this.build_grid_row(row_ix, cols, gap, window, cx))
+                                .collect::<Vec<_>>()
+                        }),
+                    )
+                }
+            };
+            return div()
+                .w_full()
+                .child(list.h(px(height)).w_full())
+                .into_any_element();
+        }
+
+        let cells = self.build_cells(0..count, window, cx);
         let root = div().w_full().flex().flex_col().gap(px(gap));
         match self.layout {
-            DataViewLayout::List => root.children(cells),
+            DataViewLayout::List => root.children(cells).into_any_element(),
             DataViewLayout::Grid(cols) => {
                 let cols = cols.max(1);
-                let count = cells.len();
                 let mut rows = Vec::new();
                 let mut row = Vec::new();
                 for (i, cell) in cells.into_iter().enumerate() {
@@ -278,7 +381,7 @@ impl<T: 'static> Render for DataView<T> {
                         rows.push(div().flex().gap(px(gap)).children(std::mem::take(&mut row)));
                     }
                 }
-                root.children(rows)
+                root.children(rows).into_any_element()
             }
         }
     }

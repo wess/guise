@@ -16,6 +16,7 @@ mod tableview;
 mod tabs;
 mod timeline;
 mod tree;
+mod virtuallist;
 
 pub use accordion::Accordion;
 pub use avatar::Avatar;
@@ -27,6 +28,7 @@ pub use table::Table;
 pub use tableview::{Column, SelectionMode, SortDir, TableView, TableViewEvent};
 pub use tabs::Tabs;
 pub use timeline::Timeline;
+pub use virtuallist::VirtualList;
 pub use tree::{TreeNode, TreeView, TreeViewEvent};
 
 use gpui::{AnyElement, App, Window};

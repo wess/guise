@@ -26,11 +26,13 @@
 //! ```
 
 use std::collections::HashSet;
+use std::ops::Range;
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, ClickEvent, Context, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
-    MouseButton, SharedString, Window,
+    div, px, uniform_list, AnyElement, ClickEvent, Context, EventEmitter, FocusHandle,
+    IntoElement, KeyDownEvent, MouseButton, ScrollStrategy, SharedString,
+    UniformListScrollHandle, Window,
 };
 
 use crate::icon::{Glyph, Icon, IconName};
@@ -221,6 +223,8 @@ pub struct TreeView {
     selected: Option<SharedString>,
     expand_all: bool,
     focus: FocusHandle,
+    height: Option<f32>,
+    scroll: UniformListScrollHandle,
 }
 
 impl EventEmitter<TreeViewEvent> for TreeView {}
@@ -233,7 +237,17 @@ impl TreeView {
             selected: None,
             expand_all: false,
             focus: cx.focus_handle(),
+            height: None,
+            scroll: UniformListScrollHandle::new(),
         }
+    }
+
+    /// Fix the view height (px) and virtualize: only the rows in view are
+    /// built each frame, so huge trees stay cheap. Keyboard selection scrolls
+    /// into view.
+    pub fn height(mut self, height: f32) -> Self {
+        self.height = Some(height.max(0.0));
+        self
     }
 
     /// Set the tree data.
@@ -332,9 +346,19 @@ impl TreeView {
     /// Carry out a [`KeyMove`] against the current visible rows.
     fn apply(&mut self, mv: KeyMove, rows: &[VisibleRow], cx: &mut Context<Self>) {
         match mv {
-            KeyMove::To(i) => self.select(rows[i].id.clone(), cx),
+            KeyMove::To(i) => {
+                self.select(rows[i].id.clone(), cx);
+                self.reveal(i);
+            }
             KeyMove::Set(i, open) => self.set_expanded(rows[i].id.clone(), open, cx),
             KeyMove::None => {}
+        }
+    }
+
+    /// Scroll the visible row at `i` into view (virtualized mode only).
+    fn reveal(&mut self, i: usize) {
+        if self.height.is_some() {
+            self.scroll.scroll_to_item(i, ScrollStrategy::Nearest);
         }
     }
 
@@ -352,12 +376,14 @@ impl TreeView {
             "down" => {
                 if let Some(i) = step_down(rows.len(), current) {
                     self.select(rows[i].id.clone(), cx);
+                    self.reveal(i);
                 }
                 true
             }
             "up" => {
                 if let Some(i) = step_up(rows.len(), current) {
                     self.select(rows[i].id.clone(), cx);
+                    self.reveal(i);
                 }
                 true
             }
@@ -390,8 +416,10 @@ impl TreeView {
     }
 }
 
-impl Render for TreeView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl TreeView {
+    /// Build the visible rows in `range` (the whole tree when not
+    /// virtualized, just the viewport slice when it is).
+    fn render_rows(&mut self, range: Range<usize>, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let t = theme(cx);
         let text = t.text().hsla();
         let dimmed = t.dimmed().hsla();
@@ -405,22 +433,9 @@ impl Render for TreeView {
         let rows = visible(&self.nodes, &self.expanded);
         let selected = self.selected.clone();
 
-        let mut root = div()
-            .id("guise-treeview")
-            .track_focus(&self.focus)
-            .on_key_down(cx.listener(Self::on_key))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(|this, _ev, window, cx| {
-                    window.focus(&this.focus, cx);
-                    cx.notify();
-                }),
-            )
-            .flex()
-            .flex_col()
-            .gap(px(2.0));
-
-        for (i, row) in rows.into_iter().enumerate() {
+        let mut out = Vec::with_capacity(range.len());
+        for i in range {
+            let Some(row) = rows.get(i) else { break };
             let is_selected = selected.as_ref() == Some(&row.id);
             let is_branch = row.is_branch;
             let id = row.id.clone();
@@ -481,10 +496,46 @@ impl Render for TreeView {
             if is_selected {
                 el = el.bg(selected_bg);
             }
-            root = root.child(el);
+            out.push(el.into_any_element());
         }
+        out
+    }
+}
 
-        root
+impl Render for TreeView {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let count = visible(&self.nodes, &self.expanded).len();
+
+        let root = div()
+            .id("guise-treeview")
+            .track_focus(&self.focus)
+            .on_key_down(cx.listener(Self::on_key))
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|this, _ev, window, cx| {
+                    window.focus(&this.focus, cx);
+                    cx.notify();
+                }),
+            )
+            .flex()
+            .flex_col();
+
+        if let Some(height) = self.height {
+            root.child(
+                uniform_list(
+                    "guise-treeview-rows",
+                    count,
+                    cx.processor(|this, range: Range<usize>, _window, cx| {
+                        this.render_rows(range, cx)
+                    }),
+                )
+                .h(px(height))
+                .w_full()
+                .track_scroll(&self.scroll),
+            )
+        } else {
+            root.gap(px(2.0)).children(self.render_rows(0..count, cx))
+        }
     }
 }
 
