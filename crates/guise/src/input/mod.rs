@@ -9,6 +9,7 @@
 //!   `EventEmitter`) that own their buffer/open-state. Create with
 //!   `cx.new(|cx| TextInput::new(cx))` and subscribe for changes.
 
+mod accept;
 mod calendar;
 mod checkbox;
 mod checkboxgroup;
@@ -16,7 +17,9 @@ mod colorinput;
 mod combobox;
 mod date;
 mod datepicker;
+mod dropzone;
 mod edit;
+mod fileinput;
 mod field;
 mod keys;
 mod number;
@@ -43,7 +46,9 @@ pub use colorinput::{ColorInput, ColorInputEvent};
 pub use combobox::{Combobox, ComboboxEvent};
 pub use date::{days_in_month, is_leap_year, month_grid, Date, Weekday, MONTH_NAMES};
 pub use datepicker::{DatePicker, DatePickerEvent};
+pub use dropzone::Dropzone;
 pub use edit::TextEdit;
+pub use fileinput::{FileInput, FileInputEvent};
 pub use field::Field;
 pub use keys::{apply_key, KeyOutcome};
 pub use number::{NumberInput, NumberInputEvent};

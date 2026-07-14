@@ -118,7 +118,8 @@ pub use feedback::{
 pub use input::{
     apply_key, days_in_month, is_leap_year, month_grid, Calendar, Checkbox, CheckboxGroup,
     ColorInput, ColorInputEvent, Combobox, ComboboxEvent, Date, DatePicker, DatePickerEvent,
-    Field, KeyOutcome, NumberInput, NumberInputEvent, PasswordInput, PasswordInputEvent, PinInput,
+    Dropzone, Field, FileInput, FileInputEvent, KeyOutcome, NumberInput, NumberInputEvent,
+    PasswordInput, PasswordInputEvent, PinInput,
     PinInputEvent, Radio, RadioGroup, RangeSlider, RangeSliderEvent, Rating, SegmentedControl,
     SegmentedControlEvent, Select, SelectEvent, Slider, SliderEvent, Switch, TagsInput,
     TagsInputEvent, TextArea, TextAreaEvent, TextEdit, TextInput, TextInputEvent, Time,
@@ -156,7 +157,8 @@ pub mod prelude {
     };
     pub use crate::input::{
         apply_key, Calendar, Checkbox, CheckboxGroup, ColorInput, ColorInputEvent, Combobox,
-        ComboboxEvent, Date, DatePicker, DatePickerEvent, Field, KeyOutcome, NumberInput,
+        ComboboxEvent, Date, DatePicker, DatePickerEvent, Dropzone, Field, FileInput,
+        FileInputEvent, KeyOutcome, NumberInput,
         NumberInputEvent, PasswordInput, PasswordInputEvent, PinInput, PinInputEvent, Radio,
         RadioGroup, RangeSlider, RangeSliderEvent, Rating, Select, SelectEvent, Slider,
         SliderEvent, Switch, TagsInput, TagsInputEvent, TextArea, TextAreaEvent, TextEdit,

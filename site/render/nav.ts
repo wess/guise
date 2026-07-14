@@ -28,6 +28,7 @@ export const groups: DocGroup[] = [
       { slug: "icons", title: "Icons" },
       { slug: "inputs", title: "Inputs" },
       { slug: "dates", title: "Dates & times" },
+      { slug: "files", title: "File handling" },
       { slug: "editor", title: "Editor" },
       { slug: "markdowneditor", title: "Markdown editor" },
       { slug: "typography", title: "Typography" },
