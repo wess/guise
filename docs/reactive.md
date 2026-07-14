@@ -193,36 +193,75 @@ per signal in a view's constructor (where `cx` is the view's `Context`).
 
 ## Forms
 
-`FormState` is a small, unit-testable store of field values, validators, and the
-errors from the last validation — keyed by field name. Make it reactive by
-holding it in a `Signal` (that's what `use_form` returns) and mutating through
-`signal.update`.
+Two layers. **`Form`** is the one to reach for: every field is its own
+`Signal<String>`, so inputs bind to fields directly — no change handlers, no
+copying values in and out. **`FormState`** underneath is the plain
+unit-testable map (values + validators + errors) for when you don't need the
+wiring.
+
+### Form — fields as signals
 
 ```rust
 use guise::reactive::validators;
 
+let form = Form::new(cx)
+    .field(cx, "email", "")
+    .rule("email", validators::required())
+    .rule("email", validators::email())
+    .field(cx, "password", "")
+    .rule("password", validators::min_len(8))
+    .field(cx, "confirm", "")
+    .rule_form("confirm", validators::equals_field("password", "Passwords must match"));
+
+// Each field IS a Signal<String> — bind inputs straight to it:
+TextInput::bind(&email_input, &form.signal("email"), cx);
+PasswordInput::bind(&password_input, &form.signal("password"), cx);
+
+// Submit is one line — validate, get the values on success:
+if let Some(values) = form.submit(cx) { /* values["email"] … */ }
+
+// Render errors (watch the errors signal to re-render on validation):
+watch(cx, &form.errors());
+let email_error = form.error(cx, "email"); // Option<String>
+```
+
+Behavior worth knowing: `Form` is `Clone + 'static` (`Rc`-shared) so handlers
+can capture it; rules run in order and the first failure wins; edits mark a
+field *touched* (`form.touched("email")`); and a field that failed validation
+**re-validates live** as it's edited — the error clears the moment the value
+becomes valid, the standard validate-on-submit-then-live pattern.
+
+Methods: `field(cx, name, initial)`, `rule(name, Validator)`,
+`rule_form(name, Rule)` (cross-field), `signal(name)`, `value(cx, name)`,
+`set(cx, name, v)`, `values(cx)`, `validate(cx)`, `validate_field(cx, name)`,
+`error(cx, name)`, `errors()` (the signal), `touched(name)`, `is_valid(cx)`,
+`submit(cx)`.
+
+### Validators
+
+`required()`, `min_len(n)`, `max_len(n)`, `email()`, `numeric()`,
+`min_value(f64)`, `max_value(f64)`, `one_of(&["a", "b"])`,
+`matches(pred, message)` (custom predicate), and the cross-field
+`equals_field(other, message)` (a `Rule` — attach with `rule_form`). A
+`Validator` is `Box<dyn Fn(&str) -> Option<String>>` and a `Rule` also sees a
+`FormValues` snapshot of the whole form, so custom rules are just closures.
+
+### FormState — the pure layer
+
+```rust
 let form = use_form(cx, FormState::new()
     .field("email", "")
-    .validator("email", validators::email())
-    .field("name", "")
-    .validator("name", validators::required()));
+    .validator("email", validators::email()));
 
-// in a submit handler:
 form.update(cx, |f| {
-    if f.validate() {
-        // f.value("email"), f.value("name") …
-    }
+    if f.validate() { /* f.value("email") … */ }
 });
-
-// reading errors while rendering:
 let email_error = form.read(cx).error("email"); // Option<&str>
 ```
 
 `FormState` methods: `new()`, `field(name, initial)`, `validator(name, v)`,
 `value(name)`, `set(name, value)`, `validate_field(name)`, `validate()`,
-`error(name)`, `is_valid()`. Built-in `validators`: `required()`, `min_len(n)`,
-`email()`. A `Validator` is `Box<dyn Fn(&str) -> Option<String>>`, so custom
-rules are just closures.
+`error(name)`, `is_valid()`.
 
 ## Worked example: two views, one shared Signal
 

@@ -135,8 +135,8 @@ pub use overlay::{
     MenuColumn, Modal, Placement, Popover, Side, Spotlight, Tooltip,
 };
 pub use reactive::{
-    provide, use_context, use_effect, use_form, use_memo, use_state, watch, Binding, FormState,
-    Signal,
+    provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators, Binding,
+    Form, FormState, FormValues, Rule, Signal, Validator,
 };
 pub use style::{surface, ColorValue, StyleExt, Surface, Variant};
 pub use theme::{
@@ -175,8 +175,8 @@ pub mod prelude {
         MenuColumn, Modal, Placement, Popover, Side, Spotlight, Tooltip,
     };
     pub use crate::reactive::{
-        provide, use_context, use_effect, use_form, use_memo, use_state, watch, Binding, FormState,
-        Signal,
+        provide, use_context, use_effect, use_form, use_memo, use_state, watch, validators,
+        Binding, Form, FormState, FormValues, Rule, Signal, Validator,
     };
     pub use crate::style::{ColorValue, StyleExt, Variant};
     pub use crate::theme::{

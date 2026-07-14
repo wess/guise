@@ -36,6 +36,6 @@ mod signal;
 
 pub use binding::Binding;
 pub use context::{has_context, provide, use_context, use_context_ref};
-pub use form::{use_form, validators, FormState, Validator};
+pub use form::{use_form, validators, Form, FormState, FormValues, Rule, Validator};
 pub use hooks::{use_effect, use_memo, use_state, watch};
 pub use signal::Signal;
