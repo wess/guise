@@ -31,6 +31,7 @@ use gpui::{
     Window,
 };
 
+use super::diagnostic::{line_message, line_severity, Diagnostic};
 use super::highlight::{token_color, Highlighter, Language, LineState, TokenKind};
 use super::model::{EditorModel, Pos};
 use crate::reactive::Signal;
@@ -90,6 +91,7 @@ pub struct Editor {
     token_palette: Option<[Hsla; 8]>,
     style: EditorStyle,
     highlights: Vec<(Pos, Pos, Hsla)>,
+    diagnostics: Vec<Diagnostic>,
     focus: FocusHandle,
     scroll: ScrollHandle,
     hscroll: ScrollHandle,
@@ -122,6 +124,7 @@ impl Editor {
             token_palette: None,
             style: EditorStyle::default(),
             highlights: Vec::new(),
+            diagnostics: Vec::new(),
             focus: cx.focus_handle(),
             scroll: ScrollHandle::new(),
             hscroll: ScrollHandle::new(),
@@ -209,6 +212,25 @@ impl Editor {
     pub fn set_highlights(&mut self, highlights: Vec<(Pos, Pos, Hsla)>, cx: &mut Context<Self>) {
         self.highlights = highlights;
         cx.notify();
+    }
+
+    /// Attach diagnostics (compiler/linter/LSP output). Affected lines get a
+    /// severity-colored gutter dot and range underline, and the active
+    /// line's message shows in a strip under the buffer.
+    pub fn set_diagnostics(&mut self, diagnostics: Vec<Diagnostic>, cx: &mut Context<Self>) {
+        self.diagnostics = diagnostics;
+        cx.notify();
+    }
+
+    pub fn clear_diagnostics(&mut self, cx: &mut Context<Self>) {
+        if !self.diagnostics.is_empty() {
+            self.diagnostics.clear();
+            cx.notify();
+        }
+    }
+
+    pub fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
     }
 
     // ---- runtime API ----
@@ -678,19 +700,31 @@ impl Render for Editor {
             let is_active = i == cursor.line;
 
             if self.line_numbers {
-                gutter_rows.push(
-                    div()
-                        .h(px(line_h))
-                        .flex()
-                        .items_center()
-                        .justify_end()
-                        .text_color(if is_active && focused {
-                            gutter_fg_active
-                        } else {
-                            gutter_fg
-                        })
-                        .child(SharedString::from((i + 1).to_string())),
-                );
+                let mut gutter_row = div()
+                    .relative()
+                    .h(px(line_h))
+                    .flex()
+                    .items_center()
+                    .justify_end()
+                    .text_color(if is_active && focused {
+                        gutter_fg_active
+                    } else {
+                        gutter_fg
+                    })
+                    .child(SharedString::from((i + 1).to_string()));
+                if let Some(severity) = line_severity(&self.diagnostics, i) {
+                    gutter_row = gutter_row.child(
+                        div()
+                            .absolute()
+                            .left(px(1.0))
+                            .top(px((line_h - 6.0) / 2.0))
+                            .w(px(6.0))
+                            .h(px(6.0))
+                            .rounded_full()
+                            .bg(severity.color(t)),
+                    );
+                }
+                gutter_rows.push(gutter_row);
             }
 
             // Shaped once per line (cached across frames by gpui): painted
@@ -736,6 +770,28 @@ impl Render for Editor {
                             .bg(selection_bg),
                     );
                 }
+            }
+            // Diagnostic underlines: a 2px severity-colored bar under the
+            // char range (empty range = the whole line).
+            for diag in self.diagnostics.iter().filter(|d| d.line == i) {
+                let chars = line.chars().count();
+                let (s, e) = if diag.cols.is_empty() || diag.cols.start >= chars {
+                    (0, chars)
+                } else {
+                    (diag.cols.start, diag.cols.end.min(chars))
+                };
+                let sx = f32::from(shaped.x_for_index(byte_for_col(line, s)));
+                let ex = f32::from(shaped.x_for_index(byte_for_col(line, e)));
+                row = row.child(
+                    div()
+                        .absolute()
+                        .bottom(px(1.0))
+                        .left(px(sx))
+                        .w(px((ex - sx).max(cell_w * 0.75)))
+                        .h(px(2.0))
+                        .rounded(px(1.0))
+                        .bg(diag.severity.color(t)),
+                );
             }
             // Tokenize every line (even empty ones) so block-comment state
             // carries through blank lines.
@@ -840,14 +896,36 @@ impl Render for Editor {
         if !style.bare {
             frame = frame.rounded(px(radius)).border_1().border_color(frame_border);
         }
-        frame
+        frame = frame
             .bg(bg)
             .overflow_hidden()
             .font_family(MONO_FAMILY)
             .text_size(px(font_size))
             .line_height(px(line_h))
             .text_color(text_color)
-            .child(body)
+            .child(body);
+
+        // The active line's diagnostic, in a strip under the buffer (no
+        // hover needed, no hit-test interference with text selection).
+        if let Some(diag) = line_message(&self.diagnostics, cursor.line) {
+            let accent = diag.severity.color(t);
+            frame = frame.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(6.0))
+                    .px(px(PAD_X))
+                    .py(px(3.0))
+                    .border_t_1()
+                    .border_color(edge)
+                    .bg(Hsla { a: 0.06, ..accent })
+                    .text_size(px(font_size - 2.0))
+                    .text_color(dimmed)
+                    .child(div().w(px(6.0)).h(px(6.0)).rounded_full().bg(accent))
+                    .child(diag.message.clone()),
+            );
+        }
+        frame
     }
 }
 

@@ -32,7 +32,7 @@ cx.subscribe(&editor, |_this, _editor, event: &EditorEvent, _cx| match event {
 | --- | --- | --- |
 | `new(cx)` | — | construct inside `cx.new(\|cx\| ...)` |
 | `value(&str)` | `""` | initial text (`text()` is the getter, like `TextInput`) |
-| `language(Language)` | `None` | built-in `Rust` / `Sql` / `Json` tokenizers |
+| `language(Language)` | `None` | built-in tokenizers — see [Languages](#languages) |
 | `placeholder(text)` | none | dimmed hint while empty and unfocused |
 | `read_only(bool)` | `false` | blocks edits; selection, copy, and ⌘Enter still work — cut degrades to copy, the caret hides |
 | `line_numbers(bool)` | `true` | gutter; the active line's number brightens while focused |
@@ -48,6 +48,30 @@ cursor, selection, and history); `focus_handle()` lets a host focus it on
 open. Content scrolls on both axes once it outgrows the element, and edits
 and movement auto-scroll the caret into view — give the editor a bounded
 parent (or `rows(n)`) and the viewport comes free.
+
+### Diagnostics
+
+LSP-shaped diagnostics from a compiler, linter, or language server:
+`Diagnostic { line, cols, severity, message }` with `Severity::{Error,
+Warning, Info, Hint}`. Affected lines get a severity-colored **gutter dot**,
+the char range gets an **underline** (an empty `cols` range covers the whole
+line — `Diagnostic::line_wide` builds one), and when the caret sits on a
+diagnosed line its worst message shows in a **strip under the buffer** — no
+hover needed, and text selection is unaffected.
+
+```rust
+editor.update(cx, |e, cx| {
+    e.set_diagnostics(vec![
+        Diagnostic::new(3, 8..13, Severity::Error, "cannot find value `nmae`"),
+        Diagnostic::line_wide(7, Severity::Warning, "unused import"),
+    ], cx);
+});
+// later: e.clear_diagnostics(cx); e.diagnostics() reads back.
+```
+
+Severity colors ride the theme's feedback accents
+([`danger`/`warning`/`info`](theming.md#semantic-colors-scheme-aware), hints
+use dimmed), so they restyle with the theme.
 
 ```rust
 pub enum EditorEvent {
@@ -157,6 +181,13 @@ keyword/scanner tokenizers:
 | `Language::Rust` | `//` and *nesting* `/* */` comments, `"…"` with backslash escapes, keywords, `0x`/decimal/exponent numbers, uppercase idents as types, `name(` / `name!(` as calls |
 | `Language::Sql` | case-insensitive keywords and column types, `--` and non-nesting `/* */` comments, `'…'` strings with doubled-quote escaping |
 | `Language::Json` | `"…"` strings, numbers, `true` / `false` / `null` as keywords |
+| `Language::Toml` | `#` comments, `"…"`/`'…'` strings, `true`/`false` |
+| `Language::Python` | `#` comments, `"…"`/`'…'` strings, full keyword set, builtin types, uppercase idents as classes |
+| `Language::JavaScript` | `//` + `/* */`, `"…"`/`'…'`/`` `…` `` strings, keywords, uppercase idents as types |
+| `Language::TypeScript` | JavaScript plus `interface`/`type`/`declare`/… and the primitive type names |
+| `Language::Go` | `//` + `/* */`, `"…"`/`` `…` `` strings, keywords, builtin types |
+| `Language::C` | `//` + `/* */`, `"…"`/`'…'`, keywords, builtin types |
+| `Language::Markdown` | line-structural: `#` headings, `>` quotes, list markers, `` `code` `` spans, and ``` fenced blocks (fence state carries across lines) |
 
 Tokens are classified as one of eight `TokenKind`s (`Keyword`, `Ident`,
 `Number`, `StringLit`, `Comment`, `Punct`, `Type`, `Function`);

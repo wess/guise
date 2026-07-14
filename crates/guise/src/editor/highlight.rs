@@ -81,6 +81,14 @@ pub enum Language {
     Rust,
     Sql,
     Json,
+    Toml,
+    Python,
+    JavaScript,
+    TypeScript,
+    Go,
+    C,
+    /// Line-structure highlighting: headings, quotes, fences, `code` spans.
+    Markdown,
 }
 
 impl Highlighter for Language {
@@ -90,6 +98,13 @@ impl Highlighter for Language {
             Language::Rust => tokenize(&RUST, text, state),
             Language::Sql => tokenize(&SQL, text, state),
             Language::Json => tokenize(&JSON, text, state),
+            Language::Toml => tokenize(&TOML, text, state),
+            Language::Python => tokenize(&PYTHON, text, state),
+            Language::JavaScript => tokenize(&JAVASCRIPT, text, state),
+            Language::TypeScript => tokenize(&TYPESCRIPT, text, state),
+            Language::Go => tokenize(&GO, text, state),
+            Language::C => tokenize(&C, text, state),
+            Language::Markdown => markdown_line(text, state),
         }
     }
 }
@@ -269,6 +284,161 @@ const JSON: Syntax = Syntax {
     case_insensitive: false,
     uppercase_types: false,
 };
+
+const TOML: Syntax = Syntax {
+    line_comment: Some("#"),
+    block_comment: None,
+    nested_blocks: false,
+    strings: &[('"', Escape::Backslash), ('\'', Escape::Backslash)],
+    keywords: &["false", "true"],
+    types: &[],
+    case_insensitive: false,
+    uppercase_types: false,
+};
+
+const PYTHON: Syntax = Syntax {
+    line_comment: Some("#"),
+    block_comment: None,
+    nested_blocks: false,
+    strings: &[('"', Escape::Backslash), ('\'', Escape::Backslash)],
+    keywords: &[
+        "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
+        "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
+        "if", "import", "in", "is", "lambda", "match", "nonlocal", "not", "or", "pass", "raise",
+        "return", "try", "while", "with", "yield",
+    ],
+    types: &["bool", "bytes", "dict", "float", "int", "list", "set", "str", "tuple"],
+    case_insensitive: false,
+    uppercase_types: true,
+};
+
+const JAVASCRIPT: Syntax = Syntax {
+    line_comment: Some("//"),
+    block_comment: Some(("/*", "*/")),
+    nested_blocks: false,
+    strings: &[
+        ('"', Escape::Backslash),
+        ('\'', Escape::Backslash),
+        ('`', Escape::Backslash),
+    ],
+    keywords: &[
+        "async", "await", "break", "case", "catch", "class", "const", "continue", "debugger",
+        "default", "delete", "do", "else", "export", "extends", "false", "finally", "for",
+        "function", "if", "import", "in", "instanceof", "let", "new", "null", "of", "return",
+        "static", "super", "switch", "this", "throw", "true", "try", "typeof", "undefined",
+        "var", "void", "while", "with", "yield",
+    ],
+    types: &[],
+    case_insensitive: false,
+    uppercase_types: true,
+};
+
+const TYPESCRIPT: Syntax = Syntax {
+    line_comment: Some("//"),
+    block_comment: Some(("/*", "*/")),
+    nested_blocks: false,
+    strings: &[
+        ('"', Escape::Backslash),
+        ('\'', Escape::Backslash),
+        ('`', Escape::Backslash),
+    ],
+    keywords: &[
+        "abstract", "as", "async", "await", "break", "case", "catch", "class", "const",
+        "continue", "debugger", "declare", "default", "delete", "do", "else", "enum", "export",
+        "extends", "false", "finally", "for", "function", "if", "implements", "import", "in",
+        "infer", "instanceof", "interface", "is", "keyof", "let", "namespace", "new", "null",
+        "of", "readonly", "return", "satisfies", "static", "super", "switch", "this", "throw",
+        "true", "try", "type", "typeof", "undefined", "var", "void", "while", "with", "yield",
+    ],
+    types: &["any", "bigint", "boolean", "never", "number", "object", "string", "symbol", "unknown", "void"],
+    case_insensitive: false,
+    uppercase_types: true,
+};
+
+const GO: Syntax = Syntax {
+    line_comment: Some("//"),
+    block_comment: Some(("/*", "*/")),
+    nested_blocks: false,
+    strings: &[('"', Escape::Backslash), ('`', Escape::Backslash)],
+    keywords: &[
+        "break", "case", "chan", "const", "continue", "default", "defer", "else", "fallthrough",
+        "false", "for", "func", "go", "goto", "if", "import", "interface", "iota", "map", "nil",
+        "package", "range", "return", "select", "struct", "switch", "true", "type", "var",
+    ],
+    types: &[
+        "any", "bool", "byte", "complex128", "complex64", "error", "float32", "float64", "int",
+        "int16", "int32", "int64", "int8", "rune", "string", "uint", "uint16", "uint32",
+        "uint64", "uint8", "uintptr",
+    ],
+    case_insensitive: false,
+    uppercase_types: true,
+};
+
+const C: Syntax = Syntax {
+    line_comment: Some("//"),
+    block_comment: Some(("/*", "*/")),
+    nested_blocks: false,
+    strings: &[('"', Escape::Backslash), ('\'', Escape::Backslash)],
+    keywords: &[
+        "break", "case", "const", "continue", "default", "do", "else", "enum", "extern", "for",
+        "goto", "if", "inline", "register", "restrict", "return", "sizeof", "static", "struct",
+        "switch", "typedef", "union", "volatile", "while",
+    ],
+    types: &[
+        "bool", "char", "double", "float", "int", "long", "short", "signed", "size_t",
+        "unsigned", "void",
+    ],
+    case_insensitive: false,
+    uppercase_types: false,
+};
+
+/// Markdown is line-structural, not keyword-based, so it gets its own
+/// tokenizer. `LineState::block_depth` doubles as the "inside a code fence"
+/// flag (1 = fenced).
+fn markdown_line(text: &str, state: &mut LineState) -> Vec<(Range<usize>, TokenKind)> {
+    let trimmed = text.trim_start();
+    let indent = text.len() - trimmed.len();
+
+    if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+        state.block_depth = if state.block_depth > 0 { 0 } else { 1 };
+        return vec![(indent..text.len(), TokenKind::Punct)];
+    }
+    if state.block_depth > 0 {
+        if text.is_empty() {
+            return Vec::new();
+        }
+        return vec![(0..text.len(), TokenKind::StringLit)];
+    }
+    if trimmed.starts_with('#') {
+        return vec![(indent..text.len(), TokenKind::Keyword)];
+    }
+    if trimmed.starts_with('>') {
+        return vec![(indent..text.len(), TokenKind::Comment)];
+    }
+
+    let mut out = Vec::new();
+    // List bullet: "- ", "* ", "+ ", or "1. " — mark just the marker.
+    if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("+ ") {
+        out.push((indent..indent + 1, TokenKind::Punct));
+    } else {
+        let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
+        if digits > 0 && trimmed[digits..].starts_with(". ") {
+            out.push((indent..indent + digits + 1, TokenKind::Punct));
+        }
+    }
+    // Inline `code` spans (ticks included). Unmatched ticks stay plain.
+    let mut open: Option<usize> = None;
+    for (b, c) in text.char_indices() {
+        if c == '`' {
+            match open.take() {
+                Some(start) => out.push((start..b + 1, TokenKind::StringLit)),
+                None => open = Some(b),
+            }
+        }
+    }
+    out.sort_by_key(|(range, _)| range.start);
+    out
+}
 
 /// Run `syntax` over one line. Works on `char_indices` so every emitted
 /// range is char-boundary aligned (multibyte-safe).
@@ -532,6 +702,47 @@ mod tests {
     #[test]
     fn none_language_emits_nothing() {
         assert!(kinds(Language::None, "let x = 1;").is_empty());
+    }
+
+    #[test]
+    fn new_languages_classify_keywords_strings_comments() {
+        assert_eq!(kind_of(Language::Toml, "name = \"guise\" # crate", "\"guise\""), TokenKind::StringLit);
+        assert_eq!(kind_of(Language::Toml, "flag = true", "true"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::Python, "def run(): pass  # go", "def"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::Python, "def run(): pass  # go", "# go"), TokenKind::Comment);
+        assert_eq!(kind_of(Language::JavaScript, "const x = `hi`;", "const"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::JavaScript, "const x = `hi`;", "`hi`"), TokenKind::StringLit);
+        assert_eq!(kind_of(Language::TypeScript, "let n: number = 5;", "number"), TokenKind::Type);
+        assert_eq!(kind_of(Language::TypeScript, "interface A {}", "interface"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::Go, "func main() {}", "func"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::Go, "var n int64", "int64"), TokenKind::Type);
+        assert_eq!(kind_of(Language::C, "static int n = 0; // c", "static"), TokenKind::Keyword);
+        assert_eq!(kind_of(Language::C, "static int n = 0; // c", "int"), TokenKind::Type);
+    }
+
+    #[test]
+    fn markdown_structures_lines() {
+        assert_eq!(kinds(Language::Markdown, "# Title"), vec![("# Title".into(), TokenKind::Keyword)]);
+        assert_eq!(kinds(Language::Markdown, "> quoted"), vec![("> quoted".into(), TokenKind::Comment)]);
+        let bullets = kinds(Language::Markdown, "- item with `code` span");
+        assert_eq!(bullets[0], ("-".into(), TokenKind::Punct));
+        assert_eq!(bullets[1], ("`code`".into(), TokenKind::StringLit));
+        let ordered = kinds(Language::Markdown, "12. step");
+        assert_eq!(ordered[0], ("12.".into(), TokenKind::Punct));
+        // Unmatched ticks stay plain.
+        assert!(kinds(Language::Markdown, "just a ` tick").is_empty());
+    }
+
+    #[test]
+    fn markdown_fences_carry_state() {
+        let mut state = LineState::default();
+        let fence = Language::Markdown.line("```rust", &mut state);
+        assert_eq!(fence[0].1, TokenKind::Punct);
+        let inside = Language::Markdown.line("# not a heading", &mut state);
+        assert_eq!(inside, vec![(0.."# not a heading".len(), TokenKind::StringLit)]);
+        Language::Markdown.line("```", &mut state);
+        let after = Language::Markdown.line("# heading again", &mut state);
+        assert_eq!(after[0].1, TokenKind::Keyword);
     }
 
     #[test]

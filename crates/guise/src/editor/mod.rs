@@ -23,11 +23,13 @@
 // The `Editor` entity lives in its own file, named for the component like
 // every other module; the path doubling (`editor::editor`) never leaks since
 // the type is re-exported here.
+mod diagnostic;
 #[allow(clippy::module_inception)]
 mod editor;
 mod highlight;
 mod model;
 
+pub use diagnostic::{Diagnostic, Severity};
 pub use editor::{Editor, EditorEvent, EditorStyle};
 pub use highlight::{token_color, Highlighter, Language, LineState, TokenKind};
 pub use model::{EditorModel, Pos};
