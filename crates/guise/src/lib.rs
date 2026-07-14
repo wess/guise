@@ -107,7 +107,7 @@ pub use anim::{Easing, Presence, PresenceEvent, Spring};
 pub use transition::{Collapse, Transition, TransitionKind};
 pub use webview::{WebView, WebViewEvent};
 
-pub use chart::{BarChart, LineChart, PieChart, Sparkline};
+pub use chart::{AreaChart, BarChart, LineChart, PieChart, ScatterChart, Sparkline};
 pub use data::{
     Accordion, Avatar, AvatarGroup, Column, DataView, DataViewEvent, DataViewLayout, List,
     SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs, Timeline,
@@ -146,7 +146,7 @@ pub use theme::{
 
 pub mod prelude {
     //! Common imports for building with `guise`.
-    pub use crate::chart::{BarChart, LineChart, PieChart, Sparkline};
+    pub use crate::chart::{AreaChart, BarChart, LineChart, PieChart, ScatterChart, Sparkline};
     pub use crate::data::{
         Accordion, Avatar, AvatarGroup, Column, DataView, DataViewEvent, DataViewLayout, List,
         SelectionMode, SortDir, TabBar, TabBarEvent, Table, TableView, TableViewEvent, Tabs,

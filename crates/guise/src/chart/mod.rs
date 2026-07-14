@@ -17,14 +17,21 @@
 //! PieChart::entries([("Rust", 62.0), ("TOML", 25.0), ("Other", 13.0)]).donut(0.6)
 //! ```
 
+mod area;
+mod axis;
 mod bar;
+mod frame;
 mod line;
 mod pie;
+mod scatter;
 mod sparkline;
 
+pub use area::AreaChart;
+pub use axis::{nice_ticks, tick_label};
 pub use bar::BarChart;
 pub use line::LineChart;
 pub use pie::PieChart;
+pub use scatter::ScatterChart;
 pub use sparkline::Sparkline;
 
 use gpui::{point, px, Bounds, Hsla, PathBuilder, Pixels, Point, Window};
@@ -121,6 +128,41 @@ pub(crate) fn normalize(values: &[f32]) -> Vec<f32> {
         .collect()
 }
 
+/// Map a series into `0.0..=1.0` against an explicit `lo..=hi` range (for
+/// axis-scaled charts, where the range comes from the nice ticks rather than
+/// the data). Non-finite values map to `0.5`, everything clamps.
+pub(crate) fn normalize_between(values: &[f32], lo: f32, hi: f32) -> Vec<f32> {
+    let span = hi - lo;
+    values
+        .iter()
+        .map(|&v| {
+            if !v.is_finite() || span <= 0.0 {
+                0.5
+            } else {
+                ((v - lo) / span).clamp(0.0, 1.0)
+            }
+        })
+        .collect()
+}
+
+/// Cumulative layer sums for stacked areas: `out[i][j]` is the sum of
+/// `series[0..=i][j]`. Junk values count as zero; ragged series pad with the
+/// running total (a short series contributes nothing past its end).
+pub(crate) fn stack_layers(series: &[Vec<f32>]) -> Vec<Vec<f32>> {
+    let len = series.iter().map(Vec::len).max().unwrap_or(0);
+    let mut acc = vec![0.0_f32; len];
+    series
+        .iter()
+        .map(|layer| {
+            for (j, slot) in acc.iter_mut().enumerate() {
+                let v = layer.get(j).copied().unwrap_or(0.0);
+                *slot += if v.is_finite() && v > 0.0 { v } else { 0.0 };
+            }
+            acc.clone()
+        })
+        .collect()
+}
+
 /// Bar heights as fractions of the tallest bar, baseline at zero. Negative and
 /// non-finite values clamp to `0.0` (no negative bars in v1). All zeros when
 /// nothing is positive.
@@ -194,7 +236,19 @@ pub(crate) fn paint_polyline(
     line: Hsla,
     area: Option<Hsla>,
 ) {
-    let ys = normalize(values);
+    paint_polyline_ys(window, bounds, &normalize(values), stroke, line, area);
+}
+
+/// Like [`paint_polyline`], but over pre-normalized `0..=1` heights — the
+/// axis-scaled and stacked charts compute their own scaling.
+pub(crate) fn paint_polyline_ys(
+    window: &mut Window,
+    bounds: Bounds<Pixels>,
+    ys: &[f32],
+    stroke: f32,
+    line: Hsla,
+    area: Option<Hsla>,
+) {
     if ys.len() < 2 {
         return;
     }
@@ -241,6 +295,40 @@ pub(crate) fn paint_polyline(
     }
 }
 
+/// Fill the region between two pre-normalized polylines (`upper` above
+/// `lower`), for stacked areas. Both series must share a length ≥ 2.
+pub(crate) fn paint_band(
+    window: &mut Window,
+    bounds: Bounds<Pixels>,
+    upper: &[f32],
+    lower: &[f32],
+    color: Hsla,
+) {
+    if upper.len() < 2 || upper.len() != lower.len() {
+        return;
+    }
+    let w = f32::from(bounds.size.width);
+    let h = f32::from(bounds.size.height);
+    if w <= 0.0 || h <= 0.0 {
+        return;
+    }
+    let step = w / (upper.len() - 1) as f32;
+    let at = |i: usize, t: f32| bounds.origin + point(px(i as f32 * step), px(h * (1.0 - t)));
+
+    let mut pb = PathBuilder::fill();
+    pb.move_to(at(0, upper[0]));
+    for (i, &t) in upper.iter().enumerate().skip(1) {
+        pb.line_to(at(i, t));
+    }
+    for (i, &t) in lower.iter().enumerate().rev() {
+        pb.line_to(at(i, t));
+    }
+    pb.close();
+    if let Ok(path) = pb.build() {
+        window.paint_path(path, color);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -276,6 +364,25 @@ mod tests {
     fn normalize_scales_tiny_spans() {
         // A range below f32::EPSILON still varies — no epsilon flattening.
         assert_eq!(normalize(&[0.0, 5.0e-8, 1.0e-7]), vec![0.0, 0.5, 1.0]);
+    }
+
+    #[test]
+    fn normalize_between_uses_the_given_range() {
+        assert_eq!(normalize_between(&[0.0, 5.0, 10.0], 0.0, 10.0), vec![0.0, 0.5, 1.0]);
+        // Values outside the range clamp; junk centers.
+        assert_eq!(normalize_between(&[-5.0, 15.0], 0.0, 10.0), vec![0.0, 1.0]);
+        assert_eq!(normalize_between(&[f32::NAN], 0.0, 10.0), vec![0.5]);
+        assert_eq!(normalize_between(&[3.0], 5.0, 5.0), vec![0.5]);
+    }
+
+    #[test]
+    fn stack_layers_accumulates_and_zeroes_junk() {
+        let stacked = stack_layers(&[vec![1.0, 2.0], vec![3.0, 4.0]]);
+        assert_eq!(stacked, vec![vec![1.0, 2.0], vec![4.0, 6.0]]);
+        // Negative and NaN contribute nothing; ragged series pad with zero.
+        let stacked = stack_layers(&[vec![1.0], vec![-2.0, 5.0], vec![f32::NAN, 1.0]]);
+        assert_eq!(stacked, vec![vec![1.0, 0.0], vec![1.0, 5.0], vec![1.0, 6.0]]);
+        assert!(stack_layers(&[]).is_empty());
     }
 
     #[test]

@@ -1,11 +1,16 @@
 # Charts
 
-`Sparkline`, `BarChart`, `LineChart`, `PieChart` are stateless builders,
-painted through gpui's `canvas` element (`paint_path` / `paint_quad`) —
-minimal, axis-free visuals over plain `f32` series; bars and pies also take
-`(label, value)` pairs. Everything on the canvas is geometry: no axes, ticks,
-or value labels. The only text is `BarChart`'s category row and `PieChart`'s
-legend, rendered as regular elements outside the canvas.
+Six stateless builders painted through gpui's `canvas` element: `Sparkline`,
+`LineChart`, `AreaChart`, `BarChart`, `ScatterChart`, `PieChart`. Minimal by
+default — axis-free trend visuals — but the cartesian charts opt into a real
+frame: `.axis()` adds nice-number tick labels with aligned gridlines,
+`.hover()` adds per-point value tooltips, `.labels(..)` a category row, and
+named series get a color-dot legend. All text renders as regular elements
+outside the canvas; the canvas stays pure geometry.
+
+Axis ticks come from a Heckbert nice-numbers pass (`chart::nice_ticks`),
+so gridlines always land on round values; labels compact large values
+(`1500 → 1.5k`, `2000000 → 2M`, via `chart::tick_label`).
 
 ## Colors
 
@@ -64,22 +69,65 @@ BarChart::entries([("Mon", 12.0), ("Tue", 9.0), ("Wed", 15.0)]).gap(0.3)
 
 ## LineChart
 
-A sparkline grown up: the same min/max-normalized polyline plus four light
-horizontal gridlines (the border color at 0.5 alpha). Fewer than two values
-paint only the gridlines.
+One or more line series. A bare `new(values)` is the old minimal chart
+(min/max normalized, four light gridlines); named series, axis, labels, and
+hover build it into a full chart.
 
 ```rust
 LineChart::new([12.0, 18.0, 9.0, 24.0, 20.0, 31.0]).fill().height(180.0)
+
+LineChart::series("Revenue", [12.0, 18.0, 24.0, 30.0])
+    .add_series("Costs", [8.0, 11.0, 13.0, 16.0])
+    .axis()
+    .labels(["Q1", "Q2", "Q3", "Q4"])
+    .hover()
 ```
 
 | Method | Default | Notes |
 | --- | --- | --- |
-| `new(values)` | — | any `IntoIterator<Item = f32>` |
-| `color(color)` | theme primary | `ColorName` or explicit color |
+| `new(values)` | — | single anonymous series |
+| `series(label, values)` | — | named first series (shows in the legend) |
+| `add_series(label, values)` | — | more series; all share the y scale |
+| `color(color)` / `colors(iter)` | primary / palette rotation | per-series when multi |
 | `stroke(px)` | `2.0` | line width (min 0.5) |
 | `fill()` | off | area to the baseline, line color at 0.15 alpha |
-| `width(px)` | parent width | fixed px override |
-| `height(px)` | `140.0` | |
+| `axis()` | off | y tick labels + aligned gridlines; lines scale to the tick range |
+| `labels(iter)` | none | category labels under the plot, one per point |
+| `hover()` | off | tooltip with every series' value at the hovered point |
+| `width(px)` / `height(px)` | parent / `140.0` | |
+
+## AreaChart
+
+Filled series, **stacked** by default — each band shows its contribution and
+the top edge is the total (junk/negative values count as zero in the stack).
+`.overlaid()` draws the raw series over each other instead.
+
+```rust
+AreaChart::series("Free", [40.0, 42.0, 45.0, 48.0])
+    .add_series("Pro", [12.0, 15.0, 21.0, 26.0])
+    .axis()
+    .labels(["Apr", "May", "Jun", "Jul"])
+```
+
+Methods: `new(values)`, `series(label, values)`, `add_series(label, values)`,
+`overlaid()`, `colors(iter)`, `axis()`, `labels(iter)`, `width(px)`,
+`height(px)` (default `140.0`). Named series get the legend row.
+
+## ScatterChart
+
+`(x, y)` points, one or more series. Axes are always on — a scatter without
+a scale reads as noise — with nice ticks on both axes and x tick labels along
+the bottom. `.hover()` puts each point's coordinates in a tooltip.
+
+```rust
+ScatterChart::series("Trial A", [(1.0, 3.2), (2.0, 4.1), (3.5, 2.8)])
+    .add_series("Trial B", [(1.5, 2.0), (2.5, 5.5)])
+    .hover()
+```
+
+Methods: `new(points)`, `series(label, points)`, `add_series(label, points)`,
+`colors(iter)`, `hover()`, `width(px)`, `height(px)` (default `180.0`).
+Non-finite points are skipped.
 
 ## PieChart
 
