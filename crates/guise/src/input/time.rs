@@ -68,7 +68,12 @@ impl Time {
     /// "2:05 PM".
     pub fn format_12(self) -> String {
         let (hour, pm) = self.hour_12();
-        format!("{}:{:02} {}", hour, self.minute, if pm { "PM" } else { "AM" })
+        format!(
+            "{}:{:02} {}",
+            hour,
+            self.minute,
+            if pm { "PM" } else { "AM" }
+        )
     }
 
     /// Parse "14:05", "2:05 PM", "2:05pm", "02:05 am".

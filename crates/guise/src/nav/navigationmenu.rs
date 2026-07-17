@@ -127,7 +127,10 @@ impl Render for NavigationMenu {
             let has_menu = !item.entries.is_empty();
             let is_open = self.open == Some(i);
             let is_active = self.active.as_ref() == Some(&item.id)
-                || item.entries.iter().any(|e| self.active.as_ref() == Some(&e.id));
+                || item
+                    .entries
+                    .iter()
+                    .any(|e| self.active.as_ref() == Some(&e.id));
             let id = item.id.clone();
 
             let mut label_row = div()

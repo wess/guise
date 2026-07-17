@@ -103,7 +103,10 @@ mod tests {
         assert_eq!(line_severity(&diags, 2), Some(Severity::Error));
         assert_eq!(line_severity(&diags, 5), Some(Severity::Hint));
         assert_eq!(line_severity(&diags, 0), None);
-        assert_eq!(line_message(&diags, 2).unwrap().message.as_ref(), "type mismatch");
+        assert_eq!(
+            line_message(&diags, 2).unwrap().message.as_ref(),
+            "type mismatch"
+        );
     }
 
     #[test]

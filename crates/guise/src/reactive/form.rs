@@ -297,7 +297,12 @@ impl Form {
     /// Attach a form-aware [`Rule`] (cross-field checks like
     /// [`validators::equals_field`]).
     pub fn rule_form(self, name: &'static str, rule: Rule) -> Self {
-        self.inner.rules.borrow_mut().entry(name).or_default().push(rule);
+        self.inner
+            .rules
+            .borrow_mut()
+            .entry(name)
+            .or_default()
+            .push(rule);
         self
     }
 

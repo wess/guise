@@ -41,8 +41,7 @@ impl TreeSitterHighlighter {
     /// `tree_sitter_rust::HIGHLIGHTS_QUERY`). Errors mean the query does not
     /// compile against the grammar — mismatched crate versions, usually.
     pub fn new(language: Language, highlights_query: &str) -> Result<Self, QueryError> {
-        let mut config =
-            HighlightConfiguration::new(language, "source", highlights_query, "", "")?;
+        let mut config = HighlightConfiguration::new(language, "source", highlights_query, "", "")?;
         let names: Vec<String> = config
             .query
             .capture_names()

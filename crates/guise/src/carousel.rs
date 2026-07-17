@@ -64,8 +64,9 @@ impl Carousel {
     where
         E: IntoElement,
     {
-        self.slides
-            .push(Rc::new(move |window, cx| builder(window, cx).into_any_element()));
+        self.slides.push(Rc::new(move |window, cx| {
+            builder(window, cx).into_any_element()
+        }));
         self
     }
 

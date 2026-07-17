@@ -30,9 +30,8 @@ use std::ops::Range;
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, uniform_list, AnyElement, ClickEvent, Context, EventEmitter, FocusHandle,
-    IntoElement, KeyDownEvent, MouseButton, ScrollStrategy, SharedString,
-    UniformListScrollHandle, Window,
+    div, px, uniform_list, AnyElement, ClickEvent, Context, EventEmitter, FocusHandle, IntoElement,
+    KeyDownEvent, MouseButton, ScrollStrategy, SharedString, UniformListScrollHandle, Window,
 };
 
 use crate::icon::{Glyph, Icon, IconName};

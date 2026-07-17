@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[test]
-    fn filter_paths_keeps_matches_in_order( ) {
+    fn filter_paths_keeps_matches_in_order() {
         let list = accept(&["rs"]);
         let paths = vec![
             PathBuf::from("a.rs"),

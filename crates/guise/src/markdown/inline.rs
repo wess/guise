@@ -265,10 +265,7 @@ fn mark_emphasis(text: &str, a: &mut Attrs) {
                 let (close_i, close_b) = match len {
                     1 => (can_close && italic.is_some(), false),
                     2 => (false, can_close && bold.is_some()),
-                    _ => (
-                        can_close && italic.is_some(),
-                        can_close && bold.is_some(),
-                    ),
+                    _ => (can_close && italic.is_some(), can_close && bold.is_some()),
                 };
                 let mut at = i;
                 if close_i {
@@ -337,11 +334,7 @@ mod tests {
     fn style_of(text: &str, frag: &str) -> InlineStyle {
         let at = text.find(frag).unwrap();
         let inline = parse(text);
-        let span = inline
-            .spans
-            .iter()
-            .find(|s| s.range.contains(&at))
-            .unwrap();
+        let span = inline.spans.iter().find(|s| s.range.contains(&at)).unwrap();
         span.style
     }
 
@@ -362,7 +355,11 @@ mod tests {
     fn bold_italic_and_both() {
         assert_eq!(
             frags("**bold**"),
-            vec![("**".into(), true), ("bold".into(), false), ("**".into(), true)]
+            vec![
+                ("**".into(), true),
+                ("bold".into(), false),
+                ("**".into(), true)
+            ]
         );
         assert!(style_of("**bold**", "bold").bold);
         assert!(style_of("*it*", "it").italic);
@@ -381,7 +378,10 @@ mod tests {
 
     #[test]
     fn underscores_never_match_inside_words() {
-        assert_eq!(frags("snake_case_name"), vec![("snake_case_name".into(), false)]);
+        assert_eq!(
+            frags("snake_case_name"),
+            vec![("snake_case_name".into(), false)]
+        );
         assert!(style_of("_word_", "word").italic);
     }
 
@@ -429,7 +429,10 @@ mod tests {
                 (" now".into(), false),
             ]
         );
-        assert_eq!(inline.link_at(text.find("https").unwrap()), Some("https://x.dev"));
+        assert_eq!(
+            inline.link_at(text.find("https").unwrap()),
+            Some("https://x.dev")
+        );
         assert_eq!(inline.link_at(0), None);
     }
 

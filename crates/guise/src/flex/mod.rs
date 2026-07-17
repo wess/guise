@@ -33,7 +33,6 @@ use gpui::{px, Div};
 
 use crate::style::FlexExt;
 
-
 /// Distribution of children along the main axis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainAxisAlignment {

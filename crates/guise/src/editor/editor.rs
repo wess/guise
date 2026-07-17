@@ -701,7 +701,9 @@ impl Render for Editor {
         let dimmed = style.placeholder.unwrap_or_else(|| t.dimmed().hsla());
         let caret_color = style.caret.unwrap_or_else(|| t.primary().hsla());
         let selection_bg = style.selection.unwrap_or_else(|| t.primary().alpha(0.25));
-        let active_bg = style.active_line.unwrap_or_else(|| t.surface_hover().alpha(0.55));
+        let active_bg = style
+            .active_line
+            .unwrap_or_else(|| t.surface_hover().alpha(0.55));
         let gutter_fg = style.gutter_fg.unwrap_or_else(|| t.dimmed().alpha(0.7));
         let gutter_fg_active = style.gutter_fg_active.unwrap_or(text_color);
         let radius = t.radius(t.default_radius);
@@ -798,8 +800,7 @@ impl Render for Editor {
                 row = row.bg(active_bg);
             }
             for (start, end, color) in &self.highlights {
-                if let Some((s, e, newline)) =
-                    line_selection(*start, *end, i, line.chars().count())
+                if let Some((s, e, newline)) = line_selection(*start, *end, i, line.chars().count())
                 {
                     let sx = f32::from(shaped.x_for_index(byte_for_col(line, s)));
                     let ex = f32::from(shaped.x_for_index(byte_for_col(line, e)));
@@ -955,7 +956,10 @@ impl Render for Editor {
 
         let mut frame = div().flex().flex_col().w_full().h_full();
         if !style.bare {
-            frame = frame.rounded(px(radius)).border_1().border_color(frame_border);
+            frame = frame
+                .rounded(px(radius))
+                .border_1()
+                .border_color(frame_border);
         }
         frame = frame
             .bg(bg)

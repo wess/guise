@@ -94,9 +94,8 @@ impl TimePicker {
     /// Two-way bind the value to a `Signal<Option<Time>>`. The signal is the
     /// source of truth; equality guards on both directions prevent loops.
     pub fn bind(entity: &Entity<TimePicker>, signal: &Signal<Option<Time>>, cx: &mut App) {
-        if let Some(initial) = signal.get(cx) {
-            entity.update(cx, |this, cx| this.sync_value(initial, cx));
-        }
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_value(initial, cx));
         let sink = signal.clone();
         cx.subscribe(entity, move |_picker, event: &TimePickerEvent, cx| {
             sink.set_if_changed(cx, Some(event.0));
@@ -104,24 +103,22 @@ impl TimePicker {
         .detach();
         let picker = entity.downgrade();
         cx.observe(signal.entity(), move |observed, cx| {
-            if let Some(time) = *observed.read(cx) {
-                picker
-                    .update(cx, |this, cx| this.sync_value(time, cx))
-                    .ok();
-            }
+            let time = *observed.read(cx);
+            picker.update(cx, |this, cx| this.sync_value(time, cx)).ok();
         })
         .detach();
     }
 
-    fn sync_value(&mut self, time: Time, cx: &mut Context<Self>) {
-        if self.value != Some(time) {
-            self.value = Some(time);
+    fn sync_value(&mut self, time: Option<Time>, cx: &mut Context<Self>) {
+        if self.value != time {
+            self.value = time;
             cx.notify();
         }
     }
 
     fn base(&self) -> Time {
-        self.value.unwrap_or_else(|| Time::new(12, 0).expect("noon is valid"))
+        self.value
+            .unwrap_or_else(|| Time::new(12, 0).expect("noon is valid"))
     }
 
     fn set_value(&mut self, time: Time, close: bool, cx: &mut Context<Self>) {
@@ -213,7 +210,11 @@ impl Render for TimePicker {
             .text_size(px(font))
             .text_color(if has_value { text_color } else { dimmed })
             .child(shown)
-            .child(div().text_color(dimmed).child(Icon::new(IconName::Clock).size(Size::Sm)))
+            .child(
+                div()
+                    .text_color(dimmed)
+                    .child(Icon::new(IconName::Clock).size(Size::Sm)),
+            )
             .on_click(cx.listener(|this, _ev, _window, cx| {
                 if !this.disabled {
                     this.open = !this.open;

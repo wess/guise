@@ -155,7 +155,11 @@ impl RenderOnce for Dropzone {
                     deliver(dropped.paths().to_vec(), cx);
                 }
             })
-            .child(div().text_color(dimmed).child(Icon::new(self.icon).size(Size::Lg)))
+            .child(
+                div()
+                    .text_color(dimmed)
+                    .child(Icon::new(self.icon).size(Size::Lg)),
+            )
             .child(
                 div()
                     .text_size(px(font))

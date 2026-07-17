@@ -36,6 +36,9 @@ pub fn apply_key(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
             return KeyOutcome::Edited;
         }
         "left" => {
+            if !m.shift && !m.platform && !m.alt && edit.collapse_selection_start() {
+                return KeyOutcome::Edited;
+            }
             edit.pre_move(m.shift);
             if m.platform {
                 edit.home();
@@ -47,6 +50,9 @@ pub fn apply_key(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
             return KeyOutcome::Edited;
         }
         "right" => {
+            if !m.shift && !m.platform && !m.alt && edit.collapse_selection_end() {
+                return KeyOutcome::Edited;
+            }
             edit.pre_move(m.shift);
             if m.platform {
                 edit.end();

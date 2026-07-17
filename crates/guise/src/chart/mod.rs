@@ -368,7 +368,10 @@ mod tests {
 
     #[test]
     fn normalize_between_uses_the_given_range() {
-        assert_eq!(normalize_between(&[0.0, 5.0, 10.0], 0.0, 10.0), vec![0.0, 0.5, 1.0]);
+        assert_eq!(
+            normalize_between(&[0.0, 5.0, 10.0], 0.0, 10.0),
+            vec![0.0, 0.5, 1.0]
+        );
         // Values outside the range clamp; junk centers.
         assert_eq!(normalize_between(&[-5.0, 15.0], 0.0, 10.0), vec![0.0, 1.0]);
         assert_eq!(normalize_between(&[f32::NAN], 0.0, 10.0), vec![0.5]);
@@ -381,7 +384,10 @@ mod tests {
         assert_eq!(stacked, vec![vec![1.0, 2.0], vec![4.0, 6.0]]);
         // Negative and NaN contribute nothing; ragged series pad with zero.
         let stacked = stack_layers(&[vec![1.0], vec![-2.0, 5.0], vec![f32::NAN, 1.0]]);
-        assert_eq!(stacked, vec![vec![1.0, 0.0], vec![1.0, 5.0], vec![1.0, 6.0]]);
+        assert_eq!(
+            stacked,
+            vec![vec![1.0, 0.0], vec![1.0, 5.0], vec![1.0, 6.0]]
+        );
         assert!(stack_layers(&[]).is_empty());
     }
 

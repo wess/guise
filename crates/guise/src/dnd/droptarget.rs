@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use gpui::prelude::*;
-use gpui::{div, App, AnyElement, ElementId, IntoElement, Window};
+use gpui::{div, AnyElement, App, ElementId, IntoElement, Window};
 
 use super::chip::DragChip;
 use crate::theme::theme;

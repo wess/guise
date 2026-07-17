@@ -51,6 +51,9 @@ impl Select {
         S: Into<SharedString>,
     {
         self.options = options.into_iter().map(Into::into).collect();
+        self.selected = self.selected.and_then(|index| {
+            (!self.options.is_empty()).then(|| index.min(self.options.len() - 1))
+        });
         self
     }
 
@@ -112,8 +115,9 @@ impl Select {
 
     /// Programmatic set: repaint without emitting an event.
     fn sync_selected(&mut self, index: usize, cx: &mut Context<Self>) {
-        if self.selected != Some(index) {
-            self.selected = Some(index);
+        let selected = (!self.options.is_empty()).then(|| index.min(self.options.len() - 1));
+        if self.selected != selected {
+            self.selected = selected;
             cx.notify();
         }
     }

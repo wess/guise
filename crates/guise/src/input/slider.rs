@@ -120,8 +120,7 @@ impl Slider {
     }
 
     fn snap(&self, raw: f64) -> f64 {
-        let stepped = (raw / self.step).round() * self.step;
-        stepped.clamp(self.min, self.max)
+        snap(raw, self.min, self.max, self.step)
     }
 
     fn set_value(&mut self, raw: f64, cx: &mut Context<Self>) {
@@ -149,6 +148,22 @@ impl Slider {
             _ => return,
         }
         cx.stop_propagation();
+    }
+}
+
+fn snap(raw: f64, min: f64, max: f64, step: f64) -> f64 {
+    let stepped = min + ((raw - min) / step).round() * step;
+    stepped.clamp(min, max)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn step_grid_starts_at_minimum() {
+        assert_eq!(snap(6.8, 5.0, 15.0, 2.0), 7.0);
+        assert_eq!(snap(14.8, 5.0, 15.0, 2.0), 15.0);
     }
 }
 

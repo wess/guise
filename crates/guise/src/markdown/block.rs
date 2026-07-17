@@ -16,10 +16,19 @@ pub enum Block {
     /// `- ` / `* ` / `+ ` list item.
     Bullet { indent: usize, content: usize },
     /// `1. ` / `1) ` list item.
-    Ordered { indent: usize, number: u64, content: usize },
+    Ordered {
+        indent: usize,
+        number: u64,
+        content: usize,
+    },
     /// `- [ ] ` / `- [x] ` list item; `state` is the byte of the char
     /// inside the brackets (the one a toggle rewrites).
-    Task { indent: usize, checked: bool, state: usize, content: usize },
+    Task {
+        indent: usize,
+        checked: bool,
+        state: usize,
+        content: usize,
+    },
     /// `> ` quote line; `depth` counts nested `>` markers.
     Quote { depth: u8, content: usize },
     /// A ``` or ~~~ fence line. `open` is whether it starts a block;
@@ -77,7 +86,10 @@ pub fn classify(line: &str, state: &mut DocState) -> Block {
         let run = t.bytes().take_while(|&b| b == ch).count();
         if run >= len && t[run..].trim().is_empty() {
             state.fence = None;
-            return Block::Fence { open: false, lang: None };
+            return Block::Fence {
+                open: false,
+                lang: None,
+            };
         }
         return Block::CodeLine;
     }
@@ -97,11 +109,17 @@ pub fn classify(line: &str, state: &mut DocState) -> Block {
     let rest = &line[indent..];
 
     if let Some((level, content)) = heading_marker(rest) {
-        return Block::Heading { level, content: indent + content };
+        return Block::Heading {
+            level,
+            content: indent + content,
+        };
     }
     if rest.starts_with('>') {
         let (depth, content) = quote_marker(rest);
-        return Block::Quote { depth, content: indent + content };
+        return Block::Quote {
+            depth,
+            content: indent + content,
+        };
     }
     if let Some((checked, state, content)) = task_marker(rest) {
         return Block::Task {
@@ -112,10 +130,17 @@ pub fn classify(line: &str, state: &mut DocState) -> Block {
         };
     }
     if let Some(content) = bullet_marker(rest) {
-        return Block::Bullet { indent, content: indent + content };
+        return Block::Bullet {
+            indent,
+            content: indent + content,
+        };
     }
     if let Some((number, content)) = ordered_marker(rest) {
-        return Block::Ordered { indent, number, content: indent + content };
+        return Block::Ordered {
+            indent,
+            number,
+            content: indent + content,
+        };
     }
     if rest.starts_with('|') {
         return Block::Table;
@@ -261,23 +286,85 @@ mod tests {
 
     #[test]
     fn headings() {
-        assert_eq!(one("# Title"), Block::Heading { level: 1, content: 2 });
-        assert_eq!(one("###### deep"), Block::Heading { level: 6, content: 7 });
-        assert_eq!(one("  ## indented"), Block::Heading { level: 2, content: 5 });
-        assert_eq!(one("##"), Block::Heading { level: 2, content: 2 });
+        assert_eq!(
+            one("# Title"),
+            Block::Heading {
+                level: 1,
+                content: 2
+            }
+        );
+        assert_eq!(
+            one("###### deep"),
+            Block::Heading {
+                level: 6,
+                content: 7
+            }
+        );
+        assert_eq!(
+            one("  ## indented"),
+            Block::Heading {
+                level: 2,
+                content: 5
+            }
+        );
+        assert_eq!(
+            one("##"),
+            Block::Heading {
+                level: 2,
+                content: 2
+            }
+        );
         assert_eq!(one("#######"), Block::Paragraph); // 7 deep is not a heading
         assert_eq!(one("#tag"), Block::Paragraph); // no space: a tag, not a heading
     }
 
     #[test]
     fn lists() {
-        assert_eq!(one("- item"), Block::Bullet { indent: 0, content: 2 });
-        assert_eq!(one("* item"), Block::Bullet { indent: 0, content: 2 });
-        assert_eq!(one("  + item"), Block::Bullet { indent: 2, content: 4 });
-        assert_eq!(one("-"), Block::Bullet { indent: 0, content: 1 });
+        assert_eq!(
+            one("- item"),
+            Block::Bullet {
+                indent: 0,
+                content: 2
+            }
+        );
+        assert_eq!(
+            one("* item"),
+            Block::Bullet {
+                indent: 0,
+                content: 2
+            }
+        );
+        assert_eq!(
+            one("  + item"),
+            Block::Bullet {
+                indent: 2,
+                content: 4
+            }
+        );
+        assert_eq!(
+            one("-"),
+            Block::Bullet {
+                indent: 0,
+                content: 1
+            }
+        );
         assert_eq!(one("-nope"), Block::Paragraph);
-        assert_eq!(one("3. third"), Block::Ordered { indent: 0, number: 3, content: 3 });
-        assert_eq!(one("12) x"), Block::Ordered { indent: 0, number: 12, content: 4 });
+        assert_eq!(
+            one("3. third"),
+            Block::Ordered {
+                indent: 0,
+                number: 3,
+                content: 3
+            }
+        );
+        assert_eq!(
+            one("12) x"),
+            Block::Ordered {
+                indent: 0,
+                number: 12,
+                content: 4
+            }
+        );
         assert_eq!(one("3.x"), Block::Paragraph);
     }
 
@@ -285,32 +372,81 @@ mod tests {
     fn tasks() {
         assert_eq!(
             one("- [ ] todo"),
-            Block::Task { indent: 0, checked: false, state: 3, content: 6 }
+            Block::Task {
+                indent: 0,
+                checked: false,
+                state: 3,
+                content: 6
+            }
         );
         assert_eq!(
             one("- [x] done"),
-            Block::Task { indent: 0, checked: true, state: 3, content: 6 }
+            Block::Task {
+                indent: 0,
+                checked: true,
+                state: 3,
+                content: 6
+            }
         );
         assert_eq!(
             one("- [X] done"),
-            Block::Task { indent: 0, checked: true, state: 3, content: 6 }
+            Block::Task {
+                indent: 0,
+                checked: true,
+                state: 3,
+                content: 6
+            }
         );
         assert_eq!(
             one("- [ ]"),
-            Block::Task { indent: 0, checked: false, state: 3, content: 5 }
+            Block::Task {
+                indent: 0,
+                checked: false,
+                state: 3,
+                content: 5
+            }
         );
         assert_eq!(
             one("  - [ ] in"),
-            Block::Task { indent: 2, checked: false, state: 5, content: 8 }
+            Block::Task {
+                indent: 2,
+                checked: false,
+                state: 5,
+                content: 8
+            }
         );
-        assert_eq!(one("- [y] no"), Block::Bullet { indent: 0, content: 2 });
+        assert_eq!(
+            one("- [y] no"),
+            Block::Bullet {
+                indent: 0,
+                content: 2
+            }
+        );
     }
 
     #[test]
     fn quotes() {
-        assert_eq!(one("> hi"), Block::Quote { depth: 1, content: 2 });
-        assert_eq!(one(">hi"), Block::Quote { depth: 1, content: 1 });
-        assert_eq!(one("> > deep"), Block::Quote { depth: 2, content: 4 });
+        assert_eq!(
+            one("> hi"),
+            Block::Quote {
+                depth: 1,
+                content: 2
+            }
+        );
+        assert_eq!(
+            one(">hi"),
+            Block::Quote {
+                depth: 1,
+                content: 1
+            }
+        );
+        assert_eq!(
+            one("> > deep"),
+            Block::Quote {
+                depth: 2,
+                content: 4
+            }
+        );
     }
 
     #[test]
@@ -335,9 +471,21 @@ mod tests {
         let mut state = DocState::default();
         let doc = ["```rust", "fn main() {}", "```", "after"];
         let blocks: Vec<Block> = doc.iter().map(|l| classify(l, &mut state)).collect();
-        assert_eq!(blocks[0], Block::Fence { open: true, lang: Some("rust".into()) });
+        assert_eq!(
+            blocks[0],
+            Block::Fence {
+                open: true,
+                lang: Some("rust".into())
+            }
+        );
         assert_eq!(blocks[1], Block::CodeLine);
-        assert_eq!(blocks[2], Block::Fence { open: false, lang: None });
+        assert_eq!(
+            blocks[2],
+            Block::Fence {
+                open: false,
+                lang: None
+            }
+        );
         assert_eq!(blocks[3], Block::Paragraph);
     }
 
@@ -367,7 +515,13 @@ mod tests {
         assert_eq!(classify("---", &mut state), Block::CodeLine);
         // ``` does not close a ~~~ fence
         assert_eq!(classify("```", &mut state), Block::CodeLine);
-        assert_eq!(classify("~~~", &mut state), Block::Fence { open: false, lang: None });
+        assert_eq!(
+            classify("~~~", &mut state),
+            Block::Fence {
+                open: false,
+                lang: None
+            }
+        );
     }
 
     #[test]

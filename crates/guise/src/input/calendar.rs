@@ -136,17 +136,13 @@ impl RenderOnce for Calendar {
         let first = Date::new(self.year, self.month, 1).unwrap_or(today);
         let title: SharedString = format!("{} {}", first.month_name(), self.year).into();
 
-        let mut header = div()
-            .flex()
-            .items_center()
-            .justify_between()
-            .child(
-                div()
-                    .text_size(px(font))
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(text_color)
-                    .child(title),
-            );
+        let mut header = div().flex().items_center().justify_between().child(
+            div()
+                .text_size(px(font))
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(text_color)
+                .child(title),
+        );
         let mut nav = div().flex().items_center().gap(px(4.0));
         for (key, icon, delta) in [
             ("guise-cal-prev", IconName::ChevronLeft, -1),

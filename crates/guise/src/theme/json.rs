@@ -71,10 +71,7 @@ fn parse_flat(src: &str) -> Result<Vec<(String, String)>, ThemeJsonError> {
         }
     };
 
-    fn parse_string(
-        bytes: &[u8],
-        i: &mut usize,
-    ) -> Result<String, ThemeJsonError> {
+    fn parse_string(bytes: &[u8], i: &mut usize) -> Result<String, ThemeJsonError> {
         if bytes.get(*i) != Some(&b'"') {
             return Err(ThemeJsonError::Syntax(*i, "expected a string"));
         }
@@ -186,12 +183,7 @@ impl Theme {
             Some((_, v)) => match v.as_str() {
                 "light" => ColorScheme::Light,
                 "dark" => ColorScheme::Dark,
-                other => {
-                    return Err(ThemeJsonError::BadValue(
-                        "scheme".into(),
-                        other.into(),
-                    ))
-                }
+                other => return Err(ThemeJsonError::BadValue("scheme".into(), other.into())),
             },
         };
         let mut theme = match scheme {
@@ -200,10 +192,8 @@ impl Theme {
         };
 
         for (key, value) in pairs {
-            let color = || {
-                css(&value)
-                    .map_err(|_| ThemeJsonError::BadValue(key.clone(), value.clone()))
-            };
+            let color =
+                || css(&value).map_err(|_| ThemeJsonError::BadValue(key.clone(), value.clone()));
             theme = match key.as_str() {
                 "name" | "$schema" | "scheme" => theme,
                 "primary" => theme.with_primary(color()?),
@@ -284,9 +274,15 @@ mod tests {
             ThemeJsonError::BadValue("primary".into(), "not-a-color".into())
         );
         let err = Theme::from_json(r#"{"radius": "huge"}"#).unwrap_err();
-        assert_eq!(err, ThemeJsonError::BadValue("radius".into(), "huge".into()));
+        assert_eq!(
+            err,
+            ThemeJsonError::BadValue("radius".into(), "huge".into())
+        );
         let err = Theme::from_json(r#"{"scheme": "sepia"}"#).unwrap_err();
-        assert_eq!(err, ThemeJsonError::BadValue("scheme".into(), "sepia".into()));
+        assert_eq!(
+            err,
+            ThemeJsonError::BadValue("scheme".into(), "sepia".into())
+        );
     }
 
     #[test]
@@ -311,8 +307,7 @@ mod tests {
 
     #[test]
     fn string_escapes_round_trip() {
-        let theme =
-            Theme::from_json(r#"{"fontfamily": "JetBrains \"Mono\"!"}"#).unwrap();
+        let theme = Theme::from_json(r#"{"fontfamily": "JetBrains \"Mono\"!"}"#).unwrap();
         assert_eq!(theme.font_family.as_ref(), "JetBrains \"Mono\"!");
     }
 }

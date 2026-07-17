@@ -70,7 +70,10 @@ mod tests {
 
     #[test]
     fn ticks_cover_the_range_with_round_steps() {
-        assert_eq!(nice_ticks(0.0, 100.0, 5), vec![0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+        assert_eq!(
+            nice_ticks(0.0, 100.0, 5),
+            vec![0.0, 20.0, 40.0, 60.0, 80.0, 100.0]
+        );
         assert_eq!(nice_ticks(0.0, 7.0, 5), vec![0.0, 2.0, 4.0, 6.0, 8.0]);
         let ticks = nice_ticks(-3.0, 14.0, 5);
         assert_eq!(ticks, vec![-5.0, 0.0, 5.0, 10.0, 15.0]);

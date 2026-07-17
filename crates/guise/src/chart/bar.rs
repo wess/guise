@@ -185,7 +185,12 @@ impl RenderOnce for BarChart {
             plot_wrap = plot_wrap.child(hover_slots("guise-barchart-hover".into(), texts));
         }
 
-        let mut plot_column = div().flex_1().flex().flex_col().gap(px(4.0)).child(plot_wrap);
+        let mut plot_column = div()
+            .flex_1()
+            .flex()
+            .flex_col()
+            .gap(px(4.0))
+            .child(plot_wrap);
         // Category labels: one equal-width cell per bar slot, so the row lines
         // up with the bars painted above. Plain divs — no canvas text in v1.
         if !self.labels.is_empty() && n > 0 {

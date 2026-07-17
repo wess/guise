@@ -20,12 +20,26 @@ pub enum RowKind {
     Heading(u8),
     Paragraph,
     /// `cols` is the indent width in columns (tab = 4).
-    Bullet { cols: usize },
-    Ordered { cols: usize, number: u64 },
-    Task { cols: usize, checked: bool },
-    Quote { depth: u8 },
-    Fence { open: bool },
-    Code { lang: Option<String> },
+    Bullet {
+        cols: usize,
+    },
+    Ordered {
+        cols: usize,
+        number: u64,
+    },
+    Task {
+        cols: usize,
+        checked: bool,
+    },
+    Quote {
+        depth: u8,
+    },
+    Fence {
+        open: bool,
+    },
+    Code {
+        lang: Option<String>,
+    },
     Rule,
     Table,
     FrontMatter,
@@ -124,7 +138,9 @@ pub fn plan(line: &str, block: &Block, code_lang: Option<&str>, reveal: bool) ->
                 cols: indent_cols(line),
             }
         }
-        Block::Ordered { number, content, .. } => {
+        Block::Ordered {
+            number, content, ..
+        } => {
             b.hide(0..content);
             b.inline(content, false);
             RowKind::Ordered {
@@ -382,7 +398,13 @@ mod tests {
     fn checked_task_content_is_dim() {
         let line = "- [x] done deal";
         let p = plan_line(line, false);
-        assert_eq!(p.kind, RowKind::Task { cols: 0, checked: true });
+        assert_eq!(
+            p.kind,
+            RowKind::Task {
+                cols: 0,
+                checked: true
+            }
+        );
         assert_eq!(p.visible, "done deal");
         assert!(p.runs.iter().all(|r| r.dim));
         covers(&p, line);
@@ -405,7 +427,12 @@ mod tests {
         let lang = st.fence_lang().map(str::to_string);
         let block = classify("let x = 1;", &mut st);
         let p = plan("let x = 1;", &block, lang.as_deref(), false);
-        assert_eq!(p.kind, RowKind::Code { lang: Some("rust".into()) });
+        assert_eq!(
+            p.kind,
+            RowKind::Code {
+                lang: Some("rust".into())
+            }
+        );
         assert_eq!(p.visible, "let x = 1;");
         assert!(p.runs[0].style.code);
         covers(&p, "let x = 1;");
@@ -417,7 +444,10 @@ mod tests {
         let p = plan_line(line, false);
         assert_eq!(p.visible, "see docs");
         assert_eq!(p.link_at(line.find("docs").unwrap()), Some("https://x.dev"));
-        assert_eq!(p.link_at(line.find("https").unwrap()), Some("https://x.dev"));
+        assert_eq!(
+            p.link_at(line.find("https").unwrap()),
+            Some("https://x.dev")
+        );
         assert_eq!(p.link_at(0), None);
         covers(&p, line);
     }

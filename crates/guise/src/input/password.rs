@@ -204,16 +204,33 @@ impl Render for PasswordInput {
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
         let caret = t.primary().hsla();
+        let mut selection_bg = t.primary().hsla();
+        selection_bg.a = 0.30;
 
         let interior = if focused {
-            let (before, after) = self.edit.split();
-            div()
-                .flex()
-                .items_center()
-                .text_color(text_color)
-                .child(SharedString::from(self.mask(before)))
-                .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
-                .child(SharedString::from(self.mask(after)))
+            if let Some((before, selected, after)) = self.edit.split_selection() {
+                div()
+                    .flex()
+                    .items_center()
+                    .text_color(text_color)
+                    .child(SharedString::from(self.mask(before)))
+                    .child(
+                        div()
+                            .bg(selection_bg)
+                            .rounded(px(2.0))
+                            .child(SharedString::from(self.mask(selected))),
+                    )
+                    .child(SharedString::from(self.mask(after)))
+            } else {
+                let (before, after) = self.edit.split();
+                div()
+                    .flex()
+                    .items_center()
+                    .text_color(text_color)
+                    .child(SharedString::from(self.mask(before)))
+                    .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
+                    .child(SharedString::from(self.mask(after)))
+            }
         } else if self.edit.is_empty() {
             div().text_color(dimmed).child(self.placeholder.clone())
         } else {
@@ -262,6 +279,8 @@ impl Render for PasswordInput {
             .items_center()
             .justify_between()
             .gap(px(8.0))
+            .w_full()
+            .overflow_hidden()
             .h(px(height))
             .px(px(pad_x))
             .rounded(px(radius))
@@ -269,7 +288,13 @@ impl Render for PasswordInput {
             .border_color(border)
             .bg(surface)
             .text_size(px(font))
-            .child(interior)
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(px(0.0))
+                    .overflow_hidden()
+                    .child(interior),
+            )
             .child(eye);
 
         let mut chrome = Field::new().child(if self.disabled {

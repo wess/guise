@@ -135,7 +135,11 @@ impl WebView {
     pub fn serve(mut self, dir: impl Into<std::path::PathBuf>, entry: impl AsRef<str>) -> Self {
         self.serve_dir = Some(dir.into());
         self.source = Source::Url(
-            format!("guise://localhost/{}", entry.as_ref().trim_start_matches('/')).into(),
+            format!(
+                "guise://localhost/{}",
+                entry.as_ref().trim_start_matches('/')
+            )
+            .into(),
         );
         self
     }
@@ -417,7 +421,10 @@ fn serve_local(
     let rel = url_path.trim_start_matches('/');
     let rel = if rel.is_empty() { "index.html" } else { rel };
     // No traversal or absolute escapes; only simple forward paths.
-    if rel.split('/').any(|c| c.is_empty() || c == "." || c == "..") {
+    if rel
+        .split('/')
+        .any(|c| c.is_empty() || c == "." || c == "..")
+    {
         return not_found();
     }
     match std::fs::read(dir.join(rel)) {

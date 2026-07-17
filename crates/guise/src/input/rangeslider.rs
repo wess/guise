@@ -274,8 +274,8 @@ impl RangeSlider {
 }
 
 /// Snap `raw` to the step grid.
-fn snap(raw: f64, step: f64) -> f64 {
-    (raw / step).round() * step
+fn snap(raw: f64, min: f64, step: f64) -> f64 {
+    min + ((raw - min) / step).round() * step
 }
 
 /// Move one end of `current` toward `raw`, snapped and kept `min_gap` away
@@ -289,7 +289,7 @@ fn clamp_thumb(
     step: f64,
     min_gap: f64,
 ) -> (f64, f64) {
-    let snapped = snap(raw, step);
+    let snapped = snap(raw, min, step);
     if thumb == 0 {
         let upper = (current.1 - min_gap).max(min);
         (snapped.max(min).min(upper), current.1)
@@ -302,8 +302,8 @@ fn clamp_thumb(
 /// Order, snap and clamp a raw pair, enforcing the gap where the range allows.
 fn normalize_pair(raw: (f64, f64), min: f64, max: f64, step: f64, min_gap: f64) -> (f64, f64) {
     let (a, b) = if raw.0 <= raw.1 { raw } else { (raw.1, raw.0) };
-    let lo = snap(a, step).max(min).min((max - min_gap).max(min));
-    let hi = snap(b, step).min(max).max((lo + min_gap).min(max));
+    let lo = snap(a, min, step).max(min).min((max - min_gap).max(min));
+    let hi = snap(b, min, step).min(max).max((lo + min_gap).min(max));
     (lo, hi)
 }
 

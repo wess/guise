@@ -176,8 +176,12 @@ impl Render for Tour {
             );
         }
         actions = actions.child(
-            button("guise-tour-next", if last { "Finish" } else { "Next" }, true)
-                .on_click(cx.listener(|this, _ev, _window, cx| this.next(cx))),
+            button(
+                "guise-tour-next",
+                if last { "Finish" } else { "Next" },
+                true,
+            )
+            .on_click(cx.listener(|this, _ev, _window, cx| this.next(cx))),
         );
         controls = controls.child(actions);
 
@@ -205,16 +209,9 @@ impl Render for Tour {
                             .text_color(text_color)
                             .child(step.title.clone()),
                     )
-                    .child(
-                        div()
-                            .text_size(px(font - 1.0))
-                            .text_color(dimmed)
-                            .child(SharedString::from(format!(
-                                "{} / {}",
-                                self.current + 1,
-                                self.steps.len()
-                            ))),
-                    ),
+                    .child(div().text_size(px(font - 1.0)).text_color(dimmed).child(
+                        SharedString::from(format!("{} / {}", self.current + 1, self.steps.len())),
+                    )),
             )
             .child(
                 div()

@@ -231,7 +231,9 @@ impl Render for TextInput {
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
         let caret_color = t.primary().hsla();
-        let error_color = t.color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 }).hsla();
+        let error_color = t
+            .color(ColorName::Red, if t.scheme.is_dark() { 5 } else { 7 })
+            .hsla();
         let border = border.hsla();
         let font_sm = t.font_size(Size::Sm);
         let font_xs = t.font_size(Size::Xs);
@@ -274,9 +276,7 @@ impl Render for TextInput {
                     .child(SharedString::from(mask(after)))
             }
         } else if self.edit.is_empty() {
-            div()
-                .text_color(dimmed)
-                .child(self.placeholder.clone())
+            div().text_color(dimmed).child(self.placeholder.clone())
         } else {
             div()
                 .text_color(text_color)
@@ -296,6 +296,8 @@ impl Render for TextInput {
             )
             .flex()
             .items_center()
+            .w_full()
+            .overflow_hidden()
             .h(px(height))
             .px(px(pad_x))
             .rounded(px(radius))
@@ -303,7 +305,13 @@ impl Render for TextInput {
             .border_color(border)
             .bg(surface)
             .text_size(px(font))
-            .child(interior);
+            .child(
+                div()
+                    .w_full()
+                    .min_w(px(0.0))
+                    .overflow_hidden()
+                    .child(interior),
+            );
 
         let mut column = div().flex().flex_col().gap(px(4.0));
         if let Some(label) = self.label.clone() {

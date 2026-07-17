@@ -28,8 +28,8 @@ pub use table::Table;
 pub use tableview::{Column, SelectionMode, SortDir, TableView, TableViewEvent};
 pub use tabs::Tabs;
 pub use timeline::Timeline;
-pub use virtuallist::VirtualList;
 pub use tree::{TreeNode, TreeView, TreeViewEvent};
+pub use virtuallist::VirtualList;
 
 use gpui::{AnyElement, App, Window};
 

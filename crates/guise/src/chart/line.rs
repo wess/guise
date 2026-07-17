@@ -14,7 +14,9 @@
 //! ```
 
 use gpui::prelude::*;
-use gpui::{canvas, div, fill, point, px, size, App, Bounds, Hsla, IntoElement, SharedString, Window};
+use gpui::{
+    canvas, div, fill, point, px, size, App, Bounds, Hsla, IntoElement, SharedString, Window,
+};
 
 use crate::style::ColorValue;
 use crate::theme::theme;
@@ -62,10 +64,7 @@ impl LineChart {
     /// Start a named multi-series chart; extend with
     /// [`add_series`](Self::add_series). Named series show in the legend and
     /// every series shares the y scale.
-    pub fn series(
-        label: impl Into<SharedString>,
-        values: impl IntoIterator<Item = f32>,
-    ) -> Self {
+    pub fn series(label: impl Into<SharedString>, values: impl IntoIterator<Item = f32>) -> Self {
         let mut chart = LineChart::new(values);
         chart.series[0].0 = Some(label.into());
         chart
@@ -169,11 +168,14 @@ impl RenderOnce for LineChart {
         } else {
             Vec::new()
         };
-        let scale = (!ticks.is_empty())
-            .then(|| (*ticks.first().unwrap(), *ticks.last().unwrap()));
+        let scale = (!ticks.is_empty()).then(|| (*ticks.first().unwrap(), *ticks.last().unwrap()));
 
         let point_count = self.series.iter().map(|(_, v)| v.len()).max().unwrap_or(0);
-        let gridline_count = if self.axis { ticks.len().max(2) } else { GRIDLINES };
+        let gridline_count = if self.axis {
+            ticks.len().max(2)
+        } else {
+            GRIDLINES
+        };
 
         let series = self.series.clone();
         let paint_colors = line_colors.clone();
@@ -245,7 +247,12 @@ impl RenderOnce for LineChart {
         if self.axis {
             body = body.child(y_axis_column(t, &ticks, self.height));
         }
-        let mut plot_column = div().flex_1().flex().flex_col().gap(px(4.0)).child(plot_wrap);
+        let mut plot_column = div()
+            .flex_1()
+            .flex()
+            .flex_col()
+            .gap(px(4.0))
+            .child(plot_wrap);
         if !self.labels.is_empty() {
             plot_column = plot_column.child(x_label_row(t, &self.labels));
         }

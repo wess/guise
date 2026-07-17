@@ -6,8 +6,8 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent,
-    MouseButton, SharedString, Window,
+    div, px, App, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, IntoElement,
+    KeyDownEvent, MouseButton, SharedString, Window,
 };
 
 use super::{control_metrics, Field, TextEdit};
@@ -141,12 +141,53 @@ impl TextArea {
         .detach();
     }
 
+    fn copy(&self, cx: &mut Context<Self>) {
+        if let Some(text) = self.edit.selected_text() {
+            cx.write_to_clipboard(ClipboardItem::new_string(text));
+        }
+        cx.stop_propagation();
+    }
+
+    fn cut(&mut self, cx: &mut Context<Self>) {
+        if let Some(text) = self.edit.selected_text() {
+            cx.write_to_clipboard(ClipboardItem::new_string(text));
+            self.edit.delete_selection();
+            cx.emit(TextAreaEvent(self.edit.text()));
+            cx.notify();
+        }
+        cx.stop_propagation();
+    }
+
+    fn paste(&mut self, cx: &mut Context<Self>) {
+        if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
+            self.edit
+                .insert(&text.replace("\r\n", "\n").replace('\r', "\n"));
+            cx.emit(TextAreaEvent(self.edit.text()));
+            cx.notify();
+        }
+        cx.stop_propagation();
+    }
+
     fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
         if self.disabled {
             return;
         }
         let ks = &event.keystroke;
         let m = &ks.modifiers;
+        if m.platform && !m.alt && !m.control {
+            match ks.key.as_str() {
+                "a" => {
+                    self.edit.select_all();
+                    cx.notify();
+                    cx.stop_propagation();
+                    return;
+                }
+                "c" => return self.copy(cx),
+                "x" => return self.cut(cx),
+                "v" => return self.paste(cx),
+                _ => {}
+            }
+        }
         // Tab and unconsumed shortcuts bubble so the host can act; Escape too.
         // (Enter inserts a newline here — this is a multi-line field.)
         if matches!(ks.key.as_str(), "escape" | "tab") {
@@ -158,39 +199,61 @@ impl TextArea {
                 true
             }
             "left" => {
-                if m.platform {
-                    self.edit.home();
-                } else if m.alt {
-                    self.edit.word_left();
+                if !m.shift && !m.platform && !m.alt && self.edit.collapse_selection_start() {
+                    true
                 } else {
-                    self.edit.left();
+                    self.edit.pre_move(m.shift);
+                    if m.platform {
+                        self.edit.line_home();
+                    } else if m.alt {
+                        self.edit.word_left();
+                    } else {
+                        self.edit.left();
+                    }
+                    true
                 }
-                true
             }
             "right" => {
-                if m.platform {
-                    self.edit.end();
-                } else if m.alt {
-                    self.edit.word_right();
+                if !m.shift && !m.platform && !m.alt && self.edit.collapse_selection_end() {
+                    true
                 } else {
-                    self.edit.right();
+                    self.edit.pre_move(m.shift);
+                    if m.platform {
+                        self.edit.line_end();
+                    } else if m.alt {
+                        self.edit.word_right();
+                    } else {
+                        self.edit.right();
+                    }
+                    true
                 }
-                true
             }
             "up" => {
-                self.edit.up();
+                self.edit.pre_move(m.shift);
+                if m.platform {
+                    self.edit.home();
+                } else {
+                    self.edit.up();
+                }
                 true
             }
             "down" => {
-                self.edit.down();
+                self.edit.pre_move(m.shift);
+                if m.platform {
+                    self.edit.end();
+                } else {
+                    self.edit.down();
+                }
                 true
             }
             "home" => {
-                self.edit.home();
+                self.edit.pre_move(m.shift);
+                self.edit.line_home();
                 true
             }
             "end" => {
-                self.edit.end();
+                self.edit.pre_move(m.shift);
+                self.edit.line_end();
                 true
             }
             "backspace" => {
@@ -268,28 +331,68 @@ impl Render for TextArea {
         let dimmed = t.dimmed().hsla();
         let surface = t.surface().hsla();
         let caret = t.primary().hsla();
+        let mut selection_bg = t.primary().hsla();
+        selection_bg.a = 0.30;
 
         let mut body = div().flex().flex_col().text_color(text_color);
         if focused {
-            let (before, after) = self.edit.split();
-            let before_lines: Vec<&str> = before.split('\n').collect();
-            let after_lines: Vec<&str> = after.split('\n').collect();
-            let last = before_lines.len() - 1;
-            for l in &before_lines[..last] {
-                body = body.child(div().h(px(line_h)).child(line(l)));
-            }
-            // Caret line: tail of `before` + caret + head of `after`.
-            body = body.child(
-                div()
-                    .flex()
-                    .items_center()
-                    .h(px(line_h))
-                    .child(SharedString::from(before_lines[last].to_string()))
-                    .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
-                    .child(SharedString::from(after_lines[0].to_string())),
-            );
-            for l in &after_lines[1..] {
-                body = body.child(div().h(px(line_h)).child(line(l)));
+            if let Some((before, selected, after)) = self.edit.split_selection() {
+                let before_lines: Vec<&str> = before.split('\n').collect();
+                let selected_lines: Vec<&str> = selected.split('\n').collect();
+                let after_lines: Vec<&str> = after.split('\n').collect();
+                let before_last = before_lines.len() - 1;
+                for text in &before_lines[..before_last] {
+                    body = body.child(div().h(px(line_h)).child(line(text)));
+                }
+                let selected_part =
+                    |text: &str| div().bg(selection_bg).rounded(px(2.0)).child(line(text));
+                body = body.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .h(px(line_h))
+                        .child(SharedString::from(before_lines[before_last].to_string()))
+                        .child(selected_part(selected_lines[0]))
+                        .when(selected_lines.len() == 1, |row| {
+                            row.child(SharedString::from(after_lines[0].to_string()))
+                        }),
+                );
+                if selected_lines.len() > 1 {
+                    for text in &selected_lines[1..selected_lines.len() - 1] {
+                        body = body.child(div().flex().h(px(line_h)).child(selected_part(text)));
+                    }
+                    body = body.child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .h(px(line_h))
+                            .child(selected_part(selected_lines[selected_lines.len() - 1]))
+                            .child(SharedString::from(after_lines[0].to_string())),
+                    );
+                }
+                for text in &after_lines[1..] {
+                    body = body.child(div().h(px(line_h)).child(line(text)));
+                }
+            } else {
+                let (before, after) = self.edit.split();
+                let before_lines: Vec<&str> = before.split('\n').collect();
+                let after_lines: Vec<&str> = after.split('\n').collect();
+                let last = before_lines.len() - 1;
+                for text in &before_lines[..last] {
+                    body = body.child(div().h(px(line_h)).child(line(text)));
+                }
+                body = body.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .h(px(line_h))
+                        .child(SharedString::from(before_lines[last].to_string()))
+                        .child(div().w(px(1.0)).h(px(font * 1.15)).bg(caret))
+                        .child(SharedString::from(after_lines[0].to_string())),
+                );
+                for text in &after_lines[1..] {
+                    body = body.child(div().h(px(line_h)).child(line(text)));
+                }
             }
         } else if self.edit.is_empty() {
             body = body
@@ -314,6 +417,7 @@ impl Render for TextArea {
             )
             .flex()
             .items_start()
+            .overflow_hidden()
             .min_h(px(min_h))
             .w_full()
             .px(px(pad_x))
@@ -323,7 +427,7 @@ impl Render for TextArea {
             .border_color(border)
             .bg(surface)
             .text_size(px(font))
-            .child(body);
+            .child(div().w_full().min_w(px(0.0)).overflow_hidden().child(body));
 
         let mut chrome = Field::new().child(if self.disabled {
             field.opacity(0.6)

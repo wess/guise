@@ -15,8 +15,8 @@
 
 mod confirm;
 mod contextmenu;
-mod host;
 mod drawer;
+mod host;
 mod hovercard;
 mod loading;
 mod menu;

@@ -49,10 +49,12 @@ impl<T: Clone + 'static> RenderOnce for Draggable<T> {
             value: self.payload,
             label: self.label,
         };
-        let mut root = div().id(self.id).cursor_grab().on_drag(
-            chip,
-            |dragged: &DragChip<T>, _offset, _window, cx| cx.new(|_| dragged.clone()),
-        );
+        let mut root = div()
+            .id(self.id)
+            .cursor_grab()
+            .on_drag(chip, |dragged: &DragChip<T>, _offset, _window, cx| {
+                cx.new(|_| dragged.clone())
+            });
         if let Some(child) = self.child {
             root = root.child(child);
         }

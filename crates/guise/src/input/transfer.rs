@@ -18,7 +18,11 @@ use crate::theme::{theme, Size};
 pub struct TransferEvent(pub Vec<usize>);
 
 /// Move `checked ∩ side` to the other side; returns whether anything moved.
-fn move_checked(right: &mut BTreeSet<usize>, checked: &mut BTreeSet<usize>, to_right: bool) -> bool {
+fn move_checked(
+    right: &mut BTreeSet<usize>,
+    checked: &mut BTreeSet<usize>,
+    to_right: bool,
+) -> bool {
     let movers: Vec<usize> = checked
         .iter()
         .copied()
@@ -79,11 +83,7 @@ impl Transfer {
         self
     }
 
-    pub fn titles(
-        mut self,
-        left: impl Into<SharedString>,
-        right: impl Into<SharedString>,
-    ) -> Self {
+    pub fn titles(mut self, left: impl Into<SharedString>, right: impl Into<SharedString>) -> Self {
         self.titles = (left.into(), right.into());
         self
     }

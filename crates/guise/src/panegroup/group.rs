@@ -20,7 +20,10 @@ use crate::SplitDirection;
 
 use super::drag::{drop_edge, drop_overlay, DropEdge, TabDrag};
 use super::tree::clamp_ratio;
-use super::{compute_layout, neighbor, Direction, ItemId, Node, Pane, PaneId, PaneIds, PaneTree, Rect, SplitId};
+use super::{
+    compute_layout, neighbor, Direction, ItemId, Node, Pane, PaneId, PaneIds, PaneTree, Rect,
+    SplitId,
+};
 
 /// Per-item content, re-invoked every render so content stays live.
 type RenderItem = Rc<dyn Fn(ItemId, &mut Window, &mut App) -> AnyElement>;
@@ -243,7 +246,11 @@ impl PaneGroup {
         let Some(pane) = self.pane_of(item) else {
             return;
         };
-        let emptied = self.panes.get_mut(&pane).map(|p| p.remove(item)).unwrap_or(false);
+        let emptied = self
+            .panes
+            .get_mut(&pane)
+            .map(|p| p.remove(item))
+            .unwrap_or(false);
         if emptied {
             // Capture the collapsing pane's traversal position before the
             // tree forgets it, so focus can land on its neighbor instead of
@@ -448,9 +455,7 @@ impl PaneGroup {
         self.dragging = None;
         if let Some(pane) = self.pane_of(item) {
             // Don't tear off the group's last remaining item.
-            if self.tree.panes().len() == 1
-                && self.panes.get(&pane).is_some_and(|p| p.len() == 1)
-            {
+            if self.tree.panes().len() == 1 && self.panes.get(&pane).is_some_and(|p| p.len() == 1) {
                 return;
             }
             self.detach(pane, item);
@@ -627,7 +632,14 @@ impl Render for PaneGroup {
         let item_dot = self.item_dot.clone();
         // Zoomed: only the focused pane, filling the group.
         let inner = if self.zoomed {
-            self.pane_el(self.focused, &render_item, &item_title, &item_dot, window, cx)
+            self.pane_el(
+                self.focused,
+                &render_item,
+                &item_title,
+                &item_dot,
+                window,
+                cx,
+            )
         } else {
             self.node_el(&root, &render_item, &item_title, &item_dot, window, cx)
         };
@@ -701,7 +713,9 @@ impl PaneGroup {
                     .items_center()
                     .justify_center()
                     .hover(move |st| st.bg(grip))
-                    .on_drag(DividerDrag { group, split }, |_, _off, _w, cx| cx.new(|_| Empty));
+                    .on_drag(DividerDrag { group, split }, |_, _off, _w, cx| {
+                        cx.new(|_| Empty)
+                    });
                 divider = if horizontal {
                     divider
                         .w(px(6.0))
@@ -724,9 +738,15 @@ impl PaneGroup {
                         }
                         let b = ev.bounds;
                         let (pos, extent) = if horizontal {
-                            (f32::from(ev.event.position.x - b.left()), f32::from(b.size.width))
+                            (
+                                f32::from(ev.event.position.x - b.left()),
+                                f32::from(b.size.width),
+                            )
                         } else {
-                            (f32::from(ev.event.position.y - b.top()), f32::from(b.size.height))
+                            (
+                                f32::from(ev.event.position.y - b.top()),
+                                f32::from(b.size.height),
+                            )
                         };
                         if extent > 0.0 {
                             this.set_ratio(split, pos / extent, cx);

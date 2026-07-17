@@ -357,7 +357,10 @@ mod tests {
         assert_eq!(grid[3], Date::new(2026, 7, 1).unwrap());
         assert_eq!(grid[41], Date::new(2026, 8, 8).unwrap());
         for cell in &grid {
-            assert_eq!(cell.weekday().index(), (cell.to_days() + 4).rem_euclid(7) as u32);
+            assert_eq!(
+                cell.weekday().index(),
+                (cell.to_days() + 4).rem_euclid(7) as u32
+            );
         }
 
         let monday = month_grid(2026, 7, Weekday::Monday);

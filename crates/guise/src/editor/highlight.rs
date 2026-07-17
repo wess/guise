@@ -323,7 +323,9 @@ const PYTHON: Syntax = Syntax {
         "if", "import", "in", "is", "lambda", "match", "nonlocal", "not", "or", "pass", "raise",
         "return", "try", "while", "with", "yield",
     ],
-    types: &["bool", "bytes", "dict", "float", "int", "list", "set", "str", "tuple"],
+    types: &[
+        "bool", "bytes", "dict", "float", "int", "list", "set", "str", "tuple",
+    ],
     case_insensitive: false,
     uppercase_types: true,
 };
@@ -338,11 +340,48 @@ const JAVASCRIPT: Syntax = Syntax {
         ('`', Escape::Backslash),
     ],
     keywords: &[
-        "async", "await", "break", "case", "catch", "class", "const", "continue", "debugger",
-        "default", "delete", "do", "else", "export", "extends", "false", "finally", "for",
-        "function", "if", "import", "in", "instanceof", "let", "new", "null", "of", "return",
-        "static", "super", "switch", "this", "throw", "true", "try", "typeof", "undefined",
-        "var", "void", "while", "with", "yield",
+        "async",
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "import",
+        "in",
+        "instanceof",
+        "let",
+        "new",
+        "null",
+        "of",
+        "return",
+        "static",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "undefined",
+        "var",
+        "void",
+        "while",
+        "with",
+        "yield",
     ],
     types: &[],
     case_insensitive: false,
@@ -359,14 +398,66 @@ const TYPESCRIPT: Syntax = Syntax {
         ('`', Escape::Backslash),
     ],
     keywords: &[
-        "abstract", "as", "async", "await", "break", "case", "catch", "class", "const",
-        "continue", "debugger", "declare", "default", "delete", "do", "else", "enum", "export",
-        "extends", "false", "finally", "for", "function", "if", "implements", "import", "in",
-        "infer", "instanceof", "interface", "is", "keyof", "let", "namespace", "new", "null",
-        "of", "readonly", "return", "satisfies", "static", "super", "switch", "this", "throw",
-        "true", "try", "type", "typeof", "undefined", "var", "void", "while", "with", "yield",
+        "abstract",
+        "as",
+        "async",
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "declare",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "implements",
+        "import",
+        "in",
+        "infer",
+        "instanceof",
+        "interface",
+        "is",
+        "keyof",
+        "let",
+        "namespace",
+        "new",
+        "null",
+        "of",
+        "readonly",
+        "return",
+        "satisfies",
+        "static",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "type",
+        "typeof",
+        "undefined",
+        "var",
+        "void",
+        "while",
+        "with",
+        "yield",
     ],
-    types: &["any", "bigint", "boolean", "never", "number", "object", "string", "symbol", "unknown", "void"],
+    types: &[
+        "any", "bigint", "boolean", "never", "number", "object", "string", "symbol", "unknown",
+        "void",
+    ],
     case_insensitive: false,
     uppercase_types: true,
 };
@@ -377,14 +468,58 @@ const GO: Syntax = Syntax {
     nested_blocks: false,
     strings: &[('"', Escape::Backslash), ('`', Escape::Backslash)],
     keywords: &[
-        "break", "case", "chan", "const", "continue", "default", "defer", "else", "fallthrough",
-        "false", "for", "func", "go", "goto", "if", "import", "interface", "iota", "map", "nil",
-        "package", "range", "return", "select", "struct", "switch", "true", "type", "var",
+        "break",
+        "case",
+        "chan",
+        "const",
+        "continue",
+        "default",
+        "defer",
+        "else",
+        "fallthrough",
+        "false",
+        "for",
+        "func",
+        "go",
+        "goto",
+        "if",
+        "import",
+        "interface",
+        "iota",
+        "map",
+        "nil",
+        "package",
+        "range",
+        "return",
+        "select",
+        "struct",
+        "switch",
+        "true",
+        "type",
+        "var",
     ],
     types: &[
-        "any", "bool", "byte", "complex128", "complex64", "error", "float32", "float64", "int",
-        "int16", "int32", "int64", "int8", "rune", "string", "uint", "uint16", "uint32",
-        "uint64", "uint8", "uintptr",
+        "any",
+        "bool",
+        "byte",
+        "complex128",
+        "complex64",
+        "error",
+        "float32",
+        "float64",
+        "int",
+        "int16",
+        "int32",
+        "int64",
+        "int8",
+        "rune",
+        "string",
+        "uint",
+        "uint16",
+        "uint32",
+        "uint64",
+        "uint8",
+        "uintptr",
     ],
     case_insensitive: false,
     uppercase_types: true,
@@ -401,8 +536,8 @@ const C: Syntax = Syntax {
         "switch", "typedef", "union", "volatile", "while",
     ],
     types: &[
-        "bool", "char", "double", "float", "int", "long", "short", "signed", "size_t",
-        "unsigned", "void",
+        "bool", "char", "double", "float", "int", "long", "short", "signed", "size_t", "unsigned",
+        "void",
     ],
     case_insensitive: false,
     uppercase_types: false,
@@ -722,24 +857,66 @@ mod tests {
 
     #[test]
     fn new_languages_classify_keywords_strings_comments() {
-        assert_eq!(kind_of(Language::Toml, "name = \"guise\" # crate", "\"guise\""), TokenKind::StringLit);
-        assert_eq!(kind_of(Language::Toml, "flag = true", "true"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::Python, "def run(): pass  # go", "def"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::Python, "def run(): pass  # go", "# go"), TokenKind::Comment);
-        assert_eq!(kind_of(Language::JavaScript, "const x = `hi`;", "const"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::JavaScript, "const x = `hi`;", "`hi`"), TokenKind::StringLit);
-        assert_eq!(kind_of(Language::TypeScript, "let n: number = 5;", "number"), TokenKind::Type);
-        assert_eq!(kind_of(Language::TypeScript, "interface A {}", "interface"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::Go, "func main() {}", "func"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::Go, "var n int64", "int64"), TokenKind::Type);
-        assert_eq!(kind_of(Language::C, "static int n = 0; // c", "static"), TokenKind::Keyword);
-        assert_eq!(kind_of(Language::C, "static int n = 0; // c", "int"), TokenKind::Type);
+        assert_eq!(
+            kind_of(Language::Toml, "name = \"guise\" # crate", "\"guise\""),
+            TokenKind::StringLit
+        );
+        assert_eq!(
+            kind_of(Language::Toml, "flag = true", "true"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::Python, "def run(): pass  # go", "def"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::Python, "def run(): pass  # go", "# go"),
+            TokenKind::Comment
+        );
+        assert_eq!(
+            kind_of(Language::JavaScript, "const x = `hi`;", "const"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::JavaScript, "const x = `hi`;", "`hi`"),
+            TokenKind::StringLit
+        );
+        assert_eq!(
+            kind_of(Language::TypeScript, "let n: number = 5;", "number"),
+            TokenKind::Type
+        );
+        assert_eq!(
+            kind_of(Language::TypeScript, "interface A {}", "interface"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::Go, "func main() {}", "func"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::Go, "var n int64", "int64"),
+            TokenKind::Type
+        );
+        assert_eq!(
+            kind_of(Language::C, "static int n = 0; // c", "static"),
+            TokenKind::Keyword
+        );
+        assert_eq!(
+            kind_of(Language::C, "static int n = 0; // c", "int"),
+            TokenKind::Type
+        );
     }
 
     #[test]
     fn markdown_structures_lines() {
-        assert_eq!(kinds(Language::Markdown, "# Title"), vec![("# Title".into(), TokenKind::Keyword)]);
-        assert_eq!(kinds(Language::Markdown, "> quoted"), vec![("> quoted".into(), TokenKind::Comment)]);
+        assert_eq!(
+            kinds(Language::Markdown, "# Title"),
+            vec![("# Title".into(), TokenKind::Keyword)]
+        );
+        assert_eq!(
+            kinds(Language::Markdown, "> quoted"),
+            vec![("> quoted".into(), TokenKind::Comment)]
+        );
         let bullets = kinds(Language::Markdown, "- item with `code` span");
         assert_eq!(bullets[0], ("-".into(), TokenKind::Punct));
         assert_eq!(bullets[1], ("`code`".into(), TokenKind::StringLit));
@@ -755,7 +932,10 @@ mod tests {
         let fence = Language::Markdown.line("```rust", &mut state);
         assert_eq!(fence[0].1, TokenKind::Punct);
         let inside = Language::Markdown.line("# not a heading", &mut state);
-        assert_eq!(inside, vec![(0.."# not a heading".len(), TokenKind::StringLit)]);
+        assert_eq!(
+            inside,
+            vec![(0.."# not a heading".len(), TokenKind::StringLit)]
+        );
         Language::Markdown.line("```", &mut state);
         let after = Language::Markdown.line("# heading again", &mut state);
         assert_eq!(after[0].1, TokenKind::Keyword);

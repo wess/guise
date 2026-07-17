@@ -25,7 +25,6 @@ use gpui::Div;
 
 use crate::style::FlexExt;
 
-
 /// Cross-axis alignment of flex children.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Align {

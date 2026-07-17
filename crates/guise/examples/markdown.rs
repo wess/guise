@@ -46,11 +46,14 @@ struct Demo {
 impl Demo {
     fn new(cx: &mut Context<Self>) -> Self {
         let editor = cx.new(|cx| MarkdownEditor::new(cx).value(SAMPLE));
-        cx.subscribe(&editor, |_this, _editor, event: &MarkdownEditorEvent, _cx| {
-            if let MarkdownEditorEvent::LinkClick(target) = event {
-                println!("link: {target}");
-            }
-        })
+        cx.subscribe(
+            &editor,
+            |_this, _editor, event: &MarkdownEditorEvent, _cx| {
+                if let MarkdownEditorEvent::LinkClick(target) = event {
+                    println!("link: {target}");
+                }
+            },
+        )
         .detach();
         Demo { editor }
     }

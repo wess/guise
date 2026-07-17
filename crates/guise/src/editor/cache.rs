@@ -74,7 +74,10 @@ impl HighlightCache {
     /// The cached tokens for line `i` (empty when out of range). Only
     /// meaningful after a [`sync`](Self::sync) against the same lines.
     pub fn tokens(&self, i: usize) -> &[(Range<usize>, TokenKind)] {
-        self.entries.get(i).map(|e| e.tokens.as_slice()).unwrap_or(&[])
+        self.entries
+            .get(i)
+            .map(|e| e.tokens.as_slice())
+            .unwrap_or(&[])
     }
 }
 

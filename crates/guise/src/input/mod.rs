@@ -20,8 +20,8 @@ mod date;
 mod datepicker;
 mod dropzone;
 mod edit;
-mod fileinput;
 mod field;
+mod fileinput;
 mod keys;
 mod number;
 mod password;
@@ -36,10 +36,10 @@ mod slider;
 mod switch;
 mod tags;
 mod text;
-mod transfer;
 mod textarea;
 mod time;
 mod timepicker;
+mod transfer;
 
 pub use autocomplete::{Autocomplete, AutocompleteEvent};
 pub use calendar::Calendar;
@@ -51,8 +51,8 @@ pub use date::{days_in_month, is_leap_year, month_grid, Date, Weekday, MONTH_NAM
 pub use datepicker::{DatePicker, DatePickerEvent};
 pub use dropzone::Dropzone;
 pub use edit::TextEdit;
-pub use fileinput::{FileInput, FileInputEvent};
 pub use field::Field;
+pub use fileinput::{FileInput, FileInputEvent};
 pub use keys::{apply_key, KeyOutcome};
 pub use number::{NumberInput, NumberInputEvent};
 pub use password::{PasswordInput, PasswordInputEvent};
@@ -69,8 +69,8 @@ pub use tags::{TagsInput, TagsInputEvent};
 pub use text::{TextInput, TextInputEvent};
 pub use textarea::{TextArea, TextAreaEvent};
 pub use time::Time;
-pub use transfer::{Transfer, TransferEvent};
 pub use timepicker::{TimePicker, TimePickerEvent};
+pub use transfer::{Transfer, TransferEvent};
 
 use gpui::{App, ClickEvent, Window};
 

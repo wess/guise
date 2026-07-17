@@ -1,7 +1,7 @@
 //! Binary split tree of panes.
 
-use crate::SplitDirection;
 use super::id::{PaneId, SplitId};
+use crate::SplitDirection;
 
 pub const MIN_RATIO: f32 = 0.1;
 pub const MAX_RATIO: f32 = 0.9;
@@ -138,7 +138,10 @@ impl PaneTree {
 /// Renumber every split in `node` using `counter` (incremented per split), so a
 /// subtree lifted from another tree gets ids unique to its new home.
 fn renumber(node: &mut Node, counter: &mut u64) {
-    if let Node::Split { id, first, second, .. } = node {
+    if let Node::Split {
+        id, first, second, ..
+    } = node
+    {
         *counter += 1;
         *id = SplitId(*counter);
         renumber(first, counter);

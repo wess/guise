@@ -36,6 +36,7 @@ impl SegmentedControl {
         S: Into<SharedString>,
     {
         self.options = options.into_iter().map(Into::into).collect();
+        self.selected = self.selected.min(self.options.len().saturating_sub(1));
         self
     }
 
@@ -81,8 +82,9 @@ impl SegmentedControl {
 
     /// Programmatic set: repaint without emitting an event.
     fn sync_selected(&mut self, index: usize, cx: &mut Context<Self>) {
-        if self.selected != index {
-            self.selected = index;
+        let selected = index.min(self.options.len().saturating_sub(1));
+        if self.selected != selected {
+            self.selected = selected;
             cx.notify();
         }
     }

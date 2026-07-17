@@ -138,9 +138,8 @@ impl DatePicker {
     /// The signal is the source of truth; equality guards on both directions
     /// prevent update loops.
     pub fn bind(entity: &Entity<DatePicker>, signal: &Signal<Option<Date>>, cx: &mut App) {
-        if let Some(initial) = signal.get(cx) {
-            entity.update(cx, |this, cx| this.sync_selected(initial, cx));
-        }
+        let initial = signal.get(cx);
+        entity.update(cx, |this, cx| this.sync_selected(initial, cx));
         let sink = signal.clone();
         cx.subscribe(entity, move |_picker, event: &DatePickerEvent, cx| {
             if let DatePickerEvent::Selected(date) = event {
@@ -150,21 +149,22 @@ impl DatePicker {
         .detach();
         let picker = entity.downgrade();
         cx.observe(signal.entity(), move |observed, cx| {
-            if let Some(date) = *observed.read(cx) {
-                picker
-                    .update(cx, |this, cx| this.sync_selected(date, cx))
-                    .ok();
-            }
+            let date = *observed.read(cx);
+            picker
+                .update(cx, |this, cx| this.sync_selected(date, cx))
+                .ok();
         })
         .detach();
     }
 
     /// Programmatic set: repaint without emitting an event.
-    fn sync_selected(&mut self, date: Date, cx: &mut Context<Self>) {
-        if self.selected != Some(date) {
-            self.selected = Some(date);
-            self.view_year = date.year();
-            self.view_month = date.month();
+    fn sync_selected(&mut self, date: Option<Date>, cx: &mut Context<Self>) {
+        if self.selected != date {
+            self.selected = date;
+            if let Some(date) = date {
+                self.view_year = date.year();
+                self.view_month = date.month();
+            }
             cx.notify();
         }
     }
@@ -173,7 +173,11 @@ impl DatePicker {
         if self.range_mode {
             match (self.range_start, self.range_end) {
                 (Some(start), None) => {
-                    let (lo, hi) = if date < start { (date, start) } else { (start, date) };
+                    let (lo, hi) = if date < start {
+                        (date, start)
+                    } else {
+                        (start, date)
+                    };
                     self.range_start = Some(lo);
                     self.range_end = Some(hi);
                     self.open = false;
@@ -202,7 +206,11 @@ impl DatePicker {
         if self.range_mode {
             let start = self.range_start?;
             let text = match self.range_end {
-                Some(end) => format!("{} – {}", start.format(&self.format), end.format(&self.format)),
+                Some(end) => format!(
+                    "{} – {}",
+                    start.format(&self.format),
+                    end.format(&self.format)
+                ),
                 None => format!("{} – …", start.format(&self.format)),
             };
             Some(text.into())
@@ -243,7 +251,11 @@ impl Render for DatePicker {
             .text_size(px(font))
             .text_color(if has_value { text_color } else { dimmed })
             .child(shown)
-            .child(div().text_color(dimmed).child(Icon::new(IconName::CalendarDays).size(Size::Sm)))
+            .child(
+                div()
+                    .text_color(dimmed)
+                    .child(Icon::new(IconName::CalendarDays).size(Size::Sm)),
+            )
             .on_click(cx.listener(|this, _ev, _window, cx| {
                 if !this.disabled {
                     this.open = !this.open;

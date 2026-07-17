@@ -14,7 +14,9 @@
 //! ```
 
 use gpui::prelude::*;
-use gpui::{canvas, div, fill, point, px, size, App, Bounds, Hsla, IntoElement, SharedString, Window};
+use gpui::{
+    canvas, div, fill, point, px, size, App, Bounds, Hsla, IntoElement, SharedString, Window,
+};
 
 use crate::style::ColorValue;
 use crate::theme::theme;
@@ -53,10 +55,7 @@ impl AreaChart {
     }
 
     /// Start a named multi-series chart; extend with [`add_series`](Self::add_series).
-    pub fn series(
-        label: impl Into<SharedString>,
-        values: impl IntoIterator<Item = f32>,
-    ) -> Self {
+    pub fn series(label: impl Into<SharedString>, values: impl IntoIterator<Item = f32>) -> Self {
         let mut chart = AreaChart::new(values);
         chart.series[0].0 = Some(label.into());
         chart
@@ -121,7 +120,11 @@ impl RenderOnce for AreaChart {
         let stacked = self.stacked;
 
         let raw: Vec<Vec<f32>> = self.series.iter().map(|(_, v)| v.clone()).collect();
-        let layers = if stacked { stack_layers(&raw) } else { raw.clone() };
+        let layers = if stacked {
+            stack_layers(&raw)
+        } else {
+            raw.clone()
+        };
 
         // Scale: stacked charts run 0..=top-layer max; overlaid use the
         // combined data range.
@@ -158,9 +161,7 @@ impl RenderOnce for AreaChart {
                     let color = paint_colors[i];
                     let band = Hsla { a: 0.25, ..color };
                     if stacked {
-                        let lower = below
-                            .clone()
-                            .unwrap_or_else(|| vec![zero; ys.len()]);
+                        let lower = below.clone().unwrap_or_else(|| vec![zero; ys.len()]);
                         paint_band(window, bounds, &ys, &lower, band);
                         below = Some(ys.clone());
                     }

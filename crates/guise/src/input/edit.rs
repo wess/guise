@@ -18,7 +18,11 @@ impl TextEdit {
     pub fn new(text: &str) -> Self {
         let chars: Vec<char> = text.chars().collect();
         let cursor = chars.len();
-        Self { chars, cursor, anchor: None }
+        Self {
+            chars,
+            cursor,
+            anchor: None,
+        }
     }
 
     pub fn text(&self) -> String {
@@ -63,6 +67,24 @@ impl TextEdit {
     /// Drop any selection, keeping the cursor put.
     pub fn clear_selection(&mut self) {
         self.anchor = None;
+    }
+
+    pub fn collapse_selection_start(&mut self) -> bool {
+        let Some((start, _)) = self.selection() else {
+            return false;
+        };
+        self.cursor = start;
+        self.anchor = None;
+        true
+    }
+
+    pub fn collapse_selection_end(&mut self) -> bool {
+        let Some((_, end)) = self.selection() else {
+            return false;
+        };
+        self.cursor = end;
+        self.anchor = None;
+        true
     }
 
     /// Delete the selected text (if any), leaving the cursor at its start.
@@ -154,6 +176,18 @@ impl TextEdit {
         self.cursor = self.chars.len();
     }
 
+    pub fn line_home(&mut self) {
+        while self.cursor > 0 && self.chars[self.cursor - 1] != '\n' {
+            self.cursor -= 1;
+        }
+    }
+
+    pub fn line_end(&mut self) {
+        while self.cursor < self.chars.len() && self.chars[self.cursor] != '\n' {
+            self.cursor += 1;
+        }
+    }
+
     /// Move left to the start of the previous word (Option+Left on macOS).
     pub fn word_left(&mut self) {
         while self.cursor > 0 && !is_word(self.chars[self.cursor - 1]) {
@@ -178,6 +212,9 @@ impl TextEdit {
     /// Delete the word before the cursor (Option+Backspace). Returns whether
     /// anything changed.
     pub fn delete_word_back(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         let end = self.cursor;
         self.word_left();
         if self.cursor < end {
@@ -191,6 +228,9 @@ impl TextEdit {
     /// Delete the word after the cursor (Option+Delete). Returns whether
     /// anything changed.
     pub fn delete_word_forward(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         let start = self.cursor;
         let n = self.chars.len();
         let mut end = self.cursor;
@@ -211,6 +251,9 @@ impl TextEdit {
     /// Delete from the cursor to the line start (Cmd+Backspace). Returns
     /// whether anything changed.
     pub fn delete_to_start(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         if self.cursor == 0 {
             return false;
         }
@@ -222,6 +265,9 @@ impl TextEdit {
     /// Delete from the cursor to the line end (Cmd+Delete / Ctrl+K). Returns
     /// whether anything changed.
     pub fn delete_to_end(&mut self) -> bool {
+        if self.delete_selection() {
+            return true;
+        }
         if self.cursor >= self.chars.len() {
             return false;
         }
@@ -404,7 +450,10 @@ mod tests {
         e.left(); // select "cd"
         assert_eq!(e.selected_text().as_deref(), Some("cd"));
         let (before, sel, after) = e.split_selection().unwrap();
-        assert_eq!((before.as_str(), sel.as_str(), after.as_str()), ("ab", "cd", ""));
+        assert_eq!(
+            (before.as_str(), sel.as_str(), after.as_str()),
+            ("ab", "cd", "")
+        );
     }
 
     #[test]
@@ -425,6 +474,32 @@ mod tests {
     }
 
     #[test]
+    fn modified_deletes_replace_the_selection() {
+        for delete in [
+            TextEdit::delete_word_back as fn(&mut TextEdit) -> bool,
+            TextEdit::delete_word_forward,
+            TextEdit::delete_to_start,
+            TextEdit::delete_to_end,
+        ] {
+            let mut edit = TextEdit::new("abcd");
+            edit.select_all();
+            assert!(delete(&mut edit));
+            assert_eq!(edit.text(), "");
+        }
+    }
+
+    #[test]
+    fn selection_collapses_to_the_requested_edge() {
+        let mut edit = TextEdit::new("abcd");
+        edit.select_all();
+        assert!(edit.collapse_selection_start());
+        assert_eq!(edit.split().0, "");
+        edit.select_all();
+        assert!(edit.collapse_selection_end());
+        assert_eq!(edit.split().0, "abcd");
+    }
+
+    #[test]
     fn delete_to_line_edges() {
         let mut e = TextEdit::new("hello world");
         e.home();
@@ -435,5 +510,15 @@ mod tests {
         assert!(e.delete_to_end());
         assert_eq!(e.text(), "");
         assert!(!e.delete_to_end());
+    }
+
+    #[test]
+    fn line_edges_stay_on_the_current_line() {
+        let mut e = TextEdit::new("one\ntwo\nthree");
+        e.up();
+        e.line_home();
+        assert_eq!(e.split().0, "one\n");
+        e.line_end();
+        assert_eq!(e.split().0, "one\ntwo");
     }
 }

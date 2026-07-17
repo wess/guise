@@ -1,8 +1,8 @@
 //! Pure rect math: turn a [`PaneTree`] into pane and divider rects.
 
-use crate::SplitDirection;
 use super::id::{PaneId, SplitId};
 use super::tree::{Node, PaneTree};
+use crate::SplitDirection;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {

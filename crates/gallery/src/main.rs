@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, size, App, Bounds, Context, Entity, IntoElement, MouseButton,
-    MouseDownEvent, SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions,
+    div, px, size, App, Bounds, Context, Entity, IntoElement, MouseButton, MouseDownEvent,
+    SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions,
 };
 
 use guise::flex::{Container, EdgeInsets, Expanded, Row, SizedBox, Spacer};
@@ -729,9 +729,14 @@ impl Gallery {
                 .active("home")
         });
         let autocomplete = cx.new(|cx| {
-            Autocomplete::new(cx)
-                .label("Language")
-                .suggestions(["Rust", "Ruby", "Python", "TypeScript", "Go", "Swift"])
+            Autocomplete::new(cx).label("Language").suggestions([
+                "Rust",
+                "Ruby",
+                "Python",
+                "TypeScript",
+                "Go",
+                "Swift",
+            ])
         });
         let transfer = cx.new(|cx| {
             Transfer::new(cx)
@@ -1588,7 +1593,11 @@ impl Gallery {
     fn motion(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let toggle = Button::new(
             "motion-toggle",
-            if self.collapse_open { "Collapse" } else { "Expand" },
+            if self.collapse_open {
+                "Collapse"
+            } else {
+                "Expand"
+            },
         )
         .variant(Variant::Light)
         .on_click(cx.listener(|this, _ev, _window, cx| {
@@ -1604,10 +1613,12 @@ impl Gallery {
                     .open(self.collapse_open)
                     .height(88.0)
                     .easing(Easing::EaseInOutCubic)
-                    .child(Card::new().child(
-                        Text::new("A real height collapse — opening and closing both animate.")
-                            .size(Size::Sm),
-                    )),
+                    .child(
+                        Card::new().child(
+                            Text::new("A real height collapse — opening and closing both animate.")
+                                .size(Size::Sm),
+                        ),
+                    ),
             )
             .child(
                 Transition::new("motion-enter")

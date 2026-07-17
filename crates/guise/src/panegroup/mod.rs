@@ -22,10 +22,10 @@ mod snapshot;
 mod tree;
 
 pub use drag::{DropEdge, TabDrag};
-pub use snapshot::{LayoutSnapshot, SnapshotError};
+pub use group::{PaneGroup, PaneGroupEvent};
 pub use id::{ItemId, ItemIds, PaneId, PaneIds, SplitId};
 pub use layout::{compute_layout, Layout, Rect};
 pub use nav::{neighbor, next, prev, Direction};
-pub use group::{PaneGroup, PaneGroupEvent};
 pub use pane::Pane;
+pub use snapshot::{LayoutSnapshot, SnapshotError};
 pub use tree::{clamp_ratio, Node, PaneTree, MAX_RATIO, MIN_RATIO};

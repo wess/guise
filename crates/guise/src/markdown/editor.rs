@@ -23,16 +23,14 @@
 
 use gpui::prelude::*;
 use gpui::{
-    canvas, div, point, px, App, Bounds, ClipboardItem, Context, Div, DragMoveEvent, Empty,
-    Entity, EntityId, EventEmitter, FocusHandle, Font, FontStyle, FontWeight, Hsla, IntoElement,
+    canvas, div, point, px, App, Bounds, ClipboardItem, Context, Div, DragMoveEvent, Empty, Entity,
+    EntityId, EventEmitter, FocusHandle, Font, FontStyle, FontWeight, Hsla, IntoElement,
     KeyDownEvent, MouseButton, MouseDownEvent, Pixels, ScrollHandle, SharedString,
     StrikethroughStyle, TextAlign, TextRun, UnderlineStyle, Window, WrappedLine,
 };
 
 use super::block::{classify, Block, DocState};
-use super::layout::{
-    byte_for_col, col_for_byte, plan, src_for_vis, vis_for_src, RowKind, RowPlan,
-};
+use super::layout::{byte_for_col, col_for_byte, plan, src_for_vis, vis_for_src, RowKind, RowPlan};
 use crate::editor::{token_color, EditorModel, Highlighter, Language, LineState, Pos, TokenKind};
 use crate::reactive::Signal;
 use crate::theme::theme;
@@ -129,7 +127,14 @@ impl Row {
             return (0.0, row);
         }
         let (x, y) = self.pos_end(vis);
-        (x, if self.line_h > 0.0 { (y / self.line_h).round() as usize } else { 0 })
+        (
+            x,
+            if self.line_h > 0.0 {
+                (y / self.line_h).round() as usize
+            } else {
+                0
+            },
+        )
     }
 
     /// Selection rectangles for the visible byte range: (x, visual row,
@@ -300,11 +305,7 @@ impl MarkdownEditor {
     /// Mutate the [`EditorModel`] directly. Emits
     /// [`MarkdownEditorEvent::Change`] when the text changed, keeps the
     /// caret visible, and repaints.
-    pub fn edit<R>(
-        &mut self,
-        cx: &mut Context<Self>,
-        f: impl FnOnce(&mut EditorModel) -> R,
-    ) -> R {
+    pub fn edit<R>(&mut self, cx: &mut Context<Self>, f: impl FnOnce(&mut EditorModel) -> R) -> R {
         let before = self.model.text();
         let result = f(&mut self.model);
         let after = self.model.text();
@@ -404,9 +405,8 @@ impl MarkdownEditor {
         let Some(sel) = self.model.selected_text() else {
             return;
         };
-        let unwrap = sel.starts_with(marker)
-            && sel.ends_with(marker)
-            && sel.len() >= 2 * marker.len();
+        let unwrap =
+            sel.starts_with(marker) && sel.ends_with(marker) && sel.len() >= 2 * marker.len();
         let replacement = if unwrap {
             sel[marker.len()..sel.len() - marker.len()].to_string()
         } else {
@@ -864,7 +864,10 @@ impl MarkdownEditor {
         } else if vrow > 0 {
             Some((cursor.line, vrow - 1))
         } else if cursor.line > 0 {
-            Some((cursor.line - 1, self.layout[cursor.line - 1].visual_rows() - 1))
+            Some((
+                cursor.line - 1,
+                self.layout[cursor.line - 1].visual_rows() - 1,
+            ))
         } else {
             None
         };
@@ -1372,7 +1375,9 @@ impl Render for MarkdownEditor {
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::on_key))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
-            .on_drag(MarkdownDrag(cx.entity_id()), |_, _, _, cx| cx.new(|_| Empty))
+            .on_drag(MarkdownDrag(cx.entity_id()), |_, _, _, cx| {
+                cx.new(|_| Empty)
+            })
             .on_drag_move(cx.listener(Self::on_drag_move))
             .overflow_y_scroll()
             .track_scroll(&self.scroll)
@@ -1413,10 +1418,9 @@ fn metrics(kind: &RowKind) -> (f32, f32, f32, f32) {
         RowKind::Heading(4) => (1.15, 1.3, 0.4, 0.15),
         RowKind::Heading(5) => (1.05, 1.3, 0.35, 0.1),
         RowKind::Heading(_) => (0.95, 1.3, 0.35, 0.1),
-        RowKind::Code { .. }
-        | RowKind::Fence { .. }
-        | RowKind::FrontMatter
-        | RowKind::Table => (0.88, 1.55, 0.0, 0.0),
+        RowKind::Code { .. } | RowKind::Fence { .. } | RowKind::FrontMatter | RowKind::Table => {
+            (0.88, 1.55, 0.0, 0.0)
+        }
         _ => (1.0, 1.6, 0.0, 0.0),
     }
 }
@@ -1635,7 +1639,10 @@ mod tests {
 
     #[test]
     fn line_selection_matches_editor_semantics() {
-        assert_eq!(line_selection(at(1, 2), at(1, 5), 1, 8), Some((2, 5, false)));
+        assert_eq!(
+            line_selection(at(1, 2), at(1, 5), 1, 8),
+            Some((2, 5, false))
+        );
         assert_eq!(line_selection(at(0, 3), at(2, 2), 1, 4), Some((0, 4, true)));
         assert_eq!(line_selection(at(0, 3), at(2, 2), 3, 4), None);
         assert_eq!(line_selection(at(0, 0), at(2, 1), 1, 0), Some((0, 0, true)));

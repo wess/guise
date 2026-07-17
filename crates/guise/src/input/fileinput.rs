@@ -180,7 +180,11 @@ impl Render for FileInput {
             .text_size(px(font))
             .text_color(if has_value { text_color } else { dimmed })
             .hover(move |s| s.bg(surface_hover))
-            .child(div().text_color(dimmed).child(Icon::new(IconName::Paperclip).size(Size::Sm)))
+            .child(
+                div()
+                    .text_color(dimmed)
+                    .child(Icon::new(IconName::Paperclip).size(Size::Sm)),
+            )
             .child(div().flex_1().truncate().child(value_text))
             .on_click(cx.listener(|this, _ev, _window, cx| {
                 if !this.disabled {
