@@ -275,3 +275,5 @@ cargo test -p guise-ui   # run the library's tests (unit + gpui entity harness)
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+♥ [Sponsor this project](https://github.com/sponsors/wess)
