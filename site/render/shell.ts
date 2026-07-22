@@ -77,6 +77,7 @@ function footer(): string {
     <div class="foot-col">
       <span class="foot-h">Project</span>
       <a href="${REPO}" rel="noreferrer">GitHub</a>
+      <a href="https://github.com/sponsors/wess" rel="noreferrer">&hearts; Sponsor</a>
       <a href="https://github.com/zed-industries/zed" rel="noreferrer">gpui</a>
       <a href="https://mantine.dev" rel="noreferrer">Mantine</a>
       <a href="https://crates.io/crates/wry" rel="noreferrer">wry</a>
