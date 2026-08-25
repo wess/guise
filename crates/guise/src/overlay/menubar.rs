@@ -334,6 +334,7 @@ impl Render for MenuBar {
 
             if is_open {
                 let mut dropdown = div()
+                    .occlude()
                     .absolute()
                     .top(px(height + 4.0))
                     .left(px(0.0))
