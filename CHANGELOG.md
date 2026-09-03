@@ -5,6 +5,30 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.5.4 — 2026-09-03
+
+### Text no longer collapses to zero width
+
+`Text` and `Title` carried `min_w(0)` on their own div from 1.5.1. Taffy clamps
+the available space it hands a measured leaf by that leaf's own minimum, so a
+min-content pass measured the string at `Definite(0)` and gpui wrapped it after
+every character. Any flex item whose content was guise text then reported a
+content size of zero and laid out one glyph wide — a heading rendered as a
+vertical column of letters, and the row beside it collapsed to its gaps.
+
+`min_w(0)` is right on a *container* — and stays where guise already had it, in
+`Field`, `Select`, `AppShell`, `TableView` and the rest — but on a wrapping text
+leaf it is the whole layout escape hatch, with nothing left to hold the box
+open. Nothing in guise depended on it: every component that ellipsizes uses
+`truncate_text()`, which pairs the zero minimum with `whitespace_nowrap`, so the
+text never wraps and the minimum only permits clipping.
+
+A caller that wants shrinkable text in a flex row can still wrap it:
+`div().min_w(px(0.0)).child(Text::new(..))`.
+
+This release is the fix and nothing else: it was cut from the published
+1.5.3 source, so no other in-flight work rode along with it.
+
 ## 1.5.3 — 2026-08-26
 
 ### Installation docs

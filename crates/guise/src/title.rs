@@ -52,7 +52,6 @@ impl RenderOnce for Title {
     let color = self.color.unwrap_or_else(|| t.text());
     let size = self.font_size();
     div()
-      .min_w(px(0.0))
       .text_size(px(size))
       .font_weight(FontWeight::BOLD)
       .line_height(px(size * 1.3))

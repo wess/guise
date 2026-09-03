@@ -2114,7 +2114,7 @@ dependencies = [
 
 [[package]]
 name = "gallery"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "gpui",
  "guise-ui",
@@ -2780,7 +2780,7 @@ dependencies = [
 
 [[package]]
 name = "guise-ui"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "gpui",
  "tree-sitter",
@@ -6078,7 +6078,7 @@ dependencies = [
 
 [[package]]
 name = "tailor-app"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "gpui",
  "guise-ui",
@@ -6092,14 +6092,14 @@ dependencies = [
 
 [[package]]
 name = "tailor-codegen"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "tailor-model",
 ]
 
 [[package]]
 name = "tailor-mcp"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -6110,7 +6110,7 @@ dependencies = [
 
 [[package]]
 name = "tailor-model"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -6118,7 +6118,7 @@ dependencies = [
 
 [[package]]
 name = "tailor-render"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "gpui",
  "guise-ui",
@@ -6127,7 +6127,7 @@ dependencies = [
 
 [[package]]
 name = "tailor-store"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "dirs 6.0.0",
  "serde",

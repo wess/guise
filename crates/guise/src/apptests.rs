@@ -23,7 +23,7 @@ use crate::update::{
   is_installing, Release, UpdateNotice, UpdateNoticeEvent, UpdateOutcome, UpdatePrompt,
   UpdatePromptEvent, UpdateStage, Updater,
 };
-use crate::{ActionIcon, Button, Carousel, CarouselEvent, IconName, TransitionKind};
+use crate::{ActionIcon, Button, Carousel, CarouselEvent, IconName, Text, Title, TransitionKind};
 
 #[gpui::test]
 fn signal_binding_and_lens_round_trip(cx: &mut TestAppContext) {
@@ -1368,4 +1368,90 @@ fn a_filling_scrollarea_takes_the_height_of_a_block_parent(cx: &mut TestAppConte
   let pane = probed_height(&view, "ScrollArea", cx);
   assert!(window > 0.0, "the window measured nothing");
   assert_eq!(pane, window, "the pane should be the full window height");
+}
+
+/// A heading and a paragraph in a column that nothing gives a width to, beside
+/// a sibling that will not shrink — the shape of every page header guise draws
+/// for. The probe recorder reports what they were laid out at.
+struct Squeezed {
+  devtools: Entity<DevTools>,
+}
+
+impl Render for Squeezed {
+  fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    div()
+      .flex()
+      .size_full()
+      .child(
+        div()
+          .w(gpui::px(600.0))
+          .flex()
+          .justify_between()
+          .gap(gpui::px(24.0))
+          .child(
+            div()
+              .flex()
+              .flex_col()
+              .child(Title::new("Connect your coding tools").order(2))
+              .child(Text::new("One scoped memory, available wherever you work.")),
+          )
+          .child(div().flex_none().child(Button::new("act", "Refresh"))),
+      )
+      .child(self.devtools.clone())
+      .probe("Squeezed")
+  }
+}
+
+/// The width the recorder captured for the named component in the last frame.
+fn probed_width(view: &Entity<Squeezed>, name: &str, cx: &mut gpui::VisualTestContext) -> f32 {
+  view.read_with(cx, |this, cx| {
+    this
+      .devtools
+      .read(cx)
+      .tree()
+      .nodes
+      .iter()
+      .find(|node| node.name == name)
+      .unwrap_or_else(|| panic!("{name} was not recorded"))
+      .bounds
+      .size
+      .width
+      .to_f64() as f32
+  })
+}
+
+fn squeezed(cx: &mut TestAppContext) -> (Entity<Squeezed>, &mut gpui::VisualTestContext) {
+  cx.update(|cx| {
+    Theme::light().init(cx);
+    DevToolsState::new().init(cx);
+  });
+  let (view, cx) = cx.add_window_view(|_window, cx| Squeezed {
+    devtools: cx.new(DevTools::new),
+  });
+  cx.run_until_parked();
+  // The tree the panel reads is the one the *previous* frame recorded.
+  view.update(cx, |_this, cx| cx.notify());
+  cx.run_until_parked();
+  (view, cx)
+}
+
+/// Text measures its own content when the box around it has no width of its
+/// own. A `min_w(0)` on the text leaf broke exactly this between 1.5.1 and
+/// 1.5.3: taffy clamps the available space it hands a measured leaf by that
+/// leaf's own minimum, so the min-content pass measured the string at zero and
+/// gpui wrapped it after every character — a heading rendered as a vertical
+/// column of letters.
+#[gpui::test]
+fn text_in_an_unsized_column_measures_its_content(cx: &mut TestAppContext) {
+  let (view, cx) = squeezed(cx);
+  let title = probed_width(&view, "Title", cx);
+  let body = probed_width(&view, "Text", cx);
+  assert!(
+    title > 100.0,
+    "the heading laid out {title}px wide, so it wrapped per character"
+  );
+  assert!(
+    body > 100.0,
+    "the paragraph laid out {body}px wide, so it wrapped per character"
+  );
 }

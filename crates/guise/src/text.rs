@@ -69,7 +69,6 @@ impl RenderOnce for Text {
       (None, false) => t.text(),
     };
     div()
-      .min_w(px(0.0))
       .text_size(px(t.font_size(self.size)))
       .font_weight(self.weight)
       .text_color(color.hsla())
