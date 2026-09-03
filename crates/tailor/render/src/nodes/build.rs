@@ -736,6 +736,195 @@ pub fn element(ctx: &RenderCtx, node: &Node, window: &mut Window, cx: &mut App) 
       }
     }
 
+    // --- ai ------------------------------------------------------------
+    "aimessage" => {
+      let role = match read.choice("role").as_str() {
+        "user" => AIRole::User,
+        "system" => AIRole::System,
+        "tool" => AIRole::Tool,
+        _ => AIRole::Assistant,
+      };
+      let mut message = AIMessage::new(role, read.text("body"))
+        .streaming(read.bool("streaming"))
+        .avatar(read.bool("avatar"))
+        .size(read.size("size"));
+      if !read.text("name").is_empty() {
+        message = message.name(read.text("name"));
+      }
+      if !read.text("meta").is_empty() {
+        message = message.meta(read.text("meta"));
+      }
+      if !read.text("error").is_empty() {
+        message = message.error(read.text("error"));
+      }
+      message.into_any_element()
+    }
+    "aistreamingtext" => AIStreamingText::new(read.text("text"))
+      .caret(read.bool("caret"))
+      .size(read.size("size"))
+      .into_any_element(),
+    "aithinking" => {
+      let mut thinking = AIThinking::new()
+        .color(read.color_name("color"))
+        .size(read.size("size"));
+      if !read.text("label").is_empty() {
+        thinking = thinking.label(read.text("label"));
+      }
+      thinking.into_any_element()
+    }
+    "aireasoning" => {
+      let mut reasoning = AIReasoning::new(id(), read.text("text"))
+        .open(read.bool("open"))
+        .streaming(read.bool("streaming"))
+        .size(read.size("size"));
+      if !read.text("label").is_empty() {
+        reasoning = reasoning.label(read.text("label"));
+      }
+      reasoning.into_any_element()
+    }
+    "aitoolcall" => {
+      let mut call = AIToolCall::new(id(), read.text("name"))
+        .status(tool_status(&read.choice("status")))
+        .open(read.bool("open"))
+        .expandable(read.bool("expandable"))
+        .size(read.size("size"));
+      if !read.text("arguments").is_empty() {
+        call = call.arguments(read.text("arguments"));
+      }
+      if !read.text("result").is_empty() {
+        call = call.result(read.text("result"));
+      }
+      if !read.text("meta").is_empty() {
+        call = call.meta(read.text("meta"));
+      }
+      call.into_any_element()
+    }
+    "aitokenmeter" => {
+      let mut meter = AITokenMeter::new(read.usize("used") as u64, read.usize("limit") as u64)
+        .bar(read.bool("bar"))
+        .size(read.size("size"));
+      if !read.text("label").is_empty() {
+        meter = meter.label(read.text("label"));
+      }
+      meter.into_any_element()
+    }
+    "aicost" => {
+      let usage = AIUsage::new(read.usize("input") as u64, read.usize("output") as u64);
+      let pricing = AIPricing::new(
+        price(&read.text("input_price")),
+        price(&read.text("output_price")),
+      );
+      let mut cost = AICost::new(usage, pricing)
+        .breakdown(read.bool("breakdown"))
+        .size(read.size("size"));
+      if !read.text("label").is_empty() {
+        cost = cost.label(read.text("label"));
+      }
+      cost.into_any_element()
+    }
+    "aicitation" => {
+      let mut citation = AICitation::new(id(), read.usize("index")).size(read.size("size"));
+      if !read.text("label").is_empty() {
+        citation = citation.label(read.text("label"));
+      }
+      citation.into_any_element()
+    }
+    "aisources" => {
+      let mut sources =
+        AISources::new(read.raw_items("sources").iter().map(|line| ai_source(line)))
+          .excerpts(read.bool("excerpts"))
+          .size(read.size("size"));
+      if !read.text("title").is_empty() {
+        sources = sources.title(read.text("title"));
+      }
+      sources.into_any_element()
+    }
+
+    // --- settings screens and app chrome --------------------------------
+    "settingssection" => {
+      let mut section = SettingsSection::new(read.text("title")).rule(read.bool("rule"));
+      if !read.text("description").is_empty() {
+        section = section.description(read.text("description"));
+      }
+      section
+        .children(children(ctx, node, window, cx))
+        .into_any_element()
+    }
+    "settingsrow" => {
+      let mut row = SettingsRow::new(id(), read.text("label"))
+        .modified(read.bool("modified"))
+        .divider(read.bool("divider"));
+      if !read.text("description").is_empty() {
+        row = row.description(read.text("description"));
+      }
+      if let Some(control) = slot_children(ctx, node, "control", window, cx).pop() {
+        row = row.control(control);
+      }
+      row.into_any_element()
+    }
+    "about" => {
+      let mut about = About::new(read.text("name"));
+      if !read.text("version").is_empty() {
+        about = about.version(read.text("version"));
+      }
+      if !read.text("tagline").is_empty() {
+        about = about.tagline(read.text("tagline"));
+      }
+      if !read.text("credits").is_empty() {
+        about = about.credits(read.text("credits"));
+      }
+      about.into_any_element()
+    }
+    "windowcontrols" => WindowControls::new()
+      .button_width(read.f32("button_width"))
+      .height(read.f32("height"))
+      .into_any_element(),
+    "themepicker" => ThemePicker::new()
+      .system_option(read.bool("system_option"))
+      .layout(if read.choice("layout") == "grid" {
+        ThemePickerLayout::Grid
+      } else {
+        ThemePickerLayout::List
+      })
+      .into_any_element(),
+    "confirmmodal" => {
+      let mut modal = ConfirmModal::new().width(read.f32("width"));
+      if read.bool("danger") {
+        modal = modal.danger();
+      }
+      if !read.text("title").is_empty() {
+        modal = modal.title(read.text("title"));
+      }
+      if !read.text("message").is_empty() {
+        modal = modal.message(read.text("message"));
+      }
+      if !read.text("confirm_label").is_empty() {
+        modal = modal.confirm_label(read.text("confirm_label"));
+      }
+      if !read.text("cancel_label").is_empty() {
+        modal = modal.cancel_label(read.text("cancel_label"));
+      }
+      modal
+        .children(children(ctx, node, window, cx))
+        .into_any_element()
+    }
+    "virtuallist" => {
+      // Drawn: the real component takes a row builder, and the rows a
+      // designer types are the only content there is to build.
+      let rows = read.items("rows");
+      VirtualList::new(id(), rows.len(), move |index, _window, cx| {
+        let text = rows.get(index).cloned().unwrap_or_default();
+        div()
+          .px(px(10.0))
+          .py(px(6.0))
+          .text_color(theme(cx).text().hsla())
+          .child(text)
+      })
+      .height(read.f32("height"))
+      .into_any_element()
+    }
+    "settingsview" => settings_view(ctx, node, &read, window, cx),
+
     _ => chrome::blueprint_box(label_of(node), cx).into_any_element(),
   }
 }
@@ -790,6 +979,12 @@ fn entity_element(preview: Preview) -> AnyElement {
     Preview::MarkdownEditor(e) => e.into_any_element(),
     Preview::WebView(e) => e.into_any_element(),
     Preview::CopyButton(e) => e.into_any_element(),
+    Preview::AIChatView(e) => e.into_any_element(),
+    Preview::AIComposer(e) => e.into_any_element(),
+    Preview::AIModelPicker(e) => e.into_any_element(),
+    Preview::AISettings(e) => e.into_any_element(),
+    Preview::Menu(e) => e.into_any_element(),
+    Preview::ContextMenu(e) => e.into_any_element(),
   }
 }
 
@@ -860,6 +1055,100 @@ fn tabs(
     .flex_col()
     .child(strip)
     .child(panel)
+    .into_any_element()
+}
+
+/// The settings screen, drawn: a page list beside the page's slot.
+///
+/// `SettingsView` takes its content as a `'static` closure keyed by page id,
+/// which is the one shape a designer cannot drop into — so the sidebar is
+/// drawn from the theme here and each page is a real slot. Generated code uses
+/// the real component.
+fn settings_view(
+  ctx: &RenderCtx,
+  node: &Node,
+  read: &Reader<'_>,
+  window: &mut Window,
+  cx: &mut App,
+) -> AnyElement {
+  let pages = read.raw_items("pages");
+  let active = ctx
+    .store
+    .read(cx)
+    .page(node.id)
+    .min(pages.len().saturating_sub(1));
+  let border = theme(cx).border().hsla();
+  let surface = theme(cx).surface().hsla();
+  let accent_soft = theme(cx).color(ColorName::Blue, 6).alpha(0.18);
+  let dimmed = theme(cx).dimmed().hsla();
+  let text = theme(cx).text().hsla();
+  let radius = theme(cx).radius(Size::Sm);
+
+  let mut list = div()
+    .flex()
+    .flex_col()
+    .gap(px(2.))
+    .w(px(read.f32("sidebar_width").max(120.0)))
+    .p(px(8.))
+    .bg(surface)
+    .border_r(px(1.))
+    .border_color(border);
+  if read.bool("searchable") {
+    list = list.child(
+      div()
+        .px(px(8.))
+        .py(px(5.))
+        .mb(px(6.))
+        .rounded(px(radius))
+        .border_1()
+        .border_color(border)
+        .text_size(px(12.))
+        .text_color(dimmed)
+        .child(SharedString::new_static("Search")),
+    );
+  }
+  for (index, label) in pages.iter().enumerate() {
+    let selected = index == active;
+    let reveal = ctx.hooks.reveal.clone();
+    let id = node.id;
+    list = list.child(
+      div()
+        .id(ElementId::Name(SharedString::from(format!(
+          "settings-page-{}-{index}",
+          node.id
+        ))))
+        .px(px(8.))
+        .py(px(6.))
+        .rounded(px(radius))
+        .text_size(px(13.))
+        .text_color(if selected { text } else { dimmed })
+        .when(selected, |el| el.bg(accent_soft))
+        .child(SharedString::from(label.clone()))
+        .on_mouse_down(gpui::MouseButton::Left, move |_, _window, cx| {
+          cx.stop_propagation();
+          reveal(id, index, cx);
+        }),
+    );
+  }
+
+  let slot = format!("page:{active}");
+  let pane = div()
+    .flex()
+    .flex_col()
+    .flex_1()
+    .gap(px(12.))
+    .p(px(16.))
+    .children(slot_children(ctx, node, &slot, window, cx));
+
+  div()
+    .flex()
+    .flex_row()
+    .border_1()
+    .border_color(border)
+    .rounded(px(theme(cx).radius(Size::Md)))
+    .overflow_hidden()
+    .child(list)
+    .child(pane)
     .into_any_element()
 }
 
@@ -1102,4 +1391,30 @@ fn carousel(ctx: &RenderCtx, node: &Node, window: &mut Window, cx: &mut App) -> 
     .child(content)
     .child(dots)
     .into_any_element()
+}
+
+fn tool_status(value: &str) -> AIToolStatus {
+  match value {
+    "pending" => AIToolStatus::Pending,
+    "running" => AIToolStatus::Running,
+    "error" => AIToolStatus::Error,
+    _ => AIToolStatus::Ok,
+  }
+}
+
+/// A price per million tokens, typed into a text prop. An unreadable one is
+/// zero rather than an error: the canvas keeps drawing while you type.
+fn price(text: &str) -> f64 {
+  text.trim().trim_start_matches('$').parse().unwrap_or(0.0)
+}
+
+/// `title — location` on one line, which is how the sources prop is typed.
+fn ai_source(line: &str) -> AISource {
+  match line
+    .split_once('\u{2014}')
+    .or_else(|| line.split_once(" - "))
+  {
+    Some((title, location)) => AISource::new(title.trim(), location.trim()),
+    None => AISource::new(line.trim(), ""),
+  }
 }

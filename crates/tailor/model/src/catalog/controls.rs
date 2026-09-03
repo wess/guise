@@ -149,4 +149,14 @@ pub static SPECS: &[ComponentSpec] = &[
           enums("mode", "Mode", Emit::None, "", &["url", "html"], || PropValue::Choice("url".into())),
       ],
   ),
+  comp!(
+      "themepicker", "Theme picker", "ThemePicker", Controls, "palette",
+      "The installed themes, and the click that wears one.",
+      Ctor::Unit,
+      props: &[
+          enums("layout", "Layout", Emit::Method("layout"), "ThemePickerLayout",
+              &["list", "grid"], || PropValue::Choice("list".into())),
+          boolean("system_option", "Offer system", Emit::Method("system_option"), true),
+      ],
+  ),
 ];

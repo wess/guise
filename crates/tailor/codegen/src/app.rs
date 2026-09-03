@@ -91,11 +91,23 @@ pub fn theme_rs(project: &Project) -> Generated {
   source.line("use guise::prelude::*;");
   source.line("");
   source.open("pub fn build() -> Theme {");
-  source.line(match theme.scheme {
-    Scheme::Dark => "let mut theme = Theme::dark();",
-    Scheme::Light => "let mut theme = Theme::light();",
-  });
-  source.line(format!("theme.primary_color = {};", theme.primary.path()));
+  // The same precedence the canvas resolves: a theme file, then a preset, then
+  // plain light/dark. A preset or a file owns the colours, so the primary token
+  // is only printed when neither is doing the work.
+  if !theme.json.is_empty() {
+    source.line("let mut theme = Theme::from_json(include_str!(\"theme.json\"))");
+    source.line("    .expect(\"theme.json ships beside this file and Tailor checked it\");");
+  } else if let Some(preset) = theme.preset_entry() {
+    source.line(format!("let mut theme = Theme::{}();", preset.rust));
+  } else {
+    source.line(match theme.scheme {
+      Scheme::Dark => "let mut theme = Theme::dark();",
+      Scheme::Light => "let mut theme = Theme::light();",
+    });
+  }
+  if !theme.is_overridden() {
+    source.line(format!("theme.primary_color = {};", theme.primary.path()));
+  }
   source.line(format!("theme.default_radius = {};", theme.radius.path()));
   source.line(format!("theme.font_family = {:?}.into();", theme.font));
   source.line("theme");
@@ -137,6 +149,21 @@ pub fn cargo_toml(project: &Project) -> Generated {
   }
 }
 
+/// `theme.json` — the theme file the project carries, written back out beside
+/// `theme.rs` so `include_str!` finds it. `None` when the project has none.
+pub fn theme_json(project: &Project) -> Option<Generated> {
+  let json = project.theme.json.trim();
+  if json.is_empty() {
+    return None;
+  }
+  Some(Generated {
+    path: "theme.json".into(),
+    source: format!("{json}\n"),
+    notes: Vec::new(),
+    lines: BTreeMap::new(),
+  })
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -169,6 +196,43 @@ mod tests {
     assert!(theme
       .source
       .contains("theme.primary_color = ColorName::Grape;"));
+  }
+
+  #[test]
+  fn a_preset_replaces_the_scheme_and_owns_the_accent() {
+    let mut project = Project::new("Demo");
+    project.theme.primary = tailor_model::ColorToken::Grape;
+    project.theme.preset = "dracula".into();
+    let theme = theme_rs(&project);
+    assert!(theme.source.contains("Theme::dracula()"));
+    // The preset is the accent; printing the token too would fight it.
+    assert!(!theme.source.contains("primary_color"));
+    // Radius and font are orthogonal and still printed.
+    assert!(theme.source.contains("theme.default_radius"));
+
+    // An unknown preset falls back to the scheme rather than emitting a
+    // constructor that does not exist.
+    project.theme.preset = "nonesuch".into();
+    let theme = theme_rs(&project);
+    assert!(theme.source.contains("Theme::dark()"));
+    assert!(theme.source.contains("primary_color = ColorName::Grape;"));
+  }
+
+  #[test]
+  fn a_theme_file_is_included_and_written_beside_it() {
+    let mut project = Project::new("Demo");
+    project.theme.json = r##"{"scheme": "light", "primary": "#268bd2"}"##.into();
+    let theme = theme_rs(&project);
+    assert!(theme
+      .source
+      .contains("Theme::from_json(include_str!(\"theme.json\"))"));
+    assert!(!theme.source.contains("primary_color"));
+
+    let file = theme_json(&project).expect("a theme file");
+    assert_eq!(file.path, "theme.json");
+    assert!(file.source.starts_with('{'));
+    assert!(file.source.ends_with('\n'));
+    assert!(theme_json(&Project::new("Demo")).is_none());
   }
 
   #[test]

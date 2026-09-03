@@ -1,8 +1,8 @@
 //! Navigation chrome.
 
 use crate::node::CLICK;
-use crate::props::{boolean, color_name, icon, int, items, text, Emit, PropValue};
-use crate::tokens::ColorToken;
+use crate::props::{boolean, color_name, float, icon, int, items, size, text, Emit, PropValue};
+use crate::tokens::{ColorToken, SizeToken};
 
 use super::spec::{slot, ComponentSpec, Ctor, SlotSpec};
 
@@ -85,6 +85,30 @@ pub static SPECS: &[ComponentSpec] = &[
               "id:Label per line",
           ),
           text("active", "Active id", Emit::Method("active")),
+      ],
+  ),
+  comp!(
+      "menu", "Menu", "Menu", Navigation, "chevron-down",
+      "A labelled trigger with a dropdown of actions.",
+      Ctor::EntityArg("trigger"),
+      props: &[
+          text("trigger", "Trigger", Emit::None),
+          // One `.item(label, handler)` per line; a line starting with `-` is a
+          // divider and one starting with `#` a section heading.
+          items("items", "Items", Emit::Custom, || PropValue::Items(
+              vec!["Rename".into(), "Duplicate".into(), "-".into(), "Delete".into()])),
+          size("size", "Size", Emit::Method("size"), SizeToken::Sm),
+      ],
+  ),
+  comp!(
+      "contextmenu", "Context menu", "ContextMenu", Navigation, "mouse-pointer-2",
+      "The same list, on a right-click anywhere in its target.",
+      Ctor::Entity,
+      props: &[
+          items("items", "Items", Emit::Custom, || PropValue::Items(
+              vec!["Cut".into(), "Copy".into(), "-".into(), "Paste".into()])),
+          float("width", "Width", Emit::Method("width"), || PropValue::Float(200.0)),
+          size("size", "Size", Emit::Method("size"), SizeToken::Sm),
       ],
   ),
 ];

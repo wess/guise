@@ -131,4 +131,18 @@ pub static SPECS: &[ComponentSpec] = &[
       Ctor::Unit,
       props: &[boolean("visible", "Visible", Emit::Method("visible"), true)],
   ),
+  comp!(
+      "confirmmodal", "Confirm", "ConfirmModal", Feedback, "circle-help",
+      "The two-button question before something irreversible.",
+      Ctor::Unit,
+      props: &[
+          text("title", "Title", Emit::Method("title")),
+          text("message", "Message", Emit::Method("message")),
+          text("confirm_label", "Confirm label", Emit::Method("confirm_label")),
+          text("cancel_label", "Cancel label", Emit::Method("cancel_label")),
+          boolean("danger", "Danger", Emit::Flag("danger"), false),
+          float("width", "Width", Emit::Method("width"), || PropValue::Float(380.0)),
+      ],
+      slots: &[CHILDREN],
+  ),
 ];

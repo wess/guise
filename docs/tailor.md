@@ -101,7 +101,7 @@ its builder uses.
 
 | Page | What is on it |
 | --- | --- |
-| **General** | Autosave, whether the live window opens with the inspector, which editor **Jump to** opens, what new projects generate as, the start screen's scheme |
+| **General** | Autosave, whether the live window opens with the inspector, which editor **Jump to** opens, what new projects generate as, the start screen's scheme (`dark`, `light`, or **system** to follow the OS) |
 | **Canvas** | Mode, show the grid, grid spacing, snap to grid, snap to objects, nudge distance, new frames are free form, show layout bounds |
 | **Panels** | Panel sizes, and a reset for the whole layout |
 | **About** | Version, and where the settings file lives |

@@ -480,6 +480,10 @@ impl<'a> Emitter<'a> {
         let value = arg(self, key);
         vec![format!("{}::new({value})", spec.rust)]
       }
+      Ctor::Args(keys) => {
+        let values: Vec<String> = keys.iter().map(|key| arg(self, key)).collect();
+        vec![format!("{}::new({})", spec.rust, values.join(", "))]
+      }
       // Entities are constructed in `new()`, never here.
       Ctor::Entity | Ctor::EntityArg(_) | Ctor::EntityValue(_) => {
         vec![format!("{}::new(cx)", spec.rust)]
@@ -599,6 +603,53 @@ impl<'a> Emitter<'a> {
           ));
         }
       }
+      "menu" | "contextmenu" => {
+        for line in self.items(node, "items").unwrap_or_default() {
+          let line = line.trim();
+          if line == "-" {
+            out.push(".divider()".into());
+          } else if let Some(label) = line.strip_prefix('#') {
+            out.push(format!(".section({})", string(label.trim())));
+          } else {
+            // The handler is the caller's to fill in; an empty one keeps the
+            // export compiling and says plainly where the work goes.
+            out.push(format!(".item({}, |_window, _cx| {{}})", string(line)));
+          }
+        }
+      }
+      "aichatview" => {
+        // One turn per line, alternating the way a transcript reads.
+        let turns: Vec<String> = self
+          .items(node, "turns")
+          .unwrap_or_default()
+          .iter()
+          .enumerate()
+          .map(|(index, body)| {
+            let role = if index % 2 == 0 { "User" } else { "Assistant" };
+            format!("AITurn::new(AIRole::{role}, {})", string(body))
+          })
+          .collect();
+        if !turns.is_empty() {
+          out.push(format!(".turns([{}])", turns.join(", ")));
+        }
+      }
+      "aimodelpicker" => {
+        let models: Vec<String> = self
+          .items(node, "models")
+          .unwrap_or_default()
+          .iter()
+          .map(|label| {
+            format!(
+              "AIModel::new({}, {})",
+              string(&tailor_model::snake_case(label)),
+              string(label)
+            )
+          })
+          .collect();
+        if !models.is_empty() {
+          out.push(format!(".models([{}])", models.join(", ")));
+        }
+      }
       "treeview" => {
         let nodes = tree_nodes(&self.items(node, "nodes").unwrap_or_default());
         if !nodes.is_empty() {
@@ -661,13 +712,14 @@ impl<'a> Emitter<'a> {
       }
     }
 
+    if node.kind == "settingsview" {
+      out.extend(self.settings_pages(node, placement));
+      return out;
+    }
+
     if let Some(dynamic) = spec.dynamic {
       let labels = self.items(node, dynamic.from_prop).unwrap_or_default();
-      let method = if node.kind == "accordion" {
-        "item"
-      } else {
-        "tab"
-      };
+      let method = dynamic.method;
       for (index, label) in labels.iter().enumerate() {
         let key = format!("{}:{index}", dynamic.prefix);
         let children = node.slot(&key).to_vec();
@@ -686,6 +738,57 @@ impl<'a> Emitter<'a> {
         }
       }
     }
+    out
+  }
+
+  /// `SettingsView` declares its pages and then fills them from one closure
+  /// keyed by page id — not one closure per region like `Tabs`. So the pages
+  /// are printed first and the slots become the arms of a `match`.
+  fn settings_pages(&mut self, node: &Node, placement: Placement) -> Vec<String> {
+    let labels = self.items(node, "pages").unwrap_or_default();
+    if labels.is_empty() {
+      return Vec::new();
+    }
+    let ids: Vec<String> = labels
+      .iter()
+      .map(|label| tailor_model::snake_case(label))
+      .collect();
+
+    let mut out = Vec::new();
+    for (id, label) in ids.iter().zip(&labels) {
+      out.push(format!(".page({}, {})", string(id), string(label)));
+    }
+
+    self.captures.push(BTreeSet::new());
+    let mut body = vec!["match page {".into()];
+    for (index, id) in ids.iter().enumerate() {
+      let children = node.slot(&format!("page:{index}")).to_vec();
+      let mut region = vec!["div().flex().flex_col().gap(px(12.))".into()];
+      for child in &children {
+        let child_lines = self.emit(*child, placement);
+        region.extend(indent(&child_call(child_lines)));
+      }
+      // The last arm is the catch-all: `match` on a `&str` needs one, and an
+      // unreachable arm would be worse than reusing the final page.
+      let head = if index + 1 == ids.len() {
+        "    _ => ".to_string()
+      } else {
+        format!("    {} => ", string(id))
+      };
+      let mut arm = indent(&indent(&region));
+      arm[0] = format!("{head}{}", arm[0].trim_start());
+      let last = arm.len() - 1;
+      arm[last] = format!("{}.into_any_element(),", arm[last]);
+      body.extend(arm);
+    }
+    body.push("}".into());
+    let captured = self.captures.pop().unwrap_or_default();
+    out.extend(self.wrap_closure_with(
+      ".content(".into(),
+      "|page, _query, _window, _cx|",
+      captured,
+      body,
+    ));
     out
   }
 
@@ -720,9 +823,22 @@ impl<'a> Emitter<'a> {
     captured: BTreeSet<String>,
     inner: Vec<String>,
   ) -> Vec<String> {
+    self.wrap_closure_with(head, "|_window, _cx|", captured, inner)
+  }
+
+  /// The same, for a region whose closure takes more than a window and a
+  /// context — `SettingsView::content` is handed the active page and the
+  /// search query first.
+  fn wrap_closure_with(
+    &mut self,
+    head: String,
+    params: &str,
+    captured: BTreeSet<String>,
+    inner: Vec<String>,
+  ) -> Vec<String> {
     let mut out = Vec::new();
     if captured.is_empty() {
-      out.push(format!("{head}|_window, _cx| {{"));
+      out.push(format!("{head}{params} {{"));
       out.extend(indent(&inner));
       out.push("})".into());
       return out;
@@ -741,7 +857,7 @@ impl<'a> Emitter<'a> {
       };
       out.push(format!("    let {name} = {source};"));
     }
-    out.push("    move |_window, _cx| {".into());
+    out.push(format!("    move {params} {{"));
     out.extend(indent(&indent(&inner)));
     out.push("    }".into());
     out.push("})".into());
@@ -876,6 +992,56 @@ impl<'a> Emitter<'a> {
         lines
       }
       "appshell" => vec!["AppShell::new()".into()],
+      "virtuallist" => {
+        // The rows a designer typed *are* the row builder: the real component
+        // takes a closure over an index, so the list becomes a const it reads.
+        let rows = self.items(node, "rows").unwrap_or_default();
+        let literals: Vec<String> = rows.iter().map(|row| string(row)).collect();
+        vec![
+          format!(
+            "VirtualList::new({}, {}, |index, _window, _cx| {{",
+            string(&node.id.element_id()),
+            rows.len()
+          ),
+          format!(
+            "    const ROWS: [&str; {}] = [{}];",
+            rows.len(),
+            literals.join(", ")
+          ),
+          "    div().px(px(10.)).py(px(6.)).child(ROWS[index])".into(),
+          "})".into(),
+        ]
+      }
+      "aicost" => {
+        let usage = format!(
+          "AIUsage::new({}, {})",
+          self.prop_value(node, "input").as_i64().unwrap_or(0),
+          self.prop_value(node, "output").as_i64().unwrap_or(0)
+        );
+        let price = |key: &str| -> String {
+          let value = self.prop_value(node, key);
+          let text = value.as_str().unwrap_or("").trim().trim_start_matches('$');
+          format!("{:?}", text.parse::<f64>().unwrap_or(0.0))
+        };
+        let pricing = format!(
+          "AIPricing::new({}, {})",
+          price("input_price"),
+          price("output_price")
+        );
+        vec![format!("AICost::new({usage}, {pricing})")]
+      }
+      "aisources" => {
+        let sources: Vec<String> = self
+          .items(node, "sources")
+          .unwrap_or_default()
+          .iter()
+          .map(|line| {
+            let (title, location) = split_source(line);
+            format!("AISource::new({}, {})", string(title), string(location))
+          })
+          .collect();
+        vec![format!("AISources::new([{}])", sources.join(", "))]
+      }
       "kbdgroup" => {
         let keys = self.items(node, "keys").unwrap_or_default();
         let mut lines = vec![
@@ -1048,6 +1214,18 @@ fn collect(doc: &Document, id: NodeId, out: &mut Vec<NodeId>) {
         out.push(id);
       }
     }
+  }
+}
+
+/// `title — location`, the way the sources prop is typed. An em dash because
+/// that is what reads on the canvas; a plain hyphen works too.
+fn split_source(line: &str) -> (&str, &str) {
+  match line
+    .split_once('\u{2014}')
+    .or_else(|| line.split_once(" - "))
+  {
+    Some((title, location)) => (title.trim(), location.trim()),
+    None => (line.trim(), ""),
   }
 }
 

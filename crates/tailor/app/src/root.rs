@@ -69,7 +69,13 @@ impl Root {
   }
 
   fn close_project(&mut self, cx: &mut Context<Self>) {
-    crate::theme::chrome(self.settings.scheme).init(cx);
+    // The workbench owns the settings while a project is open — take back
+    // whatever the settings screen changed, or the start screen wears the
+    // scheme the app launched with instead of the one just picked.
+    if let Some(workbench) = &self.workbench {
+      self.settings = workbench.read(cx).settings.clone();
+    }
+    crate::theme::wear_chrome(&self.settings, cx);
     self.workbench = None;
     self.recents = Recents::load();
     self.recents.prune();

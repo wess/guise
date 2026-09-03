@@ -264,18 +264,29 @@ fn general_rows(weak: &WeakEntity<Workbench>, now: &Settings, base: &Settings) -
       "scheme",
       "Start screen",
       "An open project uses its own theme; this is what you see before then.",
-      &[("dark", "dark"), ("light", "light")],
-      now.scheme.label(),
-      now.scheme != base.scheme,
+      &[("dark", "dark"), ("light", "light"), ("system", "system")],
+      // `system` is a third choice over the same field pair, not a third
+      // scheme: the scheme it falls back to is remembered while you follow.
+      if now.follow_system {
+        "system"
+      } else {
+        now.scheme.label()
+      },
+      now.scheme != base.scheme || now.follow_system != base.follow_system,
       weak,
       |settings, value| {
-        settings.scheme = if value == "light" {
-          Scheme::Light
-        } else {
-          Scheme::Dark
+        settings.follow_system = value == "system";
+        if value == "light" {
+          settings.scheme = Scheme::Light;
+        } else if value == "dark" {
+          settings.scheme = Scheme::Dark;
         }
       },
-      |settings| settings.scheme = Settings::default().scheme,
+      |settings| {
+        let defaults = Settings::default();
+        settings.scheme = defaults.scheme;
+        settings.follow_system = defaults.follow_system;
+      },
     ),
   ]
 }

@@ -28,7 +28,10 @@ pub use id::{IdGen, NodeId};
 pub use lint::{Problem, Severity};
 pub use motion::{MotionProps, Resolved as ResolvedMotion};
 pub use node::{EventSpec, Node, COMPONENT_PREFIX, DEFAULT_SLOT};
-pub use project::{Flavor, GenSettings, LoadError, Project, Scheme, ThemeSpec, FORMAT_VERSION};
+pub use project::{
+  Flavor, GenSettings, LoadError, Project, Scheme, ThemePreset, ThemeSpec, FORMAT_VERSION,
+  THEME_PRESETS,
+};
 pub use props::{Emit, PropSpec, PropType, PropValue, Props};
 pub use state::{ActionDef, StateVar, VarType};
 pub use style::{

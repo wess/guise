@@ -6,7 +6,9 @@
 //! numbers reads better than one by tokens.
 
 use crate::node::{EventSpec, Node, TOGGLE};
-use crate::props::{boolean, color, enums, float, int, size, text, Emit, PropSpec, PropValue};
+use crate::props::{
+  boolean, color, enums, float, int, items, size, text, Emit, PropSpec, PropValue,
+};
 use crate::style::{Dimension, Edges};
 use crate::tokens::{ColorToken, SizeToken};
 
@@ -102,6 +104,8 @@ fn scroll_defaults(node: &mut Node) {
 }
 
 const CLOSE_EVENTS: &[EventSpec] = &[TOGGLE];
+
+const SETTINGS_ROW_SLOTS: &[SlotSpec] = &[slot("control", "Control", "control")];
 
 pub static SPECS: &[ComponentSpec] = &[
   comp!(
@@ -298,5 +302,65 @@ pub static SPECS: &[ComponentSpec] = &[
       props: &[color("fill", "Fill", Emit::None, ColorToken::Dark)],
       slots: &[CHILDREN],
       on_place: Some(frame_defaults),
+  ),
+  comp!(
+      "settingsview", "Settings screen", "SettingsView", Layout, "settings",
+      "A page list beside a scrolling pane. One slot per page.",
+      // Drawn, not instantiated: the pages are `'static` content closures,
+      // which is exactly what a designer cannot drop into. The generated code
+      // uses the real component, the way Tabs does.
+      Ctor::Entity,
+      props: &[
+          items("pages", "Pages", Emit::Custom, || PropValue::Items(
+              vec!["Appearance".into(), "Editor".into()])),
+          boolean("searchable", "Searchable", Emit::Method("searchable"), true),
+          float("sidebar_width", "Sidebar width", Emit::Method("sidebar_width"),
+              || PropValue::Float(200.0)),
+      ],
+      dynamic: Some(super::spec::DynamicSlots { from_prop: "pages", prefix: "page", method: "" }),
+  ),
+  comp!(
+      "settingssection", "Settings section", "SettingsSection", Layout, "rows-2",
+      "A heading, a rule, and the rows under it.",
+      Ctor::Arg("title"),
+      props: &[
+          text("title", "Title", Emit::None),
+          text("description", "Description", Emit::Method("description")),
+          boolean("rule", "Rule", Emit::Method("rule"), true),
+      ],
+      slots: &[CHILDREN],
+  ),
+  comp!(
+      "settingsrow", "Settings row", "SettingsRow", Layout, "between-horizontal-start",
+      "A name on the left, a control on the right.",
+      Ctor::IdAnd("label"),
+      props: &[
+          text("label", "Label", Emit::None),
+          text("description", "Description", Emit::Method("description")),
+          boolean("modified", "Modified", Emit::Method("modified"), false),
+          boolean("divider", "Divider", Emit::Method("divider"), true),
+      ],
+      slots: SETTINGS_ROW_SLOTS,
+  ),
+  comp!(
+      "about", "About", "About", Layout, "info",
+      "The name, version, and build of an app.",
+      Ctor::Arg("name"),
+      props: &[
+          text("name", "Name", Emit::None),
+          text("version", "Version", Emit::Method("version")),
+          text("tagline", "Tagline", Emit::Method("tagline")),
+          text("credits", "Credits", Emit::Method("credits")),
+      ],
+  ),
+  comp!(
+      "windowcontrols", "Window controls", "WindowControls", Layout, "app-window-mac",
+      "Close, minimise, and zoom, for a titlebar you drew yourself.",
+      Ctor::Unit,
+      props: &[
+          float("button_width", "Button width", Emit::Method("button_width"),
+              || PropValue::Float(13.0)),
+          float("height", "Height", Emit::Method("height"), || PropValue::Float(28.0)),
+      ],
   ),
 ];

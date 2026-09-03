@@ -49,7 +49,7 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 
 | Module | Contents |
 | --- | --- |
-| `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme`, JSON theme files (`Theme::from_json`), prebuilt presets (`Theme::preset`) |
+| `theme/` | `Theme`, `Color`, `Palette`, `Scale`, `Size`, `ColorScheme`, JSON theme files (`Theme::from_json`), prebuilt presets (`Theme::preset`), and the `ThemeManager` registry + `ThemeChoice` |
 | `style.rs` | the `Variant` system and `surface()` resolver |
 | `layout/` | themed `Stack`, `Group`, `Center`, `SimpleGrid`, `AppShell`, `Container`, `Space`, plus `Breakpoint`/`Responsive` |
 | `flex/` | Flutter-style `Row`, `Column`, `Container`, `Expanded`, … |
@@ -73,7 +73,7 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 | `dnd/` | `Draggable`, `DropTarget`, `SortableList` — typed drag payloads |
 | `transition.rs` | `Transition` / `Collapse` (true height) animations |
 | `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
-| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Carousel` |
+| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Carousel`, `ThemePicker` |
 
 ## Conventions
 

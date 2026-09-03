@@ -44,6 +44,105 @@ pub struct ThemeSpec {
   pub radius: SizeToken,
   #[serde(default = "default_font")]
   pub font: String,
+  /// One of guise's prebuilt themes (see [`PRESETS`]) to start from instead of
+  /// plain light/dark. Empty is the default and means "just the scheme".
+  #[serde(default, skip_serializing_if = "String::is_empty")]
+  pub preset: String,
+  /// A guise theme file, stored *inline* rather than as a path. A `.tailor`
+  /// project is one file you can mail to someone; a theme that lives beside it
+  /// would be a second file to lose, and a path that only resolves on the
+  /// machine that set it. The exporter writes it back out as `theme.json`.
+  #[serde(default, skip_serializing_if = "String::is_empty")]
+  pub json: String,
+}
+
+/// One of guise's prebuilt themes, as the document refers to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ThemePreset {
+  /// What the file stores, and what `Theme::preset(..)` looks up.
+  pub id: &'static str,
+  pub label: &'static str,
+  /// The guise constructor the generator prints. Not always the id: the ids
+  /// are run together and the Rust names are not.
+  pub rust: &'static str,
+  /// The scheme this preset is a variation of.
+  pub scheme: Scheme,
+}
+
+const fn preset(
+  id: &'static str,
+  label: &'static str,
+  rust: &'static str,
+  scheme: Scheme,
+) -> ThemePreset {
+  ThemePreset {
+    id,
+    label,
+    rust,
+    scheme,
+  }
+}
+
+/// The guise theme presets a project can start from.
+///
+/// Duplicated here rather than read out of guise, because the model is
+/// deliberately guise-free — `presets_match_guise` in this file's tests reads
+/// guise's own source and fails when the two lists drift.
+pub const THEME_PRESETS: &[ThemePreset] = &[
+  preset("catppuccin", "Catppuccin", "catppuccin", Scheme::Dark),
+  preset("nord", "Nord", "nord", Scheme::Dark),
+  preset("tokyonight", "Tokyo Night", "tokyonight", Scheme::Dark),
+  preset("gruvbox", "Gruvbox", "gruvbox", Scheme::Dark),
+  preset("dracula", "Dracula", "dracula", Scheme::Dark),
+  preset(
+    "solarizedlight",
+    "Solarized Light",
+    "solarized_light",
+    Scheme::Light,
+  ),
+];
+
+impl ThemeSpec {
+  /// The named preset, when there is one and it is known.
+  pub fn preset_entry(&self) -> Option<&'static ThemePreset> {
+    THEME_PRESETS.iter().find(|preset| preset.id == self.preset)
+  }
+
+  /// The scheme the design actually renders in. A pasted theme file names its
+  /// own, a preset is a variation of one, and otherwise it is the project's.
+  ///
+  /// Precedence is the same everywhere it matters — the canvas, the generator,
+  /// and the inspector all call this rather than reading `scheme` directly.
+  pub fn effective_scheme(&self) -> Scheme {
+    if !self.json.is_empty() {
+      return match json_scheme(&self.json) {
+        Some(scheme) => scheme,
+        // guise's theme files default to dark when they say nothing.
+        None => Scheme::Dark,
+      };
+    }
+    match self.preset_entry() {
+      Some(preset) => preset.scheme,
+      None => self.scheme,
+    }
+  }
+
+  /// True when a preset or a theme file is doing the work, so the scheme and
+  /// primary controls no longer decide anything.
+  pub fn is_overridden(&self) -> bool {
+    !self.json.is_empty() || self.preset_entry().is_some()
+  }
+}
+
+/// The `scheme` slot of a guise theme file. The format is a flat object of
+/// strings, so reading one key needs no schema.
+fn json_scheme(source: &str) -> Option<Scheme> {
+  let value: serde_json::Value = serde_json::from_str(source).ok()?;
+  match value.get("scheme")?.as_str()? {
+    "light" => Some(Scheme::Light),
+    "dark" => Some(Scheme::Dark),
+    _ => None,
+  }
 }
 
 fn default_primary() -> ColorToken {
@@ -65,6 +164,8 @@ impl Default for ThemeSpec {
       primary: default_primary(),
       radius: default_radius(),
       font: default_font(),
+      preset: String::new(),
+      json: String::new(),
     }
   }
 }
@@ -383,5 +484,113 @@ mod tests {
       .collect();
     assert_eq!(names, ["Card"]);
     assert!(project.placeable("card").is_empty());
+  }
+
+  #[test]
+  fn a_preset_and_a_theme_file_each_decide_the_scheme() {
+    let mut spec = ThemeSpec {
+      scheme: Scheme::Light,
+      ..ThemeSpec::default()
+    };
+    assert_eq!(spec.effective_scheme(), Scheme::Light);
+    assert!(!spec.is_overridden());
+
+    // A preset is a variation of one scheme, so it settles the question.
+    spec.preset = "dracula".into();
+    assert_eq!(spec.effective_scheme(), Scheme::Dark);
+    assert_eq!(spec.preset_entry().unwrap().label, "Dracula");
+    assert!(spec.is_overridden());
+
+    // A pasted theme file outranks the preset and names its own.
+    spec.json = r##"{"scheme": "light", "primary": "#268bd2"}"##.into();
+    assert_eq!(spec.effective_scheme(), Scheme::Light);
+    // guise defaults a theme file with no `scheme` key to dark.
+    spec.json = r##"{"primary": "#268bd2"}"##.into();
+    assert_eq!(spec.effective_scheme(), Scheme::Dark);
+
+    // An unknown preset is ignored rather than fatal — a file written by a
+    // newer Tailor still opens.
+    spec.json = String::new();
+    spec.preset = "nonesuch".into();
+    assert_eq!(spec.effective_scheme(), Scheme::Light);
+    assert!(!spec.is_overridden());
+  }
+
+  #[test]
+  fn the_theme_survives_a_round_trip_and_older_files_still_open() {
+    let mut project = Project::new("Demo");
+    project.theme.preset = "nord".into();
+    project.theme.json = r#"{"scheme": "dark"}"#.into();
+    let text = project.to_json().unwrap();
+    let back = Project::from_json(&text).unwrap();
+    assert_eq!(back.theme, project.theme);
+
+    // The two fields are skipped when empty, so a project that never set them
+    // writes the file it always wrote — and one written before they existed
+    // still loads.
+    let plain = Project::new("Demo").to_json().unwrap();
+    let value: serde_json::Value = serde_json::from_str(&plain).unwrap();
+    let theme = value.get("theme").expect("a theme block");
+    assert!(
+      theme.get("preset").is_none(),
+      "empty preset should not be written"
+    );
+    assert!(
+      theme.get("json").is_none(),
+      "empty theme file should not be written"
+    );
+    assert_eq!(
+      Project::from_json(&plain).unwrap().theme,
+      ThemeSpec::default()
+    );
+  }
+
+  /// The model is guise-free on purpose, so [`PRESETS`] is a copy. This reads
+  /// guise's own source and fails when the copy drifts — the same ratchet the
+  /// catalog coverage test uses.
+  #[test]
+  fn presets_match_guise() {
+    let path =
+      std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../guise/src/theme/presets.rs");
+    let source =
+      std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+
+    // `pub const PRESET_NAMES: [&str; 6] = [ "catppuccin", ... ];`
+    let start = source
+      .find("PRESET_NAMES")
+      .expect("guise names its presets");
+    let list = &source[start..];
+    let open = list.find('[').expect("a list");
+    let open = open + 1 + list[open + 1..].find('[').expect("the values");
+    let close = list[open..].find(']').expect("a closed list") + open;
+    let names: Vec<&str> = list[open + 1..close]
+      .split(',')
+      .map(|piece| piece.trim().trim_matches('"'))
+      .filter(|piece| !piece.is_empty())
+      .collect();
+
+    let ours: Vec<&str> = THEME_PRESETS.iter().map(|preset| preset.id).collect();
+    assert_eq!(
+      ours, names,
+      "PRESETS has drifted from guise's PRESET_NAMES — update the table"
+    );
+
+    // And each one's scheme, which is the half a name list cannot carry.
+    for preset in THEME_PRESETS {
+      let at = source
+        .find(&format!("pub fn {}() -> Theme {{", preset.rust))
+        .unwrap_or_else(|| panic!("guise no longer defines {}()", preset.rust));
+      let body = &source[at..at + 80];
+      let expected = match preset.scheme {
+        Scheme::Dark => "Theme::dark()",
+        Scheme::Light => "Theme::light()",
+      };
+      assert!(
+        body.contains(expected),
+        "{} is {:?} here but not in guise",
+        preset.id,
+        preset.scheme
+      );
+    }
   }
 }

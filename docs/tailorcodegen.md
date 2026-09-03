@@ -194,6 +194,7 @@ Cargo.toml                # gpui + guise-ui, and the release profile
 src/
 ├── main.rs               # a window on the first screen
 ├── theme.rs              # the theme you designed against
+├── theme.json            # …and its source, when the project carries one
 └── ui/
     ├── mod.rs            # the module that ties them together
     ├── people.rs         # one file per screen…
@@ -266,8 +267,33 @@ Rather than fight that, switching the project to light switches the editor to
 light — which is also the most honest preview a builder can give you. The panels
 keep a neutral graphite surface ramp so they never read as part of the design.
 
-The document inspector's Theme section sets scheme, primary colour, radius and
-font; `theme.rs` in the export is that choice, as code.
+The document inspector's Theme section sets it, and `theme.rs` in the export is
+that choice as code. There are three ways to set it, and they resolve in this
+order:
+
+1. **A theme file.** *Theme file → Load…* reads a guise
+   [JSON theme](theming.md#json-theme-files) and stores it **inline** in the
+   `.tailor` file. A project is one file you can mail to someone; a path to a
+   theme beside it would be a second file to lose, and one that only resolves
+   on the machine that picked it. The file is parsed when you load it, so a bad
+   one is a message then rather than a surprise at export. It exports as
+   `src/theme.json`, and `theme.rs` reads it with
+   `Theme::from_json(include_str!("theme.json"))`.
+2. **A preset.** *Base* offers guise's six prebuilt themes — Catppuccin, Nord,
+   Tokyo Night, Gruvbox, Dracula, Solarized Light. `theme.rs` gets
+   `Theme::dracula()`.
+3. **Scheme and primary colour.** The plain case: `Theme::dark()` plus a
+   `primary_color`.
+
+A preset or a theme file *is* a scheme and a palette, so the Scheme and Primary
+controls disappear while one is set rather than sitting there doing nothing.
+Radius and font are orthogonal to a palette and apply either way.
+
+Tailor's own chrome is a fourth thing, set in Settings rather than in the
+document: the start screen follows `dark`, `light`, or **system**. All four go
+through one `guise::ThemeManager`, which is the only thing that writes the
+`Theme` global — two writers is how a picker and a toggle end up disagreeing
+about what the app is wearing.
 
 ## What runs where
 

@@ -80,7 +80,7 @@ pub static SPECS: &[ComponentSpec] = &[
           items("tabs", "Tabs", Emit::Custom, three),
           int("active", "Active", Emit::Method("active"), || PropValue::Int(0)),
       ],
-      dynamic: Some(DynamicSlots { from_prop: "tabs", prefix: "tab" }),
+      dynamic: Some(DynamicSlots { from_prop: "tabs", prefix: "tab", method: "tab" }),
   ),
   comp!(
       "accordion", "Accordion", "Accordion", Data, "chevrons-up-down",
@@ -91,7 +91,7 @@ pub static SPECS: &[ComponentSpec] = &[
           boolean("multiple", "Allow multiple", Emit::Method("multiple"), false),
           int("default_open", "Open by default", Emit::Method("default_open"), || PropValue::Int(0)),
       ],
-      dynamic: Some(DynamicSlots { from_prop: "items", prefix: "item" }),
+      dynamic: Some(DynamicSlots { from_prop: "items", prefix: "item", method: "item" }),
   ),
   comp!(
       "tabbar", "Tab bar", "TabBar", Data, "app-window",
@@ -144,5 +144,17 @@ pub static SPECS: &[ComponentSpec] = &[
           float("height", "Height", Emit::None, || PropValue::Float(220.0)),
       ],
       slots: &[CHILDREN],
+  ),
+  comp!(
+      "virtuallist", "Virtual list", "VirtualList", Data, "list-ordered",
+      "Thousands of equal-height rows, only the visible ones built.",
+      // Drawn: the row builder is a `'static` closure over an index. The
+      // generator prints the real component over the rows you list here.
+      Ctor::Special,
+      props: &[
+          items("rows", "Rows", Emit::Custom, || PropValue::Items(
+              vec!["Row one".into(), "Row two".into(), "Row three".into()])),
+          float("height", "Viewport height", Emit::Method("height"), || PropValue::Float(240.0)),
+      ],
   ),
 ];

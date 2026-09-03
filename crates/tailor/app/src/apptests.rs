@@ -968,3 +968,49 @@ fn a_staggered_container_animates_its_children_instead_of_itself(cx: &mut TestAp
     assert!(this.generated.contains(".delay(80.)"), "{}", this.generated);
   });
 }
+
+#[gpui::test]
+fn the_manager_owns_the_theme_global(cx: &mut TestAppContext) {
+  use guise::theme::{theme, ColorScheme, ThemeChoice, ThemeManager};
+  use tailor_store::Settings;
+
+  let mut settings = Settings::default();
+  cx.update(|cx| {
+    theme::install_manager(&settings, cx);
+    // Dark by default, and the chrome ramp is installed rather than guise's.
+    assert!(theme(cx).scheme.is_dark());
+    assert_eq!(
+      cx.global::<ThemeManager>().selection(),
+      &ThemeChoice::Fixed("dark".into())
+    );
+
+    // Opening a project registers its theme and wears it.
+    let project = Project::new("Demo");
+    theme::install(&project.theme, cx);
+    assert_eq!(
+      cx.global::<ThemeManager>().resolved_id().as_ref(),
+      "project"
+    );
+
+    // Closing it goes back to the chrome the settings name — the settings as
+    // they are now, not as they were at launch.
+    settings.scheme = Scheme::Light;
+    theme::wear_chrome(&settings, cx);
+    assert!(!theme(cx).scheme.is_dark());
+  });
+
+  cx.update(|cx| {
+    // `follow_system` hands the choice to the OS, both ways.
+    settings.follow_system = true;
+    theme::wear_chrome(&settings, cx);
+    assert_eq!(
+      cx.global::<ThemeManager>().selection(),
+      &ThemeChoice::System
+    );
+
+    ThemeManager::set_system_scheme(cx, ColorScheme::Dark);
+    assert!(theme(cx).scheme.is_dark());
+    ThemeManager::set_system_scheme(cx, ColorScheme::Light);
+    assert!(!theme(cx).scheme.is_dark());
+  });
+}

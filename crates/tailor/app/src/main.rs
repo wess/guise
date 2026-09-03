@@ -420,7 +420,7 @@ fn main() {
 
   Application::new().run(move |cx: &mut App| {
     let settings = tailor_store::Settings::load().sanitized();
-    theme::chrome(settings.scheme).init(cx);
+    theme::install_manager(&settings, cx);
 
     cx.bind_keys(keys());
     cx.set_menus(menus());
@@ -441,7 +441,11 @@ fn main() {
         }),
         ..Default::default()
       },
-      |_, cx| cx.new(|cx| root::Root::new(settings, opened, cx)),
+      |window, cx| {
+        // So `follow_system` tracks the OS rather than sampling it once.
+        theme::watch(window, cx);
+        cx.new(|cx| root::Root::new(settings, opened, cx))
+      },
     )
     .unwrap();
     cx.activate(true);

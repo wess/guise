@@ -1645,6 +1645,10 @@ impl Workbench {
     let scheme = self.project.theme.scheme;
     let primary = self.project.theme.primary;
     let radius = self.project.theme.radius;
+    let preset = self.project.theme.preset.clone();
+    let overridden = self.project.theme.is_overridden();
+    let has_json = !self.project.theme.json.trim().is_empty();
+    let json_error = theme::json_error(&self.project.theme);
     let flavor = self.project.gen.flavor;
 
     let document = self.section(
@@ -1679,75 +1683,119 @@ impl Workbench {
       cx,
     );
 
-    let theme_block = self.section(
-      "theme",
-      "Theme",
-      vec![
-        labelled(
-          "Scheme",
-          chip_row(
-            Scheme::ALL
+    // A preset or a loaded theme file decides the scheme and the colours, so
+    // the two controls that would otherwise set them are not shown at all
+    // rather than shown doing nothing.
+    let mut theme_rows = vec![
+      labelled(
+        "Base",
+        chip_row(
+          // `chip_row` takes (label, value): the label is what shows, the
+          // value is what comes back.
+          std::iter::once(("none".to_string(), "none".to_string())).chain(
+            tailor_model::THEME_PRESETS
               .iter()
-              .map(|s| (s.label().to_string(), s.label().to_string())),
-            scheme.label().to_string(),
-            cx,
-            move |this, label, cx| {
-              let next = if label == "light" {
-                Scheme::Light
-              } else {
-                Scheme::Dark
-              };
-              this.set_theme(cx, move |theme| theme.scheme = next);
-            },
+              .map(|preset| (preset.label.to_string(), preset.id.to_string())),
           ),
+          if has_json {
+            "none".to_string()
+          } else {
+            preset.clone()
+          },
           cx,
+          move |this, id, cx| {
+            let next = if id == "none" { String::new() } else { id };
+            this.set_theme(cx, move |theme| {
+              // The two are alternatives, not layers: picking one clears the
+              // other, so what is showing is always what is set.
+              theme.json = String::new();
+              theme.preset = next;
+            });
+          },
         ),
-        labelled(
-          "Primary",
-          div()
-            .flex()
-            .flex_wrap()
-            .gap(px(4.))
-            .children(ColorToken::ALL.iter().map(|token| {
-              let token = *token;
-              let fill = theme(cx).color(theme::color_of(token), 6).hsla();
-              div()
-                .id(ElementId::Name(SharedString::from(format!(
-                  "primary-{}",
-                  token.label()
-                ))))
-                .size(px(18.))
-                .rounded(px(4.))
-                .bg(fill)
-                .when(primary == token, |d| {
-                  d.border(px(2.)).border_color(chrome.text)
-                })
-                .on_click(cx.listener(move |this, _, _window, cx| {
-                  this.set_theme(cx, move |theme| theme.primary = token);
-                }))
-            }))
-            .into_any_element(),
+        cx,
+      ),
+      labelled("Theme file", self.theme_file_control(has_json, cx), cx),
+    ];
+    if let Some(error) = json_error {
+      theme_rows.push(note(format!("That theme file did not load — {error}"), cx));
+    } else if has_json {
+      theme_rows.push(note(
+        "The theme file sets the scheme and the colours. It exports as `theme.json`.",
+        cx,
+      ));
+    } else if overridden {
+      theme_rows.push(note(
+        "The preset sets the scheme and the colours. Radius and font still apply.",
+        cx,
+      ));
+    }
+    if !overridden {
+      theme_rows.push(labelled(
+        "Scheme",
+        chip_row(
+          Scheme::ALL
+            .iter()
+            .map(|s| (s.label().to_string(), s.label().to_string())),
+          scheme.label().to_string(),
           cx,
+          move |this, label, cx| {
+            let next = if label == "light" {
+              Scheme::Light
+            } else {
+              Scheme::Dark
+            };
+            this.set_theme(cx, move |theme| theme.scheme = next);
+          },
         ),
-        labelled(
-          "Radius",
-          chip_row(
-            SizeToken::ALL
-              .iter()
-              .map(|s| (s.label().to_string(), s.label().to_string())),
-            radius.label().to_string(),
-            cx,
-            move |this, label, cx| {
-              if let Some(token) = SizeToken::parse(&label) {
-                this.set_theme(cx, move |theme| theme.radius = token);
-              }
-            },
-          ),
-          cx,
-        ),
-      ],
+        cx,
+      ));
+      theme_rows.push(labelled(
+        "Primary",
+        div()
+          .flex()
+          .flex_wrap()
+          .gap(px(4.))
+          .children(ColorToken::ALL.iter().map(|token| {
+            let token = *token;
+            let fill = theme(cx).color(theme::color_of(token), 6).hsla();
+            div()
+              .id(ElementId::Name(SharedString::from(format!(
+                "primary-{}",
+                token.label()
+              ))))
+              .size(px(18.))
+              .rounded(px(4.))
+              .bg(fill)
+              .when(primary == token, |d| {
+                d.border(px(2.)).border_color(chrome.text)
+              })
+              .on_click(cx.listener(move |this, _, _window, cx| {
+                this.set_theme(cx, move |theme| theme.primary = token);
+              }))
+          }))
+          .into_any_element(),
+        cx,
+      ));
+    }
+    theme_rows.push(labelled(
+      "Radius",
+      chip_row(
+        SizeToken::ALL
+          .iter()
+          .map(|s| (s.label().to_string(), s.label().to_string())),
+        radius.label().to_string(),
+        cx,
+        move |this, label, cx| {
+          if let Some(token) = SizeToken::parse(&label) {
+            this.set_theme(cx, move |theme| theme.radius = token);
+          }
+        },
+      ),
       cx,
-    );
+    ));
+
+    let theme_block = self.section("theme", "Theme", theme_rows, cx);
 
     let generator = self.section(
       "generator",
@@ -1789,6 +1837,70 @@ impl Workbench {
       .child(generator)
       .child(self.render_state_editor(cx))
       .into_any_element()
+  }
+
+  /// The Load / Clear pair for a project's theme file. Loading reads the file
+  /// straight into the document: a `.tailor` project is one file, so a path
+  /// that only resolves on the machine that picked it would be a worse thing
+  /// to store than the theme itself.
+  fn theme_file_control(&mut self, has_json: bool, cx: &mut Context<Workbench>) -> AnyElement {
+    let mut row = div().flex().gap(px(4.)).child(
+      Button::new(
+        "theme-file-load",
+        if has_json { "Replace…" } else { "Load…" },
+      )
+      .size(Size::Xs)
+      .variant(Variant::Default)
+      .on_click(cx.listener(|this, _, _window, cx| this.load_theme_file(cx))),
+    );
+    if has_json {
+      row = row.child(
+        Button::new("theme-file-clear", "Clear")
+          .size(Size::Xs)
+          .variant(Variant::Subtle)
+          .on_click(cx.listener(|this, _, _window, cx| {
+            this.set_theme(cx, |theme| theme.json = String::new());
+          })),
+      );
+    }
+    row.into_any_element()
+  }
+
+  fn load_theme_file(&mut self, cx: &mut Context<Workbench>) {
+    let receiver = cx.prompt_for_paths(gpui::PathPromptOptions {
+      files: true,
+      directories: false,
+      multiple: false,
+      prompt: None,
+    });
+    cx.spawn(async move |this, cx| {
+      let Ok(Ok(Some(paths))) = receiver.await else {
+        return;
+      };
+      let Some(path) = paths.into_iter().next() else {
+        return;
+      };
+      let read = std::fs::read_to_string(&path);
+      this
+        .update(cx, |this, cx| match read {
+          Ok(source) => {
+            // Parsed here rather than on the way out, so a bad file is a
+            // message now instead of a surprise at export.
+            match guise::theme::Theme::from_json(&source) {
+              Ok(_) => this.set_theme(cx, move |theme| {
+                theme.preset = String::new();
+                theme.json = source.trim().to_string();
+              }),
+              Err(err) => this.toasts.failed(format!("Not a theme file: {err}"), cx),
+            }
+          }
+          Err(err) => this
+            .toasts
+            .failed(format!("Could not read that file: {err}"), cx),
+        })
+        .ok();
+    })
+    .detach();
   }
 
   pub fn set_theme(

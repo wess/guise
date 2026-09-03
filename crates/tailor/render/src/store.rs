@@ -51,6 +51,12 @@ pub enum Preview {
   MarkdownEditor(Entity<MarkdownEditor>),
   WebView(Entity<WebView>),
   CopyButton(Entity<CopyButton>),
+  AIChatView(Entity<AIChatView>),
+  AIComposer(Entity<AIComposer>),
+  AIModelPicker(Entity<AIModelPicker>),
+  AISettings(Entity<AISettings>),
+  Menu(Entity<Menu>),
+  ContextMenu(Entity<ContextMenu>),
 }
 
 #[derive(Default)]
@@ -448,6 +454,61 @@ fn build(
         view
       }
     })),
+    "aichatview" => Preview::AIChatView(cx.new(|cx| {
+      // Typed one turn per line, alternating the way a transcript reads.
+      let turns = read
+        .raw_items("turns")
+        .into_iter()
+        .enumerate()
+        .map(|(index, body)| {
+          let role = if index % 2 == 0 {
+            AIRole::User
+          } else {
+            AIRole::Assistant
+          };
+          AITurn::new(role, body)
+        });
+      AIChatView::new(cx).turns(turns)
+    })),
+    "aicomposer" => Preview::AIComposer(cx.new(|cx| {
+      let mut composer = AIComposer::new(cx)
+        .attachments(read.bool("attachments"))
+        .disabled(read.bool("disabled"))
+        .size(read.size("size"));
+      if !read.text("hint").is_empty() {
+        composer = composer.hint(read.text("hint"));
+      }
+      composer
+    })),
+    "aimodelpicker" => Preview::AIModelPicker(cx.new(|cx| {
+      let models = read
+        .raw_items("models")
+        .into_iter()
+        .map(|label| AIModel::new(tailor_model::snake_case(&label), label));
+      let mut picker = AIModelPicker::new(cx)
+        .models(models)
+        .disabled(read.bool("disabled"))
+        .size(read.size("size"));
+      if !read.text("label").is_empty() {
+        picker = picker.label(read.text("label"));
+      }
+      picker
+    })),
+    "aisettings" => Preview::AISettings(cx.new(|cx| AISettings::new(cx).size(read.size("size")))),
+    "menu" => Preview::Menu(cx.new(|cx| {
+      menu_items(
+        Menu::new(cx, read.text("trigger")).size(read.size("size")),
+        &read,
+      )
+    })),
+    "contextmenu" => Preview::ContextMenu(cx.new(|cx| {
+      context_menu_items(
+        ContextMenu::new(cx)
+          .width(read.f32("width"))
+          .size(read.size("size")),
+        &read,
+      )
+    })),
     _ => return None,
   };
   Some(preview)
@@ -466,4 +527,35 @@ pub fn controlled_bool(store: &PreviewStore, id: NodeId, fallback: bool) -> bool
     .value(id)
     .and_then(|value| value.as_bool())
     .unwrap_or(fallback)
+}
+
+/// One `.item(..)` per line, with `-` for a divider and a leading `#` for a
+/// section heading. The handler is a no-op on the canvas: a designed menu has
+/// nothing to do yet, and the generated code wires the events the node carries.
+fn menu_items(mut menu: Menu, read: &Reader<'_>) -> Menu {
+  for line in read.raw_items("items") {
+    let line = line.trim();
+    if line == "-" {
+      menu = menu.divider();
+    } else if let Some(label) = line.strip_prefix('#') {
+      menu = menu.section(label.trim().to_string());
+    } else {
+      menu = menu.item(line.to_string(), |_, _| {});
+    }
+  }
+  menu
+}
+
+fn context_menu_items(mut menu: ContextMenu, read: &Reader<'_>) -> ContextMenu {
+  for line in read.raw_items("items") {
+    let line = line.trim();
+    if line == "-" {
+      menu = menu.divider();
+    } else if let Some(label) = line.strip_prefix('#') {
+      menu = menu.section(label.trim().to_string());
+    } else {
+      menu = menu.item(line.to_string(), |_, _| {});
+    }
+  }
+  menu
 }

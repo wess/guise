@@ -20,6 +20,8 @@ pub enum Category {
   Navigation,
   Charts,
   Media,
+  /// The `ai/` module: a transcript and the parts of one.
+  Ai,
   /// Components you built in this project.
   Project,
 }
@@ -35,6 +37,7 @@ impl Category {
     Category::Navigation,
     Category::Charts,
     Category::Media,
+    Category::Ai,
     Category::Project,
   ];
 
@@ -49,6 +52,7 @@ impl Category {
       Category::Navigation => "Navigation",
       Category::Charts => "Charts",
       Category::Media => "Media",
+      Category::Ai => "AI",
       Category::Project => "Project",
     }
   }
@@ -65,6 +69,7 @@ impl Category {
       Category::Navigation => "compass",
       Category::Charts => "chart-line",
       Category::Media => "image",
+      Category::Ai => "sparkles",
       Category::Project => "package",
     }
   }
@@ -81,6 +86,10 @@ pub enum Ctor {
   IdAnd(&'static str),
   /// `Type::new(<prop>)`
   Arg(&'static str),
+  /// `Type::new(<prop>, <prop>, ..)` — components whose constructor takes the
+  /// two or three facts that make them mean anything (`AIMessage::new(role,
+  /// body)`), rather than one plus a chain of setters.
+  Args(&'static [&'static str]),
   /// A gpui entity: `cx.new(Type::new)`. The host gets a field for it, which
   /// is exactly how these components are used in a hand-written app.
   Entity,
@@ -136,6 +145,11 @@ pub struct DynamicSlots {
   pub from_prop: &'static str,
   /// Slot keys are `<prefix>:<index>`.
   pub prefix: &'static str,
+  /// The builder call each slot becomes — `.tab(label, ..)`, `.item(..)`.
+  /// Empty when the component takes its regions some other way and the
+  /// generator special-cases it (`SettingsView`, whose pages are declared
+  /// apart from the one closure that fills them).
+  pub method: &'static str,
 }
 
 /// A slot resolved against a specific node — dynamic slots have real labels

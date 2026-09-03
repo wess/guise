@@ -43,6 +43,12 @@ pub fn project_files(project: &Project) -> Vec<Generated> {
     theme.path = "src/theme.rs".into();
     out.push(theme);
 
+    // Beside `theme.rs`, because that is where its `include_str!` looks.
+    if let Some(mut json) = app::theme_json(project) {
+      json.path = "src/theme.json".into();
+      out.push(json);
+    }
+
     out.push(app::cargo_toml(project));
   }
   out
@@ -62,6 +68,124 @@ mod tests {
   use tailor_model::style::{Dimension, Edges, LayoutMode};
   use tailor_model::tokens::{EaseToken, EnterToken};
   use tailor_model::{ColorSpec, ColorToken, DocKind, Flavor};
+
+  /// One of every kind the catalog offers, generated. This does not compile
+  /// the output — nothing here can — but it does walk every arm in the
+  /// emitter, which is where a new catalog entry with no generator support
+  /// shows up as a panic or an empty expression.
+  #[test]
+  fn every_catalog_kind_generates_something() {
+    for spec in tailor_model::catalog::all() {
+      let mut project = Project::new("Demo");
+      let doc = &mut project.docs[0];
+      let root = doc.root;
+      let node = doc.create(spec.kind);
+      doc.insert(root, DEFAULT_SLOT, 0, node);
+
+      let file = preview(&project, &project.docs[0]);
+      assert!(
+        !file.source.is_empty(),
+        "{} generated nothing at all",
+        spec.kind
+      );
+      // Anything built the ordinary way should name its own type. The
+      // `Special` kinds are the ones the emitter writes by hand — a tooltip
+      // is a `.tooltip(..)` call on a div, a frame is a bare div — so they
+      // are covered by the assertions below instead.
+      if spec.ctor != tailor_model::catalog::Ctor::Special && !spec.rust.is_empty() {
+        assert!(
+          file.source.contains(spec.rust),
+          "{} generated no reference to {}",
+          spec.kind,
+          spec.rust
+        );
+      }
+    }
+  }
+
+  #[test]
+  fn the_hand_written_kinds_still_name_their_component() {
+    for (kind, expected) in [
+      ("virtuallist", "VirtualList::new("),
+      ("aicost", "AICost::new(AIUsage::new("),
+      ("aisources", "AISources::new(["),
+    ] {
+      let mut project = Project::new("Demo");
+      let doc = &mut project.docs[0];
+      let root = doc.root;
+      let node = doc.create(kind);
+      doc.insert(root, DEFAULT_SLOT, 0, node);
+      let source = preview(&project, &project.docs[0]).source;
+      assert!(source.contains(expected), "{kind} did not emit {expected}");
+    }
+  }
+
+  #[test]
+  fn the_settings_screen_declares_its_pages_and_fills_them_from_one_closure() {
+    let mut project = Project::new("Demo");
+    let doc = &mut project.docs[0];
+    let root = doc.root;
+    let mut view = doc.create("settingsview");
+    view.set_prop(
+      "pages",
+      PropValue::Items(vec!["Appearance".into(), "Editor".into()]),
+    );
+    let view = doc.insert(root, DEFAULT_SLOT, 0, view);
+    let mut title = doc.create("title");
+    title.set_prop("content", PropValue::Text("Colours".into()));
+    doc.insert(view, "page:0", 0, title);
+
+    let source = preview(&project, &project.docs[0]).source;
+    assert!(source.contains(".page(\"appearance\", \"Appearance\")"));
+    assert!(source.contains(".page(\"editor\", \"Editor\")"));
+    assert!(source.contains(".content("));
+    assert!(source.contains("match page {"));
+    assert!(source.contains("\"appearance\" =>"));
+    // The last arm is the catch-all a `&str` match needs.
+    assert!(source.contains("_ =>"));
+    assert!(source.contains("Colours"));
+  }
+
+  #[test]
+  fn a_menu_becomes_one_call_per_line() {
+    let mut project = Project::new("Demo");
+    let doc = &mut project.docs[0];
+    let root = doc.root;
+    let mut menu = doc.create("menu");
+    menu.set_prop("trigger", PropValue::Text("File".into()));
+    menu.set_prop(
+      "items",
+      PropValue::Items(vec![
+        "# Recent".into(),
+        "Open…".into(),
+        "-".into(),
+        "Quit".into(),
+      ]),
+    );
+    doc.insert(root, DEFAULT_SLOT, 0, menu);
+
+    let source = preview(&project, &project.docs[0]).source;
+    assert!(source.contains("Menu::new(cx, \"File\")"));
+    assert!(source.contains(".section(\"Recent\")"));
+    assert!(source.contains(".item(\"Open…\", |_window, _cx| {})"));
+    assert!(source.contains(".divider()"));
+  }
+
+  #[test]
+  fn the_ai_components_carry_their_two_constructor_arguments() {
+    let mut project = Project::new("Demo");
+    let doc = &mut project.docs[0];
+    let root = doc.root;
+    let mut message = doc.create("aimessage");
+    message.set_prop("body", PropValue::Text("Hello".into()));
+    doc.insert(root, DEFAULT_SLOT, 0, message);
+    let meter = doc.create("aitokenmeter");
+    doc.insert(root, DEFAULT_SLOT, 1, meter);
+
+    let source = preview(&project, &project.docs[0]).source;
+    assert!(source.contains("AIMessage::new(AIRole::Assistant, \"Hello\")"));
+    assert!(source.contains("AITokenMeter::new(24000, 200000)"));
+  }
 
   /// A screen with a bit of everything: a styled frame, a stateless
   /// component, an entity field, a bound event, and a state variable.

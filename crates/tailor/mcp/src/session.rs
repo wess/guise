@@ -241,6 +241,7 @@ impl Session {
             Ctor::Id => "new(id)",
             Ctor::IdAnd(_) => "new(id, value)",
             Ctor::Arg(_) => "new(value)",
+            Ctor::Args(_) => "new(value, ..)",
             Ctor::Entity | Ctor::EntityArg(_) | Ctor::EntityValue(_) => "cx.new(..)",
             Ctor::Special => "special",
         },

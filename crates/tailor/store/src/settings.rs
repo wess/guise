@@ -124,6 +124,10 @@ impl Panel {
 pub struct Settings {
   /// The scheme the start screen uses, and the default for a new project.
   pub scheme: Scheme,
+  /// Take the start screen's scheme from the OS instead of `scheme`. Off by
+  /// default: it is new, and an existing config that never mentioned it meant
+  /// the scheme it did name.
+  pub follow_system: bool,
   pub canvas_mode: CanvasMode,
   /// Snap free-form drags to the grid.
   pub snap: bool,
@@ -213,6 +217,7 @@ impl Default for Settings {
   fn default() -> Self {
     Settings {
       scheme: Scheme::Dark,
+      follow_system: false,
       canvas_mode: CanvasMode::Design,
       snap: true,
       snap_objects: true,
