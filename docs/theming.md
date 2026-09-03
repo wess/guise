@@ -253,3 +253,120 @@ cx.refresh_windows();
 
 Because every component reads `theme(cx)` at render time, the whole UI restyles
 on the next frame — there is nothing to thread through your views.
+
+## The theme manager
+
+`Theme` is one global, so *switching* is the snippet above. What that snippet
+doesn't answer is which themes exist, which one the user picked last time, and
+what "follow the system" means in an app that ships four dark themes.
+`ThemeManager` owns exactly that — a registry, a choice, and the OS-appearance
+watch — and nothing about how a theme looks.
+
+```rust
+use guise::prelude::*;
+
+ThemeManager::new()                          // seeded with `light` and `dark`
+    .with_presets()                          // + the six prebuilt presets
+    .with_dir(config_dir.join("themes"))     // + every *.json in a folder
+    .with(ThemeEntry::new("brand", brand_theme()).name("Acme"))
+    .choice(saved.parse().unwrap())          // "system" | "theme:dracula"
+    .install(cx);                            // sets the Theme global + redraws
+```
+
+`install` puts the manager in the global map beside `Theme` and applies the
+resolved theme. From then on every mutator is an associated function taking
+`&mut App`, so any listener can reach it:
+
+```rust
+ThemeManager::select(cx, "dracula");   // wear one theme; false if unregistered
+ThemeManager::follow_system(cx);       // back to ThemeChoice::System
+ThemeManager::toggle(cx);              // swap to the light/dark counterpart
+```
+
+Every one of them ends in `ThemeManager::apply(cx)`, which writes the resolved
+theme into the `Theme` global and calls `refresh_windows`. Editing the manager
+directly (`cx.global_mut::<ThemeManager>()`) means calling `apply` yourself.
+
+Nothing panics when no manager is installed: it is opt-in, so the mutators are
+no-ops and `guise::theme::manager(cx)` returns `None`.
+
+### Following the OS
+
+```rust
+// in the window's init, once per window
+ThemeManager::watch(window, cx);
+```
+
+That records the window's appearance and subscribes to changes. Under
+`ThemeChoice::System` the app restyles when macOS flips at sundown; under a
+fixed choice the appearance is still recorded but nothing moves. gpui's four
+appearances collapse to two schemes — vibrancy is a material, not a scheme.
+
+`System` resolves through the registry's **light/dark pair**, which is the ids
+`light` and `dark` by default. An app with its own two-theme identity
+re-registers those ids and gets the follow behaviour for free; an app whose
+pair lives elsewhere says so:
+
+```rust
+ThemeManager::new().with_presets().pair("solarizedlight", "nord")
+```
+
+### Persisting the choice
+
+The manager doesn't write your config file — the same call the
+[settings](settings.md) module makes. `ThemeChoice` is `Display` + `FromStr`,
+so it round trips through one string in whatever format the app already uses:
+
+```rust
+save("theme", manager.selection().to_string());   // "system" | "theme:dracula"
+let choice: ThemeChoice = load("theme").parse().unwrap();   // Infallible
+```
+
+A bare id parses too, so a hand-written config that just says `dracula` works.
+A choice naming a theme that is no longer registered falls back to the
+light/dark pair rather than panicking — a user can delete a theme file.
+
+### A themes folder
+
+`with_dir` / `load_dir` read every `*.json` in a directory as a
+[theme file](#json-theme-files), keyed by file stem, named by the file's `name`
+key (or the title-cased stem). A missing directory is not an error, and one bad
+file doesn't cost you the other nine — `load_dir` returns the failures:
+
+```rust
+let mut manager = ThemeManager::new();
+for failure in manager.load_dir(&dir) {
+    eprintln!("skipping {failure}");
+}
+manager.install(cx);
+```
+
+This is the only part of `theme/` that touches the disk. An app that would
+rather bring its own bytes — an `include_str!`, a file it already read — uses
+`register_json(id, source)` instead.
+
+### `ThemePicker`
+
+The picker reads the registry and writes the choice back, so there is no state
+to hold and nothing to wire:
+
+```rust
+ThemePicker::new()
+    .layout(ThemePickerLayout::Grid)   // or List (the default)
+    .system_option(true)               // offer "System" first
+    .on_change(|choice, _window, _cx| save("theme", choice.to_string()))
+```
+
+Each row previews the theme it offers — the swatch is painted from *that*
+theme's body, surface, border and primary, which is the only honest way to show
+a theme you aren't wearing. The System row shows the light/dark pair side by
+side. Without a manager installed the picker draws nothing.
+
+| Type | What it is |
+| --- | --- |
+| `ThemeManager` | the registry + the choice, a gpui `Global` |
+| `ThemeEntry` | one registered theme: `id`, `name`, `source`, `theme` |
+| `ThemeSource` | `Builtin` / `Custom` / `File(PathBuf)` |
+| `ThemeChoice` | `System` or `Fixed(id)`; `Display` + `FromStr` |
+| `ThemeLoadError` | a theme file `load_dir` skipped |
+| `ThemePicker` | the picker component |

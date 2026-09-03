@@ -160,6 +160,18 @@ fn parse_flat(src: &str) -> Result<Vec<(String, String)>, ThemeJsonError> {
   Ok(pairs)
 }
 
+/// The `name` slot of a theme file, if it has one. [`Theme::from_json`] ignores
+/// `name` — a theme's display name belongs to whoever is listing themes, which
+/// is [`ThemeManager`](super::ThemeManager).
+pub(super) fn json_name(source: &str) -> Option<String> {
+  parse_flat(source)
+    .ok()?
+    .into_iter()
+    .find(|(key, _)| key == "name")
+    .map(|(_, value)| value)
+    .filter(|name| !name.is_empty())
+}
+
 fn size_token(value: &str) -> Option<Size> {
   match value {
     "xs" => Some(Size::Xs),

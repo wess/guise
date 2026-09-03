@@ -18,7 +18,7 @@ use crate::devtools::{
 use crate::input::{Date, DatePicker, LineEditor as _, Select, TextInput};
 use crate::reactive::{validators, Form, Signal};
 use crate::settings::{SettingsView, SettingsViewEvent};
-use crate::theme::{theme, Color, Theme};
+use crate::theme::{theme, Color, ColorScheme, Theme, ThemeChoice, ThemeEntry, ThemeManager};
 use crate::update::{
   is_installing, Release, UpdateNotice, UpdateNoticeEvent, UpdateOutcome, UpdatePrompt,
   UpdatePromptEvent, UpdateStage, Updater,
@@ -287,6 +287,74 @@ fn theme_presets_install_and_resolve(cx: &mut TestAppContext) {
     let t = theme(cx);
     assert!(!t.scheme.is_dark());
     assert_eq!(t.primary(), Color::hex("#268bd2"));
+  });
+}
+
+#[gpui::test]
+fn theme_manager_installs_selects_and_follows_the_system(cx: &mut TestAppContext) {
+  cx.update(|cx| {
+    ThemeManager::new().with_presets().install(cx);
+    // Following the system, which starts light until a window says otherwise.
+    assert!(!theme(cx).scheme.is_dark());
+
+    ThemeManager::set_system_scheme(cx, ColorScheme::Dark);
+    assert!(theme(cx).scheme.is_dark());
+    assert_eq!(cx.global::<ThemeManager>().resolved_id().as_ref(), "dark");
+
+    // An explicit pick stops following.
+    assert!(ThemeManager::select(cx, "dracula"));
+    assert_eq!(theme(cx).primary(), Color::hex("#bd93f9"));
+    ThemeManager::set_system_scheme(cx, ColorScheme::Light);
+    assert_eq!(theme(cx).primary(), Color::hex("#bd93f9"));
+
+    // An id nobody registered leaves the choice alone.
+    assert!(!ThemeManager::select(cx, "nope"));
+    assert_eq!(
+      cx.global::<ThemeManager>().selection(),
+      &ThemeChoice::Fixed("dracula".into())
+    );
+
+    ThemeManager::follow_system(cx);
+    assert!(!theme(cx).scheme.is_dark());
+  });
+}
+
+#[gpui::test]
+fn theme_manager_toggle_swaps_the_pair_and_leaves_system(cx: &mut TestAppContext) {
+  cx.update(|cx| {
+    ThemeManager::new()
+      .with(ThemeEntry::new("night", Theme::nord()))
+      .pair("light", "night")
+      .install(cx);
+    assert!(!theme(cx).scheme.is_dark());
+
+    ThemeManager::toggle(cx);
+    assert_eq!(
+      cx.global::<ThemeManager>().selection(),
+      &ThemeChoice::Fixed("night".into())
+    );
+    assert_eq!(theme(cx).primary(), Color::hex("#88c0d0"));
+
+    ThemeManager::toggle(cx);
+    assert_eq!(
+      cx.global::<ThemeManager>().selection(),
+      &ThemeChoice::Fixed("light".into())
+    );
+  });
+}
+
+#[gpui::test]
+fn theme_manager_is_optional(cx: &mut TestAppContext) {
+  cx.update(|cx| {
+    Theme::light().init(cx);
+    // Every mutator is a no-op without a manager, rather than a panic.
+    assert!(!ThemeManager::select(cx, "dracula"));
+    ThemeManager::toggle(cx);
+    ThemeManager::follow_system(cx);
+    ThemeManager::set_system_scheme(cx, ColorScheme::Dark);
+    ThemeManager::apply(cx);
+    assert!(crate::theme::manager(cx).is_none());
+    assert!(!theme(cx).scheme.is_dark());
   });
 }
 

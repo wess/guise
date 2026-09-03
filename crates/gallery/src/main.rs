@@ -235,6 +235,7 @@ const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
   ("typeextras", code::TYPEEXTRAS),
   ("media", code::MEDIA),
   ("palette", code::PALETTE),
+  ("themes", code::THEMES),
 ];
 
 /// Inline page rendered by the WebView demo — keeps the showcase offline.
@@ -1641,6 +1642,12 @@ impl Gallery {
           .section(cx, "palette", "Palette", body)
           .into_any_element()
       }
+      36 => {
+        let body = sections::themes(cx);
+        self
+          .section(cx, "themes", "Theme manager", body)
+          .into_any_element()
+      }
       _ => unreachable!("gallery list requested an unknown item"),
     };
 
@@ -2726,15 +2733,21 @@ impl Render for Gallery {
 }
 
 /// The accent "Toggle theme" pill in the header flips the global color scheme.
+/// It goes through the manager rather than writing `Theme` directly, so the
+/// theme picker further down the page stays in step with it.
 pub fn toggle_theme(window: &mut Window, cx: &mut App) {
-  let next = cx.global::<Theme>().scheme.toggled();
-  cx.global_mut::<Theme>().scheme = next;
+  ThemeManager::toggle(cx);
   window.refresh();
 }
 
 fn main() {
   gpui::Application::new().run(|cx: &mut App| {
-    Theme::dark().init(cx);
+    // The registry behind the "Theme manager" section — and the source of
+    // truth for the header's toggle and the View menu.
+    ThemeManager::new()
+      .with_presets()
+      .choice(ThemeChoice::Fixed("dark".into()))
+      .install(cx);
     // The inspector's record store. Installing it is what makes the
     // `devtools::*` reporting calls anything other than a no-op.
     DevToolsState::new().init(cx);
@@ -2755,11 +2768,7 @@ fn main() {
       },
     ]);
     cx.on_action::<QuitAction>(|_, cx| cx.quit());
-    cx.on_action::<ToggleThemeAction>(|_, cx| {
-      let next = cx.global::<Theme>().scheme.toggled();
-      cx.global_mut::<Theme>().scheme = next;
-      cx.refresh_windows();
-    });
+    cx.on_action::<ToggleThemeAction>(|_, cx| ThemeManager::toggle(cx));
 
     let bounds = Bounds::centered(None, size(px(960.0), px(880.0)), cx);
     cx.open_window(
@@ -2771,7 +2780,11 @@ fn main() {
         }),
         ..Default::default()
       },
-      |_window, cx| cx.new(Gallery::new),
+      |window, cx| {
+        // Keeps `ThemeChoice::System` honest when macOS flips at sundown.
+        ThemeManager::watch(window, cx);
+        cx.new(Gallery::new)
+      },
     )
     .expect("open window");
     cx.activate(true);

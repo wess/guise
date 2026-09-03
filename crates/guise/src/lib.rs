@@ -86,6 +86,7 @@ mod splitpanel;
 mod spoiler;
 mod text;
 mod themeicon;
+mod themepicker;
 mod title;
 mod transition;
 mod webview;
@@ -130,6 +131,7 @@ pub use splitpanel::{SplitDirection, SplitPanel, SplitPanelEvent};
 pub use spoiler::Spoiler;
 pub use text::Text;
 pub use themeicon::ThemeIcon;
+pub use themepicker::{ThemePicker, ThemePickerLayout};
 pub use title::Title;
 pub use transition::{Collapse, Transition, TransitionKind};
 pub use webview::{WebView, WebViewEvent};
@@ -180,8 +182,9 @@ pub use reactive::{
 };
 pub use style::{surface, ColorValue, StyleExt, Surface, Variant};
 pub use theme::{
-  css, hsl, hsla, rgb, rgba, theme, Color, ColorName, ColorScheme, CssColorError, Palette, Scale,
-  Shades, Size, Theme, ThemeJsonError, PRESET_NAMES,
+  css, hsl, hsla, manager, rgb, rgba, scheme_of, theme, Color, ColorName, ColorScheme,
+  CssColorError, Palette, Scale, Shades, Size, Theme, ThemeChoice, ThemeEntry, ThemeJsonError,
+  ThemeLoadError, ThemeManager, ThemeSource, PRESET_NAMES,
 };
 // The free functions (`start`, `check_now`, `detect`, `is_newer`, …) stay behind
 // `update::` — their names only read clearly next to the module.
@@ -251,7 +254,8 @@ pub mod prelude {
   };
   pub use crate::style::{ColorValue, StyleExt, Variant};
   pub use crate::theme::{
-    css, hsl, hsla, rgb, rgba, theme, Color, ColorName, ColorScheme, Size, Theme,
+    css, hsl, hsla, rgb, rgba, theme, Color, ColorName, ColorScheme, Size, Theme, ThemeChoice,
+    ThemeEntry, ThemeManager, ThemeSource,
   };
   pub use crate::update::{
     InstallKind, Relaunch, Release, ReleaseAsset, UpdateCheck, UpdateConfig, UpdateNotice,
@@ -264,7 +268,7 @@ pub mod prelude {
   pub use crate::{About, BuildKind, ResizeHandles, WindowControls};
   pub use crate::{
     ActionIcon, Anchor, Chip, CloseButton, Code, CopyButton, Glyph, Icon, IconName, Indicator, Kbd,
-    ScrollArea, Skeleton, ThemeIcon,
+    ScrollArea, Skeleton, ThemeIcon, ThemePicker, ThemePickerLayout,
   };
   pub use crate::{
     AnimValue, Animated, Animator, AnimatorEvent, At, Clip, Curve, Easing, Frame, IntoKeyframe,

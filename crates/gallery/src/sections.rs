@@ -416,3 +416,35 @@ pub fn palette(cx: &App) -> impl IntoElement {
   }
   rows
 }
+
+/// The theme manager: a registry of themes, a persisted choice, and the picker
+/// that writes it. The gallery installs `ThemeManager::new().with_presets()` at
+/// launch, so this list is the real one — clicking a card restyles the app.
+pub fn themes(cx: &App) -> impl IntoElement {
+  let t = theme(cx);
+  let choice = guise::theme::manager(cx).map(|m| m.selection().to_string());
+  let caption = match choice {
+    Some(choice) => format!("ThemeChoice: {choice} — one string for the host to persist"),
+    None => "No ThemeManager installed — the picker draws nothing".to_string(),
+  };
+
+  Stack::new()
+    .gap(Size::Md)
+    .child(
+      div()
+        .text_size(px(12.0))
+        .text_color(t.dimmed().hsla())
+        .child(caption),
+    )
+    .child(
+      Group::new()
+        .gap(Size::Lg)
+        .wrap(false)
+        .child(div().w(px(240.0)).child(ThemePicker::new()))
+        .child(
+          div()
+            .flex_1()
+            .child(ThemePicker::new().layout(ThemePickerLayout::Grid)),
+        ),
+    )
+}

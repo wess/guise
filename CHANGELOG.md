@@ -5,6 +5,47 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.6.0 — 2026-09-03
+
+### A theme manager
+
+Switching a theme was always a one-liner — write the `Theme` global, ask for a
+redraw, and every component restyles because it reads `theme(cx)` at paint time.
+That is why guise shipped this long without a manager. What the one-liner never
+answered is everything *around* the switch: which themes exist, which one the
+user picked last time, and what "follow the system" means in an app that ships
+four dark themes. Every consumer wrote that part again.
+
+`ThemeManager` owns exactly that and nothing about how a theme looks. A registry
+of `id -> ThemeEntry` seeded with `light` and `dark`, widened by `with_presets()`,
+by host themes in code, or by `with_dir(..)` over a folder of JSON theme files.
+A `ThemeChoice` that is either one theme by id or *follow the system*, resolved
+through the registry's light/dark pair. And `ThemeManager::watch(window, cx)`,
+which keeps that resolution honest when the OS flips at sundown.
+
+Persistence stays with the host, the way `settings` leaves the schema with the
+host: `ThemeChoice` is `Display` + `FromStr`, so it round trips through one
+string in whatever config file the app already writes. Reading a themes folder
+is the only thing here that touches the disk — an app that would rather bring
+its own bytes uses `register_json`. `ThemeSource` says where an entry came from,
+so a picker can group the app's own themes apart from a user's.
+
+### `ThemePicker`
+
+The list of installed themes and the click that wears one. It reads the manager
+out of the global and writes the choice straight back, so there is no state to
+hold and nothing to wire: drop it in a settings page and it is done. Without a
+manager installed it draws nothing rather than guessing at a theme list.
+
+Each row previews the theme it offers, painted from *that* theme's body,
+surface, border and primary — the only honest way to show a theme you are not
+currently wearing. `List` fits a settings pane, `Grid` a gallery.
+
+New in the crate root and the prelude: `ThemeManager`, `ThemeChoice`,
+`ThemeEntry`, `ThemeSource`, `ThemeLoadError`, `ThemePicker`,
+`ThemePickerLayout`, `manager`, and `scheme_of`. The gallery installs a manager
+at launch, so its Themes section is the real list rather than a mock.
+
 ## 1.5.4 — 2026-09-03
 
 ### Text no longer collapses to zero width

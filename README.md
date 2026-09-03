@@ -421,7 +421,7 @@ gpui = "0.2.2"
 Pinning via git works too:
 
 ```toml
-guise-ui = { git = "https://github.com/wess/guise", tag = "v1.5.4" }
+guise-ui = { git = "https://github.com/wess/guise", tag = "v1.6.0" }
 ```
 
 ## Building

@@ -1102,3 +1102,36 @@ vstack![
 ]
 .children(ResizeHandles::needed().then(ResizeHandles::new));"#,
 };
+
+pub const THEMES: Snippet = Snippet {
+  plain: r#"// At launch: a registry, a saved choice, and the OS-appearance watch.
+ThemeManager::new()
+    .with_presets()                          // catppuccin, nord, dracula, ...
+    .with_dir(config_dir.join("themes"))     // *.json, see Theme::from_json
+    .choice(saved.parse().unwrap())          // "system" | "theme:dracula"
+    .install(cx);
+
+// Once per window, so ThemeChoice::System tracks the OS:
+ThemeManager::watch(window, cx);
+
+// Anywhere: the picker reads the registry and writes the choice back.
+ThemePicker::new()
+    .layout(ThemePickerLayout::Grid)
+    .on_change(|choice, _window, _cx| save(choice.to_string()));
+
+// ...or drive it directly.
+ThemeManager::select(cx, "dracula");
+ThemeManager::toggle(cx);"#,
+  macros: r#"ThemeManager::new()
+    .with_presets()
+    .with_dir(config_dir.join("themes"))
+    .choice(saved.parse().unwrap())
+    .install(cx);
+
+ThemeManager::watch(window, cx);
+
+vstack![
+    ThemePicker::new(),
+    button!("toggle", "Toggle").on_click(|_, _, cx| ThemeManager::toggle(cx)),
+];"#,
+};

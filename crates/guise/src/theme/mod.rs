@@ -8,6 +8,7 @@
 mod color;
 mod css;
 mod json;
+mod manager;
 mod palette;
 mod presets;
 mod tokens;
@@ -15,6 +16,9 @@ mod tokens;
 pub use color::Color;
 pub use css::{css, hsl, hsla, rgb, rgba, CssColorError};
 pub use json::ThemeJsonError;
+pub use manager::{
+  manager, scheme_of, ThemeChoice, ThemeEntry, ThemeLoadError, ThemeManager, ThemeSource,
+};
 pub use palette::{open_color, ColorName, Palette, Shades};
 pub use presets::PRESET_NAMES;
 pub use tokens::{Scale, Size};
