@@ -340,7 +340,7 @@ property, more than two states, or a clock somebody has to hold.
   every prop, sequences, and the `Animator` API.
 - [Macros](macros.md#motion--animation-as-a-declaration-block) — `motion!` and
   `sequence!` in detail.
-- [Tailor: the canvas](tailorcanvas.md#motion) — the same motions, set on a
+- [Tailor: the canvas](https://github.com/wess/tailor/blob/main/docs/canvas.md#motion) — the same motions, set on a
   node in the interface builder, generating the same code.
 - `cargo run -p guise-ui --example motion` — a second demo, aimed at the API
   rather than at a screen.

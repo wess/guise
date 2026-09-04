@@ -4,12 +4,14 @@
 
 const SITE = "https://wess.github.io/guise";
 const REPO = "https://github.com/wess/guise";
+// Tailor is its own project now; the site links out rather than hosting it.
+const TAILOR = "https://github.com/wess/tailor";
 
 export type ShellOpts = {
   title: string;
   description: string;
   body: string;
-  active?: "docs" | "tutorial" | "gallery" | "tailor" | "home";
+  active?: "docs" | "tutorial" | "gallery" | "home";
   tail?: string;
 };
 
@@ -29,7 +31,7 @@ function header(active: string): string {
       ${link("docs.html", "Docs", "docs")}
       ${link("tutorial.html", "Tutorial", "tutorial")}
       ${link("gallery.html", "Gallery", "gallery")}
-      ${link("tailor.html", "Tailor", "tailor")}
+      <a href="${TAILOR}" class="ext" rel="noreferrer">Tailor &#8599;</a>
       <a href="${REPO}" class="ext" rel="noreferrer">GitHub &#8599;</a>
     </nav>
     <button class="navtoggle" aria-label="Toggle navigation">&#9776;</button>
@@ -77,11 +79,11 @@ function footer(): string {
     </div>
     <div class="foot-col">
       <span class="foot-h">Tailor</span>
-      <a href="tailor.html">Overview</a>
-      <a href="tailortutorial.html">Tutorial</a>
-      <a href="tailorcodegen.html">Generated code</a>
-      <a href="tailormcp.html">MCP server</a>
-      <a href="${REPO}/releases" rel="noreferrer">Download</a>
+      <a href="${TAILOR}" rel="noreferrer">The builder</a>
+      <a href="${TAILOR}/blob/main/docs/tutorial.md" rel="noreferrer">Tutorial</a>
+      <a href="${TAILOR}/blob/main/docs/codegen.md" rel="noreferrer">Generated code</a>
+      <a href="${TAILOR}/blob/main/docs/mcp.md" rel="noreferrer">MCP server</a>
+      <a href="${TAILOR}/releases" rel="noreferrer">Download</a>
     </div>
     <div class="foot-col">
       <span class="foot-h">Project</span>

@@ -296,7 +296,7 @@ export function renderGallery(): string {
   <div class="container">
     <span class="eyebrow">Gallery · 130+ components · one palette</span>
     <h1 class="display">The component <span class="grad">gallery</span>.</h1>
-    <p class="lead">Every guise component family, grouped and labelled. The styling here is mocked for the web; the real thing renders natively through gpui. Follow any plate to its documentation — or place 101 of them on a canvas in <a href="tailor.html">Tailor</a>.</p>
+    <p class="lead">Every guise component family, grouped and labelled. The styling here is mocked for the web; the real thing renders natively through gpui. Follow any plate to its documentation — or place 101 of them on a canvas in <a href="https://github.com/wess/tailor" rel="noreferrer">Tailor</a>.</p>
     ${ribbon(false)}
   </div>
 </section>

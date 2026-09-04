@@ -6077,66 +6077,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tailor-app"
-version = "1.6.0"
-dependencies = [
- "gpui",
- "guise-ui",
- "serde",
- "serde_json",
- "tailor-codegen",
- "tailor-model",
- "tailor-render",
- "tailor-store",
-]
-
-[[package]]
-name = "tailor-codegen"
-version = "1.6.0"
-dependencies = [
- "tailor-model",
-]
-
-[[package]]
-name = "tailor-mcp"
-version = "1.6.0"
-dependencies = [
- "serde",
- "serde_json",
- "tailor-codegen",
- "tailor-model",
- "tailor-store",
-]
-
-[[package]]
-name = "tailor-model"
-version = "1.6.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "tailor-render"
-version = "1.6.0"
-dependencies = [
- "gpui",
- "guise-ui",
- "tailor-model",
-]
-
-[[package]]
-name = "tailor-store"
-version = "1.6.0"
-dependencies = [
- "dirs 6.0.0",
- "serde",
- "serde_json",
- "tailor-codegen",
- "tailor-model",
-]
-
-[[package]]
 name = "take-until"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

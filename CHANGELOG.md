@@ -5,6 +5,33 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## Unreleased
+
+### Tailor moved out
+
+[Tailor](https://github.com/wess/tailor), the visual interface builder, shipped
+in this repository from 1.1.0 through 1.6.0 as six `publish = false` crates. It
+is its own project now.
+
+It was riding a library's version line, which meant a builder fix could not ship
+without a library release and a library release always shipped a builder build.
+Nothing about the library changes: Tailor was never in `guise-ui` — `cargo
+package -p guise-ui --list` was always the proof — so this removes crates that
+never reached crates.io, and the published crate is byte-for-byte what it was.
+
+What it does change is the relationship. Tailor now depends on `guise-ui` from
+crates.io like any other consumer, so the library's public surface is the whole
+of what the builder can reach. It keeps a checked-in record of what each
+published version ships, and its catalog test fails on a component that is
+neither catalogued nor excluded with a reason — so **a new component here still
+has to be picked up over there**, just as a failing build on that side rather
+than as drift nobody sees.
+
+Also gone from this repository: `docs/tailor*.md`, `extensions/zed/`, the app
+bundling scripts, the root `assets/`, and the macOS half of `release.yml`. The
+release workflow now cuts a library release and nothing else. The website links
+out to Tailor where it used to host its pages.
+
 ## 1.6.0 — 2026-09-03
 
 ### A theme manager

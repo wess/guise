@@ -42,14 +42,6 @@ const blurb: Record<string, string> = {
   performance: "What the crate costs to compile, link and render, and where the money goes.",
 
   // Tailor
-  tailor: "The visual interface builder that ships in this repository — the map to the rest.",
-  tailortutorial: "Build an app end to end in Tailor, export it, and run what comes out.",
-  tailorcanvas: "Modes, selecting, resizing, layout modes, snapping, and the live window.",
-  tailorcomponents: "The 101-component catalog, slots, the five drawn containers, and your own components.",
-  tailorstate: "State variables, two-way bindings, events and actions, and the lint pass.",
-  tailorcodegen: "The Rust that falls out, the two flavours, export, and the .tailor file format.",
-  tailormcp: "Driving the same document from an agent, over MCP.",
-  tailorzed: "Jumping between a component and its code, in both directions.",
 };
 
 export function renderDocsIndex(): string {
@@ -79,7 +71,7 @@ export function renderDocsIndex(): string {
       <a class="btn btn-primary" href="gettingstarted.html">Installation</a>
       <a class="btn btn-ghost" href="tutorial.html">Read the tutorial</a>
       <a class="btn btn-ghost" href="components.html">Component model</a>
-      <a class="btn btn-ghost" href="tailor.html">Tailor</a>
+      <a class="btn btn-ghost" href="https://github.com/wess/tailor" rel="noreferrer">Tailor</a>
     </div>
     ${sections}
   </div>

@@ -6,8 +6,7 @@
 [![license](https://img.shields.io/crates/l/guise-ui.svg)](https://github.com/wess/guise/blob/main/LICENSE)
 
 A component library for [gpui](https://github.com/zed-industries/zed) — the
-GPU-accelerated Rust UI framework that powers Zed — **and Tailor, the visual
-interface builder for it**.
+GPU-accelerated Rust UI framework that powers Zed.
 
 `guise` gives gpui a batteries-included component layer: a themed palette,
 sizing tokens, 130+ composable components, a reactive state layer with two-way
@@ -15,9 +14,10 @@ bindings, an animation system with keyframes and a scrubbable playhead, and the
 full [Lucide](https://lucide.dev) icon set embedded as the default icons — no
 asset pipeline needed.
 
-**[Tailor](docs/tailor.md)** is the other half: a drag-and-drop builder that
-lays those same components out on a canvas and exports idiomatic Rust. Write the
-interface or draw it — either way you end up with the same components.
+**[Tailor](https://github.com/wess/tailor)** is the other half: a drag-and-drop builder that lays these
+same components out on a canvas and exports idiomatic Rust. Write the interface
+or draw it — either way you end up with the same components. It is its own
+project, and consumes this library from crates.io like anyone else.
 
 ```rust
 use guise::prelude::*;
@@ -35,36 +35,18 @@ Stack::new()
 
 ## Tailor — the visual interface builder
 
-**Tailor** is a drag-and-drop interface builder for gpui and guise, shaped like
-Interface Builder and Android Studio's layout editor. Lay out a screen from real
-components, wire the state and the actions, and export idiomatic Rust that has
-no dependency on Tailor left in it.
+**[Tailor](https://github.com/wess/tailor)** is a drag-and-drop interface builder for gpui and guise,
+shaped like Interface Builder and Android Studio's layout editor. Lay out a
+screen from real components, wire the state and the actions, and export
+idiomatic Rust that has no dependency on Tailor left in it.
 
-```sh
-cargo run -p tailor-app                     # from a checkout (binary: tailordev)
-```
+Its canvas is not a drawing of your interface — a `Button` on it is a real
+`guise::Button`, reading the same theme. Every [release](https://github.com/wess/tailor/releases) attaches
+a signed `Tailor.dmg`, with an MCP server in the bundle so an agent can build a
+screen with no window open.
 
-Or take the app: every [release](https://github.com/wess/guise/releases)
-attaches **`Tailor.dmg`**, signed and built from this repository, with the MCP
-server beside the executable in the bundle.
-
-The canvas is not a drawing of your interface — it *is* your interface. A
-`Button` on it is a `guise::Button`, reading the same theme, laid out by the
-same flexbox. There is no second rendering path to keep in step, so a component
-cannot look right in the builder and wrong in the app.
-
-| Part | What it does |
-| --- | --- |
-| **The workbench** | A searchable library of all 101 placeable components, the node outline, the artboard, a five-tab inspector (Attributes, Size, Style, Connections, Identity) and a Problems panel. Every panel resizes, folds away, and remembers where you left it. |
-| **Direct manipulation** | Eight resize knobs around the selection, drag to move, snapping to the grid and to siblings' edges with guides drawn where it caught, a live size readout, and arrow-key nudging. |
-| **What comes out** | A `Render` entity when the document holds state, a `RenderOnce` builder when it does not. State variables become `Signal<T>` fields, events become `cx.listener` / `cx.subscribe`, and every resolved colour is hoisted into a `let` at the top of `render` the way guise's conventions require. |
-| **A live window** | A second window rendering the document for real, following every edit — with the guise DevTools inspector in it, and right-click-to-inspect the way a browser does it. |
-| **An MCP server** | `tailor-mcp` drives the same document model, so an agent can place components, wire state and generate Rust with no window open. It saves after every change and the app watches the file, so a screen built by an agent appears on the canvas as it is built. |
-| **An editor jump** | Both directions. **Open in Editor** (⌥⌘O) puts your cursor on the line a component generated; `tailordev --reveal <file>:<line>` goes the other way, and a Zed task binds it to a key. Zed, VS Code, Sublime, IntelliJ, Emacs and Neovim. |
-
-Full documentation starts at [`docs/tailor.md`](docs/tailor.md), and
-[the tutorial](docs/tailortutorial.md) builds a complete app end to end — every
-code block in it is output Tailor actually produced.
+It lived in this repository through 1.6.0 and moved out after; its
+documentation moved with it.
 
 ## Documentation
 
@@ -77,7 +59,7 @@ Full docs live in [`docs/`](docs/readme.md) (also rendered at
 - [Getting started](docs/gettingstarted.md) · [Theming](docs/theming.md) · [Component model](docs/components.md)
 - Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Dates & times](docs/dates.md) · [File handling](docs/files.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [GPU View](docs/gpuview.md) · [Editor](docs/editor.md) · [Markdown editor](docs/markdowneditor.md) · [AI](docs/ai.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
 - Systems: [Flex layout](docs/flex.md) · [Macros](docs/macros.md) · [Motion & transitions](docs/transitions.md) · [Drag & drop](docs/dnd.md) · [Reactive state](docs/reactive.md) · [Software update](docs/update.md) · [Settings](docs/settings.md) · [DevTools](docs/devtools.md) · [Window menu & chrome](docs/windowmenu.md) · [Architecture](docs/architecture.md) · [Size & performance](docs/performance.md)
-- **Tailor**: [Overview](docs/tailor.md) · [Tutorial](docs/tailortutorial.md) · [The canvas](docs/tailorcanvas.md) · [Components & slots](docs/tailorcomponents.md) · [State & actions](docs/tailorstate.md) · [Generated code](docs/tailorcodegen.md) · [MCP server](docs/tailormcp.md) · [Zed & other editors](docs/tailorzed.md)
+- **Tailor** lives at [github.com/wess/tailor](https://github.com/wess/tailor), documentation included
 - [Releasing](docs/release.md) · [Changelog](CHANGELOG.md)
 
 ## Workspace
@@ -86,16 +68,10 @@ Full docs live in [`docs/`](docs/readme.md) (also rendered at
   crate here that reaches crates.io.
 - **`crates/gallery`** — a live showcase of every component
   (`cargo run -p gallery`).
-- **`crates/tailor/`** — Tailor, in six `publish = false` crates: `model` (the
-  document, catalog and file format), `codegen` (document → Rust), `store`
-  (project files, settings, export), `render` (document → live components),
-  `app` (the workbench) and `mcp` (the MCP server).
-- **`extensions/zed/`** — a Zed extension registering `tailor-mcp` as a context
-  server. Its own cargo workspace; it targets `wasm32-wasip2`.
 - **`site/`** — the Bun generator that renders `docs/` into the website.
 
-Nothing about Tailor is in `guise-ui`: `cargo package -p guise-ui --list` is the
-proof, and it is why the library still depends on nothing but gpui and std.
+`cargo package -p guise-ui --list` is the proof that the crate carries the
+library and nothing else — it depends on nothing but gpui and std.
 
 ## How guise compares
 
@@ -109,7 +85,7 @@ of July 2026:
 | --- | --- | --- | --- |
 | Design language | open-color palette + token scales | shadcn/ui | shadcn/ui |
 | Components | 130+ | 60+ | ~140 |
-| Visual builder | Tailor, in this repo | — | — |
+| Visual builder | [Tailor](https://github.com/wess/tailor) | — | — |
 | Reactive layer | `Signal` / `Binding` / lenses, reactive `Form` | — (entities + subscriptions) | — |
 | Icons | all 1,991 Lucide glyphs as an embedded font, zero setup | 99 Lucide SVGs via an assets crate | ~1,600 SVGs, copied into your app manually |
 | Theming | open-color palette, JSON theme files, 6 presets, per-slot overrides | ~140 tokens, JSON themes with hot reload, 22 presets | 19 presets, theme behind a global `Mutex` |
@@ -430,15 +406,12 @@ Requires Rust stable.
 
 ```sh
 cargo run -p gallery        # launch the component gallery
-cargo run -p tailor-app     # launch Tailor, the interface builder
 cargo test -p guise-ui      # the library's tests (unit + gpui entity harness)
-cargo test -p tailor-model -p tailor-codegen -p tailor-store   # Tailor's pure half
 cd site && bun run build.ts # render docs/ into site/dist
 ```
 
-Cutting a release — the version, the lockfile, the tag, the signed `Tailor.dmg`
-and the crates.io publish — is written down in
-[releasing](docs/release.md).
+Cutting a release — the version, the lockfile, the tag and the crates.io
+publish — is written down in [releasing](docs/release.md).
 
 ## License
 

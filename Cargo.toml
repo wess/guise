@@ -3,12 +3,6 @@ resolver = "2"
 members = [
     "crates/guise",
     "crates/gallery",
-    "crates/tailor/model",
-    "crates/tailor/codegen",
-    "crates/tailor/store",
-    "crates/tailor/render",
-    "crates/tailor/app",
-    "crates/tailor/mcp",
 ]
 
 [workspace.package]
@@ -25,18 +19,6 @@ categories = ["gui"]
 [workspace.dependencies]
 gpui = "0.2.2"
 guise-ui = { path = "crates/guise" }
-
-# Tailor — the visual interface builder that ships in this repo. Its crates are
-# `publish = false`; the library above is the only thing that goes to crates.io.
-tailor-model = { path = "crates/tailor/model" }
-tailor-codegen = { path = "crates/tailor/codegen" }
-tailor-store = { path = "crates/tailor/store" }
-tailor-render = { path = "crates/tailor/render" }
-
-# Only the Tailor crates use these — the library stays gpui + std.
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-dirs = "6"
 
 [profile.dev]
 debug = "limited"

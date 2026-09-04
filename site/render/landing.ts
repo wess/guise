@@ -162,7 +162,7 @@ const features: Feature[] = [
   { icon: "&#10038;", title: "Lucide icons built in", body: "Every <a href=\"https://lucide.dev\">Lucide</a> icon as an <code>IconName</code> variant, drawn from an embedded icon font — no asset pipeline, tinted and sized like text." },
   { icon: "&#9707;&#65038;", title: "An inspector in the box", body: "<a href=\"devtools.html\">DevTools</a> shaped like Safari's Web Inspector — an element tree your components record themselves, the box model, resolved styles with the line each came from, plus logs, network and timelines the host feeds." },
   { icon: "&#8635;", title: "Self-update included", body: "<a href=\"update.html\">Check a release feed</a>, install the new version in place — rsync onto the <code>.app</code>, rename over the AppImage — verify its signature, and restart. Prompt included." },
-  { icon: "&#9998;", title: "A builder in the box", body: "<a href=\"tailor.html\">Tailor</a> lays these components out on a canvas and writes the Rust — an interface builder that ships in the same repository as the library it draws with." },
+  { icon: "&#9998;", title: "A builder in the box", body: "<a href=\"https://github.com/wess/tailor\" rel=\"noreferrer\">Tailor</a> lays these components out on a canvas and writes the Rust — a drag-and-drop interface builder that draws with the real components." },
   { icon: "&#9993;", title: "An AI chat kit", body: "<a href=\"ai.html\">Transcript, composer, streaming text, reasoning blocks, tool calls, citations and a cost meter</a> — transport-agnostic, so nothing here opens a socket or holds a key." },
   { icon: "&#9636;", title: "Data views that scale", body: "<a href=\"data.html\"><code>TableView</code>, <code>DataView</code>, <code>TreeView</code></a> and <code>VirtualList</code> window their rows — a hundred thousand of them render as cheaply as twenty." },
 ];
@@ -225,7 +225,7 @@ export function renderLanding(): string {
     </p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="gettingstarted.html">Get started</a>
-      <a class="btn btn-ghost" href="tailor.html">Meet Tailor</a>
+      <a class="btn btn-ghost" href="https://github.com/wess/tailor" rel="noreferrer">Meet Tailor</a>
       <a class="btn btn-ghost" href="gallery.html">Explore components</a>
     </div>
     <div class="cmd" style="margin-left:auto;margin-right:auto;">
@@ -285,7 +285,7 @@ export function renderLanding(): string {
 
 <section class="band band-orange">
   <div class="container">
-    ${bandHead(`Draw the interface. <span class="gw">Keep the Rust</span>.`, "Tailor is a drag-and-drop builder for guise, shipped in the same repository and downloadable as an app. Its canvas renders the real components against the real theme — there is no second drawing to keep in step — so what you lay out is what it generates, and what it generates is a file you own.", "tailor.html", "Read about Tailor")}
+    ${bandHead(`Draw the interface. <span class="gw">Keep the Rust</span>.`, "Tailor is a drag-and-drop builder for guise, downloadable as an app. Its canvas renders the real components against the real theme — there is no second drawing to keep in step — so what you lay out is what it generates, and what it generates is a file you own.", "https://github.com/wess/tailor", "Read about Tailor")}
     <div class="split">
       ${tailorMock()}
       <div class="codepanel">
@@ -302,8 +302,8 @@ export function renderLanding(): string {
       <li>Jumps both ways with your editor — a component to its generated line, and a line back to its component</li>
     </ul>
     <div class="endgrid endgrid--tailor">
-      <a class="endcard" href="tailortutorial.html"><h3>Tailor tutorial &#8594;</h3><p>Build an app end to end in the builder, export it, and run what comes out.</p></a>
-      <a class="endcard" href="tailorcodegen.html"><h3>What it generates &#8594;</h3><p>The shape of the output, the two flavours, and the <code>.tailor</code> file format.</p></a>
+      <a class="endcard" href="https://github.com/wess/tailor/blob/main/docs/tutorial.md" rel="noreferrer"><h3>Tailor tutorial &#8594;</h3><p>Build an app end to end in the builder, export it, and run what comes out.</p></a>
+      <a class="endcard" href="https://github.com/wess/tailor/blob/main/docs/codegen.md" rel="noreferrer"><h3>What it generates &#8594;</h3><p>The shape of the output, the two flavours, and the <code>.tailor</code> file format.</p></a>
       <a class="endcard" href="${REPO}/releases" rel="noreferrer"><h3>Download Tailor &#8594;</h3><p>Every release attaches <code>Tailor.dmg</code>, signed and built from this repository.</p></a>
     </div>
   </div>

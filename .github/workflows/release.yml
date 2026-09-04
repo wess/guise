@@ -1,9 +1,8 @@
 name: Release
 
-# Runs when a version tag (v*) is pushed, or manually for a given tag. One tag
-# releases both things this repository ships: the `guise-ui` library (notes from
-# the CHANGELOG, published to crates.io by hand) and Tailor (a signed .app in a
-# .dmg, attached here).
+# Runs when a version tag (v*) is pushed, or manually for a given tag. It cuts
+# the GitHub release for the `guise-ui` library, with notes from the CHANGELOG.
+# Publishing to crates.io stays a manual step (see the note at the bottom).
 on:
   push:
     tags: ["v*"]
@@ -18,11 +17,6 @@ permissions:
 
 jobs:
   # Create the GitHub Release, with notes from the CHANGELOG.
-  #
-  # Created as a draft and published by the `publish` job once Tailor's DMG has
-  # been uploaded to it. A published release is what `releases/latest` reports,
-  # so publishing up front would advertise a version for the length of a
-  # notarization run with none of its assets attached yet.
   github-release:
     runs-on: ubuntu-latest
     outputs:
@@ -56,7 +50,7 @@ jobs:
             echo "have_notes=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create release (draft)
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -64,121 +58,10 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists — skipping."
           elif [ "${{ steps.notes.outputs.have_notes }}" = "true" ]; then
-            gh release create "$TAG" --title "$TAG" --notes-file release-notes.md --verify-tag --draft
+            gh release create "$TAG" --title "$TAG" --notes-file release-notes.md --verify-tag
           else
-            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag --draft
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
           fi
-
-  # Tailor, the interface builder that ships in this repo, as a macOS app.
-  tailor-macos:
-    needs: github-release
-    runs-on: macos-latest
-    # Signing and notarization are gated separately, because they need different
-    # credentials and one can be set up without the other. With a Developer ID
-    # the app is signed with a hardened runtime; with notary credentials on top
-    # it is also notarized and stapled, which is what stops Gatekeeper warning
-    # on a downloaded build. With neither, the build falls back to an ad-hoc
-    # signature — it runs on the machine that made it and nowhere else.
-    env:
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.github-release.outputs.tag }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Import signing certificate
-        if: env.APPLE_SIGNING_IDENTITY != ''
-        env:
-          CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
-          CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          # Import the Developer ID Application cert into a temporary keychain so
-          # codesign can find it. The keychain is wiped when the job ends.
-          KEYCHAIN="$RUNNER_TEMP/build.keychain"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
-          rm -f "$RUNNER_TEMP/cert.p12"
-
-      - name: Build + bundle (.app)
-        run: |
-          export CODESIGN_IDENTITY="${APPLE_SIGNING_IDENTITY:--}"
-          scripts/bundle.sh
-
-      - name: Notarize app
-        if: env.APPLE_SIGNING_IDENTITY != '' && env.APPLE_APP_PASSWORD != ''
-        run: |
-          set -euo pipefail
-          ditto -c -k --keepParent dist/Tailor.app "$RUNNER_TEMP/Tailor.zip"
-          xcrun notarytool submit "$RUNNER_TEMP/Tailor.zip" \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --wait
-          xcrun stapler staple dist/Tailor.app
-
-      - name: Package (.dmg)
-        run: |
-          export CODESIGN_IDENTITY="${APPLE_SIGNING_IDENTITY:--}"
-          scripts/dmg.sh
-
-      - name: Notarize dmg
-        if: env.APPLE_SIGNING_IDENTITY != '' && env.APPLE_APP_PASSWORD != ''
-        run: |
-          set -euo pipefail
-          xcrun notarytool submit dist/Tailor.dmg \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --wait
-          xcrun stapler staple dist/Tailor.dmg
-
-      - name: Verify bundle
-        run: |
-          codesign --verify --strict --verbose=2 dist/Tailor.app
-          test -x dist/Tailor.app/Contents/MacOS/tailor
-          test -x dist/Tailor.app/Contents/MacOS/tailor-mcp
-          test -f dist/Tailor.app/Contents/Resources/icon.icns
-          if [ -z "${APPLE_SIGNING_IDENTITY}" ]; then
-            echo "::warning::Ad-hoc build — unsigned and not notarized; Gatekeeper will refuse a downloaded copy."
-          elif [ -z "${APPLE_APP_PASSWORD}" ]; then
-            echo "::warning::Signed but not notarized (no APPLE_APP_PASSWORD) — Gatekeeper will still warn on a downloaded copy."
-          fi
-
-      - name: Upload DMG
-        run: gh release upload "${{ needs.github-release.outputs.tag }}" dist/Tailor.dmg --clobber
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  # Flip the draft live once the DMG is attached. `!cancelled()` rather than
-  # `always()`: always() is also true for a cancelled run, which would publish a
-  # release whose remaining jobs were deliberately stopped.
-  publish:
-    runs-on: ubuntu-latest
-    needs: [github-release, tailor-macos]
-    if: |
-      !cancelled()
-      && needs.github-release.result == 'success'
-      && needs.tailor-macos.result == 'success'
-    steps:
-      - name: Publish the release
-        run: gh release edit "${{ needs.github-release.outputs.tag }}" --draft=false --repo "$GITHUB_REPOSITORY"
-        env:
-          GH_TOKEN: ${{ github.token }}
 
   # crates.io publishing is deliberately manual, not blocked: the library builds
   # against plain crates.io `gpui = "0.2.2"` with no patch section, so

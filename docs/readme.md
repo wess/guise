@@ -10,9 +10,11 @@ can scrub), typed drag & drop, and a lightweight React-style state layer
 (signals, two-way bindings, and a reactive form) — all on top of gpui's
 retained-mode renderer.
 
-**[Tailor](tailor.md)** ships in the same repository: drag those components onto
-a canvas, wire the state and the actions, and export idiomatic Rust. Write the
-interface or draw it — you end up with the same components either way.
+**[Tailor](https://github.com/wess/tailor)** is the visual interface builder that draws with
+them: drag those components onto a canvas, wire the state and the actions, and
+export idiomatic Rust. Write the interface or draw it — you end up with the same
+components either way. It is its own project, and consumes this library from
+crates.io.
 
 ## Start here
 
@@ -58,23 +60,15 @@ interface or draw it — you end up with the same components either way.
 
 ## Tailor — the interface builder
 
-A drag-and-drop builder for guise interfaces, shipped in this repository and
-downloadable as an app. Its canvas renders the real components against the real
-theme, so what you lay out is what it generates.
-
-- [Overview](tailor.md) — what it is, the window, right-click, settings, the workspace
-- [Tutorial](tailortutorial.md) — build an app in it end to end, export it, and run what comes out
-- [The canvas](tailorcanvas.md) — modes, selecting, resizing, layout modes, snapping, the live window
-- [Components and slots](tailorcomponents.md) — the 101-component catalog, slots, the five drawn containers, your own components
-- [State, bindings and actions](tailorstate.md) — signals, two-way binding, events, the lint pass
-- [What gets generated](tailorcodegen.md) — the output, the flavours, export, the file format, the theme
-- [The MCP server](tailormcp.md) — driving the same document from an agent
-- [Zed and other editors](tailorzed.md) — jumping between a component and its code, in both directions
+A drag-and-drop builder for guise interfaces, downloadable as an app. Its canvas
+renders the real components against the real theme, so what you lay out is what
+it generates. It lives at [github.com/wess/tailor](https://github.com/wess/tailor), where its
+documentation does too.
 
 ## Reference
 
 - [Architecture](architecture.md) — workspace layout, the gpui dependency, and how to add a component
-- [Releasing](release.md) — cutting a version, signing and notarizing Tailor, publishing the crate
+- [Releasing](release.md) — cutting a version and publishing the crate
 - [Size & performance](performance.md) — what the crate costs to compile, link and render
 
 ## A taste

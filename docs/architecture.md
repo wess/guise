@@ -7,30 +7,23 @@ guise/
 ├── Cargo.toml            # workspace manifest (plain crates.io gpui)
 ├── docs/                 # human docs (this directory)
 ├── site/                 # docs-website generator (Bun; one page per docs/*.md, via render/nav.ts)
-├── scripts/              # the app bundle, the DMG, the app icon, the icon-font generator
-├── extensions/zed/       # a Zed context server for tailor-mcp — its own workspace (wasm32-wasip2)
+├── scripts/              # the icon-font generator
 └── crates/
     ├── guise/            # the library — published as `guise-ui`, lib name `guise`
-    ├── gallery/          # a live showcase (cargo run -p gallery)
-    └── tailor/           # Tailor, the visual interface builder (see tailor.md)
-        ├── model/        #   the document: catalog, node tree, file format
-        ├── codegen/      #   document -> idiomatic guise Rust
-        ├── store/        #   project files, recents, settings, export, the editor bridge
-        ├── render/       #   document -> live guise components
-        ├── app/          #   the gpui workbench (cargo run -p tailor-app)
-        └── mcp/          #   an MCP server over the same document model
+    └── gallery/          # a live showcase (cargo run -p gallery)
 ```
 
-Only `crates/guise` is published. The gallery and the six Tailor crates are
-`publish = false`; they are in the workspace so CI builds them and so the
-library and the builder can never drift apart. `extensions/zed/` is deliberately
-*outside* the workspace — it targets `wasm32-wasip2`, which is not a target the
-rest of the repository can be built for.
+Only `crates/guise` is published; the gallery is `publish = false` and is in the
+workspace so CI builds it against every change.
 
-The version lives once, in `[workspace.package]`, and covers both things the
-repository ships: the library on crates.io and the Tailor app in the release
-assets. `Cargo.lock` is committed and CI builds `--locked`, so bumping the
-version means regenerating the lockfile in the same commit.
+[Tailor](https://github.com/wess/tailor), the visual interface builder that draws with these
+components, used to live here too. It is its own project now, and depends on
+`guise-ui` from crates.io like any other consumer — which is what keeps the
+library honest about what it actually exposes.
+
+The version lives once, in `[workspace.package]`. `Cargo.lock` is committed and
+CI builds `--locked`, so bumping the version means regenerating the lockfile in
+the same commit.
 
 ## The gpui dependency
 
@@ -109,10 +102,10 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
    tests next to the code. For wiring that needs a live app — signals, bindings,
    entity events, the theme global — use the gpui test harness in
    `src/apptests.rs`.
-8. If Tailor should be able to place it, add a `comp!` entry to
-   `crates/tailor/model/src/catalog/` and an arm to
-   `crates/tailor/render/src/nodes/build.rs`. Editing one without the other is
-   how a canvas and an export drift apart.
+8. If [Tailor](https://github.com/wess/tailor) should be able to place it, catalogue it
+   there. Its coverage test reads a record of what this library ships and fails
+   on a component that is neither catalogued nor excluded with a reason, so the
+   gap shows up as a failing build on its side rather than as silent drift.
 
 See the [component model](components.md) for the two patterns in detail.
 
@@ -120,10 +113,8 @@ See the [component model](components.md) for the two patterns in detail.
 
 ```sh
 cargo run -p gallery        # launch the showcase
-cargo run -p tailor-app     # launch Tailor, the interface builder (binary: tailordev)
 cargo check -p guise-ui     # fast type-check (package is guise-ui; lib name is guise)
 cargo test -p guise-ui      # the library's tests: inline #[cfg(test)] + src/apptests.rs
-cargo test -p tailor-model -p tailor-codegen -p tailor-store   # Tailor's gpui-free half
-cargo build --workspace --locked                               # what CI builds
-cd site && bun run build.ts                                    # docs/ -> site/dist
+cargo build --workspace --locked   # what CI builds
+cd site && bun run build.ts        # docs/ -> site/dist
 ```
