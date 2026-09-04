@@ -3,6 +3,7 @@
 //   gallery.html    component gallery
 //   docs.html       documentation home (styled index)
 //   <slug>.html     one page per ../docs/<slug>.md
+//                   plus a forwarding stub per render/redirects.ts entry
 //   searchindex.json, theme/style.css, assets/*, .nojekyll
 //
 // Run with `bun run build.ts` (or `bun run build`).
@@ -13,6 +14,7 @@ import { renderDocsIndex } from "./render/docsindex";
 import { renderDoc, headingsFor } from "./render/doc";
 import { docPages, groupOf } from "./render/nav";
 import { favicon, ogImage } from "./assets/svg";
+import { REDIRECTS, renderRedirect } from "./render/redirects";
 
 const root = import.meta.dir;
 const docsDir = `${root}/../docs`;
@@ -41,6 +43,12 @@ type IndexEntry = {
 };
 
 console.log("building guise site …");
+
+// Stubs for pages that moved out, so old links do not 404.
+for (const [from, to] of Object.entries(REDIRECTS)) {
+  await write(from, renderRedirect(to));
+  console.log(`  gone ${from} -> ${to}`);
+}
 
 await write("index.html", renderLanding());
 await write("gallery.html", renderGallery());
