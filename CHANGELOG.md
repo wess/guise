@@ -5,7 +5,7 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
-## Unreleased
+## 1.6.1 — 2026-09-04
 
 ### Tailor moved out
 
@@ -15,9 +15,13 @@ is its own project now.
 
 It was riding a library's version line, which meant a builder fix could not ship
 without a library release and a library release always shipped a builder build.
-Nothing about the library changes: Tailor was never in `guise-ui` — `cargo
-package -p guise-ui --list` was always the proof — so this removes crates that
-never reached crates.io, and the published crate is byte-for-byte what it was.
+Nothing about the library changes, and that is meant literally: `git diff` over
+`crates/guise/` for this release is empty. Tailor was never in `guise-ui` —
+`cargo package -p guise-ui --list` was always the proof — so this removes crates
+that never reached crates.io. The only thing that moves inside the published
+crate is the bundled `Cargo.lock`, which no longer resolves six packages a
+consumer never built; Cargo reads the lockfile of the final binary, not a
+library's, so it changes nothing for anyone depending on this.
 
 What it does change is the relationship. Tailor now depends on `guise-ui` from
 crates.io like any other consumer, so the library's public surface is the whole
