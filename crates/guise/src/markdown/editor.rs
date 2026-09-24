@@ -21,6 +21,9 @@
 //! .detach();
 //! ```
 
+use crate::actions;
+use crate::input::editmenu::{self, EditMenu};
+use crate::overlay::ContextMenu;
 use gpui::prelude::*;
 use gpui::{
   canvas, div, point, px, App, Bounds, ClipboardItem, Context, Div, DragMoveEvent, Empty, Entity,
@@ -195,6 +198,8 @@ pub struct MarkdownEditor {
   rows: Option<usize>,
   style: MarkdownStyle,
   focus: FocusHandle,
+  /// The right-click Cut / Copy / Paste menu, built on each right-click.
+  menu: Option<Entity<ContextMenu>>,
   scroll: ScrollHandle,
   /// Window-space bounds of the document content, captured at prepaint.
   text_bounds: Bounds<Pixels>,
@@ -222,6 +227,7 @@ impl MarkdownEditor {
       rows: None,
       style: MarkdownStyle::default(),
       focus: cx.focus_handle(),
+      menu: None,
       scroll: ScrollHandle::new(),
       text_bounds: Bounds::default(),
       wrap_w: DEFAULT_WRAP,
@@ -232,7 +238,7 @@ impl MarkdownEditor {
     }
   }
 
-  // ---- builders ----
+  // builders
 
   /// Initial markdown text (`text()` is the getter).
   pub fn value(mut self, text: &str) -> Self {
@@ -283,7 +289,7 @@ impl MarkdownEditor {
     cx.notify();
   }
 
-  // ---- runtime API ----
+  // runtime API
 
   /// The current markdown text.
   pub fn text(&self) -> String {
@@ -355,7 +361,7 @@ impl MarkdownEditor {
     .detach();
   }
 
-  // ---- markdown editing commands ----
+  // markdown editing commands
 
   /// Toggle the checkbox on `line` if it is a task item, preserving the
   /// cursor. Returns whether the line was a task.
@@ -531,9 +537,12 @@ impl MarkdownEditor {
     true
   }
 
-  // ---- input handling ----
+  // input handling
 
   fn on_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    if editmenu::is_open(&self.menu, cx) {
+      return;
+    }
     let ks = &event.keystroke;
     let m = ks.modifiers;
     let shift = m.shift;
@@ -665,11 +674,7 @@ impl MarkdownEditor {
           cx.notify();
         }
       }
-      "a" if m.platform => {
-        self.model.select_all();
-        cx.notify();
-        cx.stop_propagation();
-      }
+      "a" if m.platform => self.select_all(cx),
       "b" if m.platform => {
         self.toggle_wrap("**", cx);
         cx.stop_propagation();
@@ -682,51 +687,10 @@ impl MarkdownEditor {
         self.insert_link(cx);
         cx.stop_propagation();
       }
-      "c" if m.platform => {
-        if let Some(text) = self.model.copy() {
-          cx.write_to_clipboard(ClipboardItem::new_string(text));
-        }
-        cx.stop_propagation();
-      }
-      "x" if m.platform => {
-        if self.read_only {
-          // Selection stays; degrade cut to copy.
-          if let Some(text) = self.model.copy() {
-            cx.write_to_clipboard(ClipboardItem::new_string(text));
-          }
-        } else if let Some(text) = self.model.cut() {
-          cx.write_to_clipboard(ClipboardItem::new_string(text));
-          self.after_edit(cx);
-          return;
-        }
-        cx.stop_propagation();
-      }
-      "v" if m.platform => {
-        if !self.read_only {
-          if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            if !text.is_empty() {
-              self.model.insert(&text);
-              self.after_edit(cx);
-              return;
-            }
-          }
-        }
-        cx.stop_propagation();
-      }
-      "z" if m.platform => {
-        if !self.read_only {
-          let changed = if m.shift {
-            self.model.redo()
-          } else {
-            self.model.undo()
-          };
-          if changed {
-            self.after_edit(cx);
-            return;
-          }
-        }
-        cx.stop_propagation();
-      }
+      "c" if m.platform => self.copy(cx),
+      "x" if m.platform => self.cut(cx),
+      "v" if m.platform => self.paste(cx),
+      "z" if m.platform => self.history(m.shift, cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land.
@@ -740,6 +704,83 @@ impl MarkdownEditor {
       }
     }
     let _ = window;
+  }
+
+  // clipboard and history, shared by the keys and the Edit-menu actions
+
+  fn select_all(&mut self, cx: &mut Context<Self>) {
+    self.model.select_all();
+    cx.notify();
+    cx.stop_propagation();
+  }
+
+  fn copy(&mut self, cx: &mut Context<Self>) {
+    if let Some(text) = self.model.copy() {
+      cx.write_to_clipboard(ClipboardItem::new_string(text));
+    }
+    cx.stop_propagation();
+  }
+
+  fn cut(&mut self, cx: &mut Context<Self>) {
+    if self.read_only {
+      // Selection stays; degrade cut to copy.
+      return self.copy(cx);
+    }
+    if let Some(text) = self.model.cut() {
+      cx.write_to_clipboard(ClipboardItem::new_string(text));
+      return self.after_edit(cx);
+    }
+    cx.stop_propagation();
+  }
+
+  fn paste(&mut self, cx: &mut Context<Self>) {
+    if !self.read_only {
+      if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
+        if !text.is_empty() {
+          self.model.insert(&text);
+          return self.after_edit(cx);
+        }
+      }
+    }
+    cx.stop_propagation();
+  }
+
+  fn history(&mut self, redo: bool, cx: &mut Context<Self>) {
+    if !self.read_only {
+      let changed = if redo {
+        self.model.redo()
+      } else {
+        self.model.undo()
+      };
+      if changed {
+        return self.after_edit(cx);
+      }
+    }
+    cx.stop_propagation();
+  }
+
+  /// Right-click: with no selection the caret moves to the click first, so
+  /// Paste lands where the user pointed; an existing selection is kept for
+  /// the menu to act on.
+  fn on_right_mouse_down(
+    &mut self,
+    ev: &MouseDownEvent,
+    window: &mut Window,
+    cx: &mut Context<Self>,
+  ) {
+    window.focus(&self.focus);
+    if self.model.selection().is_none() {
+      let x = f32::from(ev.position.x) - f32::from(self.text_bounds.origin.x);
+      let y = f32::from(ev.position.y) - f32::from(self.text_bounds.origin.y);
+      let (line, col) = self.hit(x, y);
+      self.model.move_to(line, col, false);
+    }
+    let menu = EditMenu::new(self.model.selection().is_some(), false, self.read_only);
+    let mut slot = self.menu.take();
+    editmenu::open(&mut slot, menu, &self.focus, ev.position, window, cx);
+    self.menu = slot;
+    cx.stop_propagation();
+    cx.notify();
   }
 
   fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
@@ -993,7 +1034,7 @@ impl Render for MarkdownEditor {
     let show_caret = focused && !self.read_only;
     let show_placeholder = self.model.is_empty() && !focused && !self.placeholder.is_empty();
 
-    // ---- build rows: classify, plan, shape ----
+    // build rows: classify, plan, shape
     let wrap_total = self.wrap_w.max(120.0);
     let mut rows: Vec<Row> = Vec::with_capacity(self.model.line_count());
     let mut doc_state = DocState::default();
@@ -1157,7 +1198,7 @@ impl Render for MarkdownEditor {
       self.ensure_cursor_visible();
     }
 
-    // ---- build elements ----
+    // build elements
     let mut row_divs: Vec<Div> = Vec::with_capacity(self.layout.len());
     for (i, row) in self.layout.iter().enumerate() {
       let size_of_row = row
@@ -1371,10 +1412,18 @@ impl Render for MarkdownEditor {
       .track_focus(&self.focus)
       .on_key_down(cx.listener(Self::on_key))
       .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
+      .on_mouse_down(MouseButton::Right, cx.listener(Self::on_right_mouse_down))
+      .children(editmenu::slot(&self.menu))
       .on_drag(MarkdownDrag(cx.entity_id()), |_, _, _, cx| {
         cx.new(|_| Empty)
       })
       .on_drag_move(cx.listener(Self::on_drag_move))
+      .on_action(cx.listener(|this, _: &actions::Copy, _, cx| this.copy(cx)))
+      .on_action(cx.listener(|this, _: &actions::Cut, _, cx| this.cut(cx)))
+      .on_action(cx.listener(|this, _: &actions::Paste, _, cx| this.paste(cx)))
+      .on_action(cx.listener(|this, _: &actions::SelectAll, _, cx| this.select_all(cx)))
+      .on_action(cx.listener(|this, _: &actions::Undo, _, cx| this.history(false, cx)))
+      .on_action(cx.listener(|this, _: &actions::Redo, _, cx| this.history(true, cx)))
       .overflow_y_scroll()
       .track_scroll(&self.scroll)
       .w_full()
@@ -1403,7 +1452,7 @@ impl Render for MarkdownEditor {
   }
 }
 
-// ---- pure helpers (unit-tested) ---------------------------------------------
+// pure helpers (unit-tested)
 
 /// Map a fence info string onto a highlighter language.
 fn fence_language(lang: Option<&str>) -> Language {

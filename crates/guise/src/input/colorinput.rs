@@ -237,7 +237,7 @@ impl Render for ColorInput {
     // Wired before the theme is read: `theme(cx)` borrows `cx` immutably
     // and `wire` needs it mutably, and this render keeps `t` alive all the
     // way down into the palette grid.
-    let wired = line::wire(div().id("guise-colorinput"), &self.focus, cx)
+    let wired = line::wire(div().id("guise-colorinput"), &self.focus, &self.state, cx)
       .on_key_down(cx.listener(Self::on_key));
     let interior = Line::new(cx.entity());
 

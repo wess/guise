@@ -10,6 +10,7 @@
 //!   `cx.new(|cx| TextInput::new(cx))` and subscribe for changes.
 
 mod accept;
+mod area;
 mod autocomplete;
 mod calendar;
 mod checkbox;
@@ -20,6 +21,7 @@ mod date;
 mod datepicker;
 mod dropzone;
 mod edit;
+pub(crate) mod editmenu;
 mod field;
 mod fileinput;
 mod keys;

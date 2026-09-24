@@ -15,7 +15,7 @@ use crate::devtools::{
   DevTools, DevToolsEvent, DevToolsState, DevToolsTab, LogLevel, NetworkRecord, Probed,
   RequestState, SourceRef, StorageDomain, StorageEntry,
 };
-use crate::input::{Date, DatePicker, LineEditor as _, Select, TextInput};
+use crate::input::{Date, DatePicker, LineEditor as _, PinInput, Select, TextArea, TextInput};
 use crate::reactive::{validators, Form, Signal};
 use crate::settings::{SettingsView, SettingsViewEvent};
 use crate::theme::{theme, Color, ColorScheme, Theme, ThemeChoice, ThemeEntry, ThemeManager};
@@ -393,7 +393,7 @@ fn buttons_move_through_the_tab_order(cx: &mut TestAppContext) {
   assert!(cx.update(|window, _| handle.is_focused(window)));
 }
 
-// --- single-line fields -----------------------------------------------------
+// single-line fields
 //
 // These drive a real window: `simulate_input` dispatches the key event first
 // and only then hands the character to the platform's input handler, exactly
@@ -642,7 +642,265 @@ fn text_input_never_copies_a_password(cx: &mut TestAppContext) {
   assert_eq!(field.read_with(cx, |field, _| field.text()), "hunter2");
 }
 
-// --- AI components ----------------------------------------------------------
+#[gpui::test]
+fn text_input_answers_the_edit_menu_actions(cx: &mut TestAppContext) {
+  let (view, cx) = pair(cx);
+  let (first, second) = view.read_with(cx, |view, _| (view.first.clone(), view.second.clone()));
+  // A host that binds the chords for its Edit menu. Keymap bindings run
+  // before key handlers, so each chord must reach the field exactly once —
+  // through the action, not the action and then the key as well.
+  cx.update(|_, cx| cx.bind_keys(crate::actions::key_bindings()));
+  focus(&first, cx);
+  cx.simulate_input("menu");
+  cx.simulate_keystrokes("cmd-a cmd-c");
+  focus(&second, cx);
+  cx.simulate_keystrokes("cmd-v");
+  assert_eq!(second.read_with(cx, |field, _| field.text()), "menu");
+
+  // A click on the menu item dispatches the action with no key at all.
+  cx.dispatch_action(crate::actions::SelectAll);
+  cx.dispatch_action(crate::actions::Cut);
+  assert_eq!(second.read_with(cx, |field, _| field.text()), "");
+  cx.dispatch_action(crate::actions::Undo);
+  assert_eq!(second.read_with(cx, |field, _| field.text()), "menu");
+}
+
+fn text_area(cx: &mut TestAppContext) -> (Entity<TextArea>, &mut gpui::VisualTestContext) {
+  cx.update(|cx| Theme::light().init(cx));
+  let (area, cx) = cx.add_window_view(|_window, cx| TextArea::new(cx));
+  let handle = area.read_with(cx, |area, _| area.focus_handle());
+  cx.update(|window, _| window.focus(&handle));
+  cx.run_until_parked();
+  (area, cx)
+}
+
+#[gpui::test]
+fn text_area_types_through_the_platform_input_handler(cx: &mut TestAppContext) {
+  let (area, cx) = text_area(cx);
+  cx.simulate_input("one");
+  cx.simulate_keystrokes("enter");
+  cx.simulate_input("two");
+  assert_eq!(area.read_with(cx, |area, _| area.text()), "one\ntwo");
+}
+
+#[gpui::test]
+fn text_area_cuts_copies_and_pastes(cx: &mut TestAppContext) {
+  let (area, cx) = text_area(cx);
+  cx.simulate_input("alpha");
+  cx.simulate_keystrokes("enter");
+  cx.simulate_input("beta");
+
+  cx.simulate_keystrokes("cmd-a cmd-c");
+  assert_eq!(
+    cx.read_from_clipboard().and_then(|item| item.text()),
+    Some("alpha\nbeta".to_string())
+  );
+  cx.simulate_keystrokes("cmd-x");
+  assert_eq!(area.read_with(cx, |area, _| area.text()), "");
+  cx.simulate_keystrokes("cmd-v cmd-v");
+  assert_eq!(
+    area.read_with(cx, |area, _| area.text()),
+    "alpha\nbetaalpha\nbeta"
+  );
+
+  // Windows line endings arrive as plain breaks.
+  cx.write_to_clipboard(gpui::ClipboardItem::new_string("\r\nx".into()));
+  cx.simulate_keystrokes("cmd-v");
+  assert_eq!(
+    area.read_with(cx, |area, _| area.text()),
+    "alpha\nbetaalpha\nbeta\nx"
+  );
+
+  // And the Edit-menu actions reach it too.
+  cx.dispatch_action(crate::actions::SelectAll);
+  cx.dispatch_action(crate::actions::Cut);
+  assert_eq!(area.read_with(cx, |area, _| area.text()), "");
+  cx.dispatch_action(crate::actions::Undo);
+  assert_eq!(
+    area.read_with(cx, |area, _| area.text()),
+    "alpha\nbetaalpha\nbeta\nx"
+  );
+}
+
+#[gpui::test]
+fn text_area_click_places_the_caret_and_drag_selects(cx: &mut TestAppContext) {
+  let (area, cx) = text_area(cx);
+  cx.simulate_input("hello");
+  cx.simulate_keystrokes("enter");
+  cx.simulate_input("world");
+  cx.run_until_parked();
+
+  // Ask the laid-out text where a byte sits, so the test doesn't depend on
+  // the font's metrics. `point_for` is the top of the row; aim mid-row.
+  let at = |byte: usize, cx: &mut gpui::VisualTestContext| {
+    area.read_with(cx, |area, _| {
+      let top = area
+        .area
+        .point_for(byte)
+        .expect("the area has been painted");
+      gpui::point(top.x, top.y + area.area.line_height() / 2.0)
+    })
+  };
+
+  let second_line = at(8, cx);
+  cx.simulate_click(second_line, Modifiers::none());
+  cx.simulate_input("X");
+  assert_eq!(area.read_with(cx, |area, _| area.text()), "hello\nwoXrld");
+
+  // Press in the first line, drag into the second: the selection crosses
+  // the line break.
+  let (from, to) = (at(2, cx), at(8, cx));
+  cx.simulate_mouse_down(from, MouseButton::Left, Modifiers::none());
+  cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::none());
+  cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::none());
+  cx.simulate_keystrokes("cmd-c");
+  assert_eq!(
+    cx.read_from_clipboard().and_then(|item| item.text()),
+    Some("llo\nwo".to_string())
+  );
+
+  // Double-click takes the word, triple-click the line.
+  let position = at(9, cx);
+  for (clicks, expected) in [(2, "woXrld"), (3, "woXrld")] {
+    cx.simulate_event(gpui::MouseDownEvent {
+      button: MouseButton::Left,
+      position,
+      modifiers: Modifiers::none(),
+      click_count: clicks,
+      first_mouse: false,
+    });
+    cx.simulate_mouse_up(position, MouseButton::Left, Modifiers::none());
+    cx.simulate_keystrokes("cmd-c");
+    assert_eq!(
+      cx.read_from_clipboard().and_then(|item| item.text()),
+      Some(expected.to_string())
+    );
+  }
+  let position = at(1, cx);
+  cx.simulate_event(gpui::MouseDownEvent {
+    button: MouseButton::Left,
+    position,
+    modifiers: Modifiers::none(),
+    click_count: 3,
+    first_mouse: false,
+  });
+  cx.simulate_mouse_up(position, MouseButton::Left, Modifiers::none());
+  cx.simulate_keystrokes("cmd-c");
+  assert_eq!(
+    cx.read_from_clipboard().and_then(|item| item.text()),
+    Some("hello".to_string())
+  );
+}
+
+#[gpui::test]
+fn text_input_right_click_opens_the_edit_menu(cx: &mut TestAppContext) {
+  let (view, cx) = pair(cx);
+  let field = view.read_with(cx, |view, _| view.first.clone());
+  focus(&field, cx);
+  cx.simulate_input("hello");
+
+  let bounds = field.read_with(cx, |field, _| field.line().bounds.expect("painted"));
+  cx.simulate_mouse_down(bounds.center(), MouseButton::Right, Modifiers::none());
+  cx.simulate_mouse_up(bounds.center(), MouseButton::Right, Modifiers::none());
+  let open = |cx: &mut gpui::VisualTestContext| {
+    field.read_with(cx, |field, cx| {
+      field
+        .line()
+        .menu
+        .as_ref()
+        .is_some_and(|menu| menu.read(cx).is_open())
+    })
+  };
+  assert!(open(cx));
+
+  // The menu holds focus while it is up, and its keys don't reach the
+  // field it sits inside.
+  cx.simulate_keystrokes("backspace");
+  assert_eq!(field.read_with(cx, |field, _| field.text()), "hello");
+
+  // Escape closes it and hands focus back.
+  cx.simulate_keystrokes("escape");
+  assert!(!open(cx));
+  let handle = field.read_with(cx, |field, _| field.focus_handle());
+  assert!(cx.update(|window, _| handle.is_focused(window)));
+  cx.simulate_keystrokes("backspace");
+  assert_eq!(field.read_with(cx, |field, _| field.text()), "hell");
+}
+
+/// A text area in a column narrow enough that a sentence has to wrap.
+struct Narrow {
+  area: Entity<TextArea>,
+}
+
+impl Render for Narrow {
+  fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    div().w(gpui::px(160.0)).child(self.area.clone())
+  }
+}
+
+#[gpui::test]
+fn text_area_arrows_move_by_visual_row(cx: &mut TestAppContext) {
+  cx.update(|cx| Theme::light().init(cx));
+  let (view, cx) = cx.add_window_view(|_window, cx| Narrow {
+    area: cx
+      .new(|cx| TextArea::new(cx).value("one two three four five six seven eight nine ten\nlast")),
+  });
+  let area = view.read_with(cx, |view, _| view.area.clone());
+  let handle = area.read_with(cx, |area, _| area.focus_handle());
+  cx.update(|window, _| window.focus(&handle));
+  cx.run_until_parked();
+
+  let first_break = "one two three four five six seven eight nine ten"
+    .chars()
+    .count();
+  let cursor = |cx: &mut gpui::VisualTestContext| area.read_with(cx, |area, _| area.edit.cursor());
+
+  cx.simulate_keystrokes("cmd-up down");
+  // Still inside the first logical line: it wrapped, and ↓ went one row.
+  let row_two = cursor(cx);
+  assert!(row_two > 0 && row_two < first_break, "landed at {row_two}");
+
+  // Enough presses cross into the last line, then stop at the end.
+  cx.simulate_keystrokes("down down down down down down down down");
+  assert_eq!(cursor(cx), first_break + 1 + "last".len());
+
+  // And back up to the start.
+  cx.simulate_keystrokes("up up up up up up up up up up");
+  assert_eq!(cursor(cx), 0);
+
+  // Shift extends by rows too.
+  cx.simulate_keystrokes("shift-down");
+  let selected = area.read_with(cx, |area, _| area.edit.selected_text());
+  assert!(selected.is_some_and(|text| !text.contains('\n')));
+}
+
+#[gpui::test]
+fn pin_input_copies_its_code_unless_masked(cx: &mut TestAppContext) {
+  cx.update(|cx| Theme::light().init(cx));
+  let (pin, cx) = cx.add_window_view(|_window, cx| PinInput::new(cx).length(4).value("1234"));
+  let handle = pin.read_with(cx, |pin, _| pin.focus_handle());
+  cx.update(|window, _| window.focus(&handle));
+  cx.run_until_parked();
+  cx.simulate_keystrokes("cmd-c");
+  assert_eq!(
+    cx.read_from_clipboard().and_then(|item| item.text()),
+    Some("1234".to_string())
+  );
+
+  cx.write_to_clipboard(gpui::ClipboardItem::new_string("untouched".into()));
+  let (masked, cx) =
+    cx.add_window_view(|_window, cx| PinInput::new(cx).length(4).mask(true).value("1234"));
+  let handle = masked.read_with(cx, |pin, _| pin.focus_handle());
+  cx.update(|window, _| window.focus(&handle));
+  cx.run_until_parked();
+  cx.simulate_keystrokes("cmd-c");
+  assert_eq!(
+    cx.read_from_clipboard().and_then(|item| item.text()),
+    Some("untouched".to_string())
+  );
+}
+
+// AI components
 
 #[gpui::test]
 fn chat_view_streams_a_reply_and_closes_it(cx: &mut TestAppContext) {
@@ -818,7 +1076,7 @@ fn composer_sends_on_enter_and_refuses_blank_drafts(cx: &mut TestAppContext) {
   assert_eq!(sent.borrow().len(), 1);
 }
 
-// --- devtools ---------------------------------------------------------------
+// devtools
 
 /// A window holding the inspector next to something worth inspecting. The
 /// recorder only runs while a `DevTools` is alive, so the two have to share a
@@ -1098,7 +1356,7 @@ fn picking_selects_the_deepest_node_under_the_point(cx: &mut TestAppContext) {
   });
 }
 
-// --- settings ---------------------------------------------------------------
+// settings
 
 fn settings_view(cx: &mut TestAppContext) -> Entity<SettingsView> {
   cx.update(|cx| Theme::light().init(cx));
@@ -1339,7 +1597,7 @@ fn a_new_animator_does_not_start_itself(cx: &mut TestAppContext) {
   });
 }
 
-// --- layout -----------------------------------------------------------------
+// layout
 
 /// A window whose whole body is one filling `ScrollArea` over content far
 /// taller than any window, under a parent of the caller's choosing. The probe

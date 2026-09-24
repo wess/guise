@@ -326,7 +326,7 @@ impl Render for NumberInput {
           .on_click(cx.listener(|this, _ev, _window, cx| this.nudge(-1.0, cx))),
       );
 
-    let field = line::wire(div().id("guise-numberinput"), &self.focus, cx)
+    let field = line::wire(div().id("guise-numberinput"), &self.focus, &self.state, cx)
       .on_key_down(cx.listener(Self::on_key))
       .flex()
       .items_center()

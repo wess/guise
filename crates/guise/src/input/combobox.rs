@@ -239,52 +239,57 @@ impl Render for Combobox {
       if has_value { text_color } else { dimmed },
     );
 
-    let trigger = line::wire(div().id("guise-combobox-trigger"), &self.focus, cx)
-      .on_key_down(cx.listener(Self::on_key))
-      // Layered on top of the shared handlers rather than replacing
-      // them: clicking the field places a caret *and* opens the list.
-      .on_mouse_down(
-        MouseButton::Left,
-        cx.listener(|this, _event, _window, cx| {
+    let trigger = line::wire(
+      div().id("guise-combobox-trigger"),
+      &self.focus,
+      &self.state,
+      cx,
+    )
+    .on_key_down(cx.listener(Self::on_key))
+    // Layered on top of the shared handlers rather than replacing
+    // them: clicking the field places a caret *and* opens the list.
+    .on_mouse_down(
+      MouseButton::Left,
+      cx.listener(|this, _event, _window, cx| {
+        if !this.disabled {
+          this.open = true;
+          cx.notify();
+        }
+      }),
+    )
+    .flex()
+    .items_center()
+    .justify_between()
+    .gap(px(8.0))
+    .h(px(height))
+    .px(px(pad_x))
+    .rounded(px(radius))
+    .border_1()
+    .border_color(border)
+    .bg(surface)
+    .text_size(px(font))
+    .line_height(px(font * 1.3))
+    .child(div().flex_1().min_w(px(0.0)).child(interior))
+    // Clicking the field places a caret, so the chevron keeps the
+    // open/close toggle the trigger used to be.
+    .child(
+      div()
+        .id("guise-combobox-chevron")
+        .flex_none()
+        .cursor_pointer()
+        .child(
+          Icon::new(IconName::ChevronDown)
+            .size(Size::Xs)
+            .color(crate::theme::ColorName::Gray),
+        )
+        .on_click(cx.listener(|this, _ev, window, cx| {
           if !this.disabled {
-            this.open = true;
+            this.open = !this.open;
+            window.focus(&this.focus);
             cx.notify();
           }
-        }),
-      )
-      .flex()
-      .items_center()
-      .justify_between()
-      .gap(px(8.0))
-      .h(px(height))
-      .px(px(pad_x))
-      .rounded(px(radius))
-      .border_1()
-      .border_color(border)
-      .bg(surface)
-      .text_size(px(font))
-      .line_height(px(font * 1.3))
-      .child(div().flex_1().min_w(px(0.0)).child(interior))
-      // Clicking the field places a caret, so the chevron keeps the
-      // open/close toggle the trigger used to be.
-      .child(
-        div()
-          .id("guise-combobox-chevron")
-          .flex_none()
-          .cursor_pointer()
-          .child(
-            Icon::new(IconName::ChevronDown)
-              .size(Size::Xs)
-              .color(crate::theme::ColorName::Gray),
-          )
-          .on_click(cx.listener(|this, _ev, window, cx| {
-            if !this.disabled {
-              this.open = !this.open;
-              window.focus(&this.focus);
-              cx.notify();
-            }
-          })),
-      );
+        })),
+    );
 
     let mut wrap = div().relative().child(trigger);
 

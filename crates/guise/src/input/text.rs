@@ -261,7 +261,7 @@ impl Render for TextInput {
 
     let line = Line::new(cx.entity()).placeholder(self.placeholder.clone(), dimmed);
 
-    let field = line::wire(div().id("guise-textinput"), &self.focus, cx)
+    let field = line::wire(div().id("guise-textinput"), &self.focus, &self.state, cx)
       .on_key_down(cx.listener(Self::on_key))
       .flex()
       .items_center()

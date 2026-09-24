@@ -280,24 +280,29 @@ impl Render for PasswordInput {
         }
       }));
 
-    let field = line::wire(div().id("guise-passwordinput"), &self.focus, cx)
-      .on_key_down(cx.listener(Self::on_key))
-      .flex()
-      .items_center()
-      .justify_between()
-      .gap(px(8.0))
-      .w_full()
-      .overflow_hidden()
-      .h(px(height))
-      .px(px(pad_x))
-      .rounded(px(radius))
-      .border_1()
-      .border_color(border)
-      .bg(surface)
-      .text_size(px(font))
-      .line_height(px(font * 1.3))
-      .child(div().flex_1().min_w(px(0.0)).child(interior))
-      .child(eye);
+    let field = line::wire(
+      div().id("guise-passwordinput"),
+      &self.focus,
+      &self.state,
+      cx,
+    )
+    .on_key_down(cx.listener(Self::on_key))
+    .flex()
+    .items_center()
+    .justify_between()
+    .gap(px(8.0))
+    .w_full()
+    .overflow_hidden()
+    .h(px(height))
+    .px(px(pad_x))
+    .rounded(px(radius))
+    .border_1()
+    .border_color(border)
+    .bg(surface)
+    .text_size(px(font))
+    .line_height(px(font * 1.3))
+    .child(div().flex_1().min_w(px(0.0)).child(interior))
+    .child(eye);
 
     let mut chrome = Field::new().child(if self.disabled {
       field.opacity(0.6)

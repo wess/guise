@@ -195,6 +195,7 @@ shares one editing core, so they all behave the way an `<input>` does:
 | **Mouse** | click to place the caret, drag to select, double-click a word, triple-click the value, Shift+click to extend |
 | **Tab** | moves to the next field, Shift+Tab to the previous — never types a tab character |
 | **Clipboard** | Cmd/Ctrl+C, X, V; a multi-line paste is flattened to one line, the way `<input>` flattens it |
+| **Right-click** | a Cut / Copy / Paste / Select All menu, offering only what applies (nothing to copy in a password field, nothing to cut or paste when read-only) |
 | **Undo** | Cmd/Ctrl+Z and Shift+Z, coalesced by word rather than by keystroke |
 | **Navigation** | Option+←/→ by word, Cmd+←/→ to the line edges, Option+Backspace, Cmd+Backspace / Cmd+Delete, and Ctrl+A / Ctrl+E / Ctrl+K |
 | **Long values** | scroll horizontally to keep the caret in view instead of clipping |
@@ -208,6 +209,38 @@ key resolve.
 Tab order defaults to render order, the way `tabindex="0"` does; set
 `tab_index` only to override it, or `tab_stop(false)` to skip a field without
 disabling it. Escape still bubbles, so a dialog can close on it.
+
+### Edit menus
+
+The keys work with no setup. An app with an Edit menu needs one more step,
+because gpui matches keymap bindings before any key handler runs: bind cmd-c to
+your own action to show it in the menu and every field stops seeing cmd-c.
+Bind guise's actions instead. Every text surface (the single-line fields,
+`TextArea`, `Editor`, `MarkdownEditor`, and `PinInput` for copy/paste) answers
+them, whether they come from the key, a click on the menu item, or the
+field's own right-click menu, which sends the same actions. When no
+field has focus, the action falls through to your own handlers.
+
+```rust
+use guise::actions::{self, Copy, Cut, Paste, Redo, SelectAll, Undo};
+
+cx.bind_keys(actions::key_bindings()); // cmd on macOS, ctrl elsewhere
+cx.set_menus(vec![Menu {
+    name: "Edit".into(),
+    items: vec![
+        MenuItem::action("Undo", Undo),
+        MenuItem::action("Redo", Redo),
+        MenuItem::separator(),
+        MenuItem::action("Cut", Cut),
+        MenuItem::action("Copy", Copy),
+        MenuItem::action("Paste", Paste),
+        MenuItem::action("Select All", SelectAll),
+    ],
+}]);
+```
+
+They are not in the prelude, because a glob import of `Copy` would shadow the
+std trait.
 
 Everything is unicode-correct — the underlying `TextEdit` model is
 unit-tested, and the caret is placed by shaping the real glyphs.
@@ -335,7 +368,13 @@ Methods: `new(cx)`, `value(f64)`, `min`, `max`, `step`, `label`, `description`,
 ## TextArea (entity)
 
 A multiline field. Enter inserts a newline; ↑/↓ move between lines keeping the
-column. Reuses the unicode-correct `TextEdit` model and composes `Field`.
+column. Reuses the unicode-correct `TextEdit` model and composes `Field`. Text
+wraps at the field's width, and the field takes the same mouse, clipboard, and
+IME handling as a single-line field. The one difference is that triple-click
+selects the line, not the whole value, and a paste keeps its line breaks
+(`\r\n` is normalised to `\n`). ↑/↓ move by the rows on screen rather than by
+line break, so a long wrapped line takes several presses to cross, and they keep
+their column through short rows.
 
 ```rust
 let bio = cx.new(|cx| {
@@ -460,7 +499,8 @@ on Enter. Escape and Tab bubble to the host, as in `TextInput`.
 
 Segmented one-character code boxes — the one-time-code field. Typing advances,
 Backspace clears and retreats, arrows move between boxes, and Cmd+V fills them
-from the clipboard (whitespace stripped, extra characters dropped).
+from the clipboard (whitespace stripped, extra characters dropped). Cmd+C copies
+the whole code, unless the pin is masked.
 
 ```rust
 let pin = cx.new(|cx| PinInput::new(cx).length(6).mask(true));

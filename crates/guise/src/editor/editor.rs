@@ -24,6 +24,9 @@
 
 use std::ops::Range;
 
+use crate::actions;
+use crate::input::editmenu::{self, EditMenu};
+use crate::overlay::ContextMenu;
 use gpui::prelude::*;
 use gpui::{
   canvas, div, point, px, App, Bounds, ClipboardItem, Context, Div, DragMoveEvent, Empty, Entity,
@@ -103,6 +106,8 @@ pub struct Editor {
   highlights: Vec<(Pos, Pos, Hsla)>,
   diagnostics: Vec<Diagnostic>,
   focus: FocusHandle,
+  /// The right-click Cut / Copy / Paste menu, built on each right-click.
+  menu: Option<Entity<ContextMenu>>,
   scroll: ScrollHandle,
   hscroll: ScrollHandle,
   /// Window-space bounds of the text content, captured at prepaint. Mouse
@@ -139,6 +144,7 @@ impl Editor {
       highlights: Vec::new(),
       diagnostics: Vec::new(),
       focus: cx.focus_handle(),
+      menu: None,
       scroll: ScrollHandle::new(),
       hscroll: ScrollHandle::new(),
       text_bounds: Bounds::default(),
@@ -148,7 +154,7 @@ impl Editor {
     }
   }
 
-  // ---- builders ----
+  // builders
 
   /// Initial text (named like [`TextInput::value`](crate::input::TextInput::value);
   /// `text()` is the getter).
@@ -276,7 +282,7 @@ impl Editor {
     &self.diagnostics
   }
 
-  // ---- runtime API ----
+  // runtime API
 
   /// The current document text.
   pub fn text(&self) -> String {
@@ -377,9 +383,12 @@ impl Editor {
     .detach();
   }
 
-  // ---- input handling ----
+  // input handling
 
   fn on_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    if editmenu::is_open(&self.menu, cx) {
+      return;
+    }
     let ks = &event.keystroke;
     let m = ks.modifiers;
     let shift = m.shift;
@@ -504,56 +513,11 @@ impl Editor {
           cx.notify();
         }
       }
-      "a" if m.platform => {
-        self.model.select_all();
-        cx.notify();
-        cx.stop_propagation();
-      }
-      "c" if m.platform => {
-        if let Some(text) = self.model.copy() {
-          cx.write_to_clipboard(ClipboardItem::new_string(text));
-        }
-        cx.stop_propagation();
-      }
-      "x" if m.platform => {
-        if self.read_only {
-          // Selection stays; degrade cut to copy.
-          if let Some(text) = self.model.copy() {
-            cx.write_to_clipboard(ClipboardItem::new_string(text));
-          }
-        } else if let Some(text) = self.model.cut() {
-          cx.write_to_clipboard(ClipboardItem::new_string(text));
-          self.after_edit(window, cx);
-          return;
-        }
-        cx.stop_propagation();
-      }
-      "v" if m.platform => {
-        if !self.read_only {
-          if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            if !text.is_empty() {
-              self.model.insert(&text);
-              self.after_edit(window, cx);
-              return;
-            }
-          }
-        }
-        cx.stop_propagation();
-      }
-      "z" if m.platform => {
-        if !self.read_only {
-          let changed = if m.shift {
-            self.model.redo()
-          } else {
-            self.model.undo()
-          };
-          if changed {
-            self.after_edit(window, cx);
-            return;
-          }
-        }
-        cx.stop_propagation();
-      }
+      "a" if m.platform => self.select_all(cx),
+      "c" if m.platform => self.copy(cx),
+      "x" if m.platform => self.cut(window, cx),
+      "v" if m.platform => self.paste(window, cx),
+      "z" if m.platform => self.history(m.shift, window, cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land (matches `input::apply_key`).
@@ -566,6 +530,81 @@ impl Editor {
         // Everything else bubbles to the host.
       }
     }
+  }
+
+  // clipboard and history, shared by the keys and the Edit-menu actions
+
+  fn select_all(&mut self, cx: &mut Context<Self>) {
+    self.model.select_all();
+    cx.notify();
+    cx.stop_propagation();
+  }
+
+  fn copy(&mut self, cx: &mut Context<Self>) {
+    if let Some(text) = self.model.copy() {
+      cx.write_to_clipboard(ClipboardItem::new_string(text));
+    }
+    cx.stop_propagation();
+  }
+
+  fn cut(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    if self.read_only {
+      // Selection stays; degrade cut to copy.
+      return self.copy(cx);
+    }
+    if let Some(text) = self.model.cut() {
+      cx.write_to_clipboard(ClipboardItem::new_string(text));
+      return self.after_edit(window, cx);
+    }
+    cx.stop_propagation();
+  }
+
+  fn paste(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    if !self.read_only {
+      if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
+        if !text.is_empty() {
+          self.model.insert(&text);
+          return self.after_edit(window, cx);
+        }
+      }
+    }
+    cx.stop_propagation();
+  }
+
+  fn history(&mut self, redo: bool, window: &mut Window, cx: &mut Context<Self>) {
+    if !self.read_only {
+      let changed = if redo {
+        self.model.redo()
+      } else {
+        self.model.undo()
+      };
+      if changed {
+        return self.after_edit(window, cx);
+      }
+    }
+    cx.stop_propagation();
+  }
+
+  /// Right-click: with no selection the caret moves to the click first, so
+  /// Paste lands where the user pointed; an existing selection is kept for
+  /// the menu to act on.
+  fn on_right_mouse_down(
+    &mut self,
+    ev: &MouseDownEvent,
+    window: &mut Window,
+    cx: &mut Context<Self>,
+  ) {
+    window.focus(&self.focus);
+    if self.model.selection().is_none() {
+      let (line, col) = self.hit(ev.position, window);
+      self.model.move_to(line, col, false);
+    }
+    let menu = EditMenu::new(self.model.selection().is_some(), false, self.read_only);
+    let mut slot = self.menu.take();
+    editmenu::open(&mut slot, menu, &self.focus, ev.position, window, cx);
+    self.menu = slot;
+    cx.stop_propagation();
+    cx.notify();
   }
 
   fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
@@ -943,8 +982,16 @@ impl Render for Editor {
       .track_focus(&self.focus)
       .on_key_down(cx.listener(Self::on_key))
       .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
+      .on_mouse_down(MouseButton::Right, cx.listener(Self::on_right_mouse_down))
+      .children(editmenu::slot(&self.menu))
       .on_drag(EditorDrag(cx.entity_id()), |_, _, _, cx| cx.new(|_| Empty))
       .on_drag_move(cx.listener(Self::on_drag_move))
+      .on_action(cx.listener(|this, _: &actions::Copy, _, cx| this.copy(cx)))
+      .on_action(cx.listener(|this, _: &actions::Cut, window, cx| this.cut(window, cx)))
+      .on_action(cx.listener(|this, _: &actions::Paste, window, cx| this.paste(window, cx)))
+      .on_action(cx.listener(|this, _: &actions::SelectAll, _, cx| this.select_all(cx)))
+      .on_action(cx.listener(|this, _: &actions::Undo, window, cx| this.history(false, window, cx)))
+      .on_action(cx.listener(|this, _: &actions::Redo, window, cx| this.history(true, window, cx)))
       .overflow_y_scroll()
       .track_scroll(&self.scroll)
       .w_full()
@@ -995,7 +1042,7 @@ impl Render for Editor {
   }
 }
 
-// ---- pure geometry helpers (unit-tested) -----------------------------------
+// pure geometry helpers (unit-tested)
 
 /// Cover `len` bytes with contiguous span lengths: token ranges keep their
 /// kind, gaps get `None`. Clamps overlapping or out-of-range tokens so the

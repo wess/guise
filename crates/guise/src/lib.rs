@@ -39,6 +39,7 @@ pub use gpui::ParentElement as __ParentElement;
 #[doc(hidden)]
 pub use ::gpui;
 
+pub mod actions;
 pub mod ai;
 pub mod anim;
 pub mod chart;

@@ -37,7 +37,10 @@ use gpui::{
 };
 
 use super::edit::TextEdit;
+use super::editmenu::{self, EditMenu};
 use super::{apply_nav, KeyOutcome};
+use crate::actions;
+use crate::overlay::ContextMenu;
 use crate::theme::theme;
 
 /// What a masked field shows instead of its characters.
@@ -78,6 +81,8 @@ pub struct LineState {
   pub(crate) caret_on: bool,
   /// Whether a blink task is already running for this field.
   pub(crate) blinking: bool,
+  /// The right-click menu, built on each right-click.
+  pub(crate) menu: Option<Entity<ContextMenu>>,
 }
 
 impl LineState {
@@ -258,7 +263,7 @@ macro_rules! line_input_handler {
 
 pub(crate) use line_input_handler;
 
-// --- UTF-16 translation -----------------------------------------------------
+// UTF-16 translation
 //
 // The platform addresses text in UTF-16 code units; the model counts chars.
 // These four helpers are the only place that conversion happens.
@@ -391,7 +396,7 @@ pub(crate) fn range_bounds<V: LineEditor>(
   ))
 }
 
-// --- mouse ------------------------------------------------------------------
+// mouse
 
 /// Focus the field and place (or extend) the selection where the user clicked.
 /// Click counts follow the platform convention a browser also uses: one places
@@ -418,6 +423,38 @@ pub(crate) fn mouse_down<V: LineEditor>(
   }
   this.line_mut().selecting = true;
   this.line_mut().wake();
+  cx.notify();
+}
+
+/// Open the Cut / Copy / Paste menu. A right-click outside the selection
+/// moves the caret there first, the way a native field does; inside it, the
+/// selection stays so the menu acts on it.
+pub(crate) fn context_menu<V: LineEditor>(
+  this: &mut V,
+  event: &MouseDownEvent,
+  window: &mut Window,
+  cx: &mut Context<V>,
+) {
+  window.focus(this.line_focus());
+  if let Some(index) = this.line().index_at(this.edit(), event.position) {
+    let inside = this
+      .edit()
+      .selection()
+      .is_some_and(|(start, end)| index >= start && index <= end);
+    if !inside {
+      this.edit_mut().set_cursor(index);
+    }
+  }
+  let menu = EditMenu::new(
+    this.edit().has_selection(),
+    this.line_masked(),
+    this.line_read_only(),
+  );
+  let focus = this.line_focus().clone();
+  let mut slot = this.line_mut().menu.take();
+  editmenu::open(&mut slot, menu, &focus, event.position, window, cx);
+  this.line_mut().menu = slot;
+  cx.stop_propagation();
   cx.notify();
 }
 
@@ -449,7 +486,9 @@ pub(crate) fn mouse_up<V: LineEditor>(
   }
 }
 
-/// Attach the mouse handling every field shares, and mark it a text surface.
+/// Attach the mouse handling every field shares, answer the
+/// [`actions`](crate::actions) a host's Edit menu sends, and mark it a text
+/// surface.
 ///
 /// The four handlers have to travel together — a selection drag that only
 /// registers `on_mouse_up` and not `on_mouse_up_out` never ends when the
@@ -459,15 +498,52 @@ pub(crate) fn mouse_up<V: LineEditor>(
 pub(crate) fn wire<V: LineEditor>(
   element: gpui::Stateful<gpui::Div>,
   focus: &FocusHandle,
+  state: &LineState,
   cx: &mut Context<V>,
 ) -> gpui::Stateful<gpui::Div> {
   element
     .track_focus(focus)
+    .on_mouse_down(gpui::MouseButton::Right, cx.listener(context_menu))
+    .children(editmenu::slot(&state.menu))
     .cursor(gpui::CursorStyle::IBeam)
     .on_mouse_down(gpui::MouseButton::Left, cx.listener(mouse_down))
     .on_mouse_move(cx.listener(mouse_move))
     .on_mouse_up(gpui::MouseButton::Left, cx.listener(mouse_up))
     .on_mouse_up_out(gpui::MouseButton::Left, cx.listener(mouse_up))
+    .on_action(cx.listener(|this: &mut V, _: &actions::Copy, _, cx| {
+      copy(this, cx);
+    }))
+    .on_action(cx.listener(|this: &mut V, _: &actions::Cut, _, cx| {
+      let outcome = cut(this, cx);
+      settle(this, outcome, cx);
+    }))
+    .on_action(cx.listener(|this: &mut V, _: &actions::Paste, _, cx| {
+      let outcome = paste(this, cx);
+      settle(this, outcome, cx);
+    }))
+    .on_action(cx.listener(|this: &mut V, _: &actions::Undo, _, cx| {
+      let outcome = history(this, true, cx);
+      settle(this, outcome, cx);
+    }))
+    .on_action(cx.listener(|this: &mut V, _: &actions::Redo, _, cx| {
+      let outcome = history(this, false, cx);
+      settle(this, outcome, cx);
+    }))
+    .on_action(cx.listener(|this: &mut V, _: &actions::SelectAll, _, cx| {
+      this.edit_mut().select_all();
+      this.line_mut().wake();
+      cx.notify();
+    }))
+}
+
+/// What a field's own key handler does with an outcome, for the action path,
+/// which has no key handler to hand it back to.
+fn settle<V: LineEditor>(this: &mut V, outcome: KeyOutcome, cx: &mut Context<V>) {
+  if outcome == KeyOutcome::Edited {
+    this.line_changed(cx);
+  } else {
+    cx.notify();
+  }
 }
 
 /// Give a field the Tab-order and focus accessors every form control needs.
@@ -502,7 +578,7 @@ macro_rules! line_focus_builders {
 
 pub(crate) use line_focus_builders;
 
-// --- keyboard ---------------------------------------------------------------
+// keyboard
 
 /// The keys a single-line field handles itself: the clipboard, undo, focus
 /// movement, then navigation and deletion via
@@ -517,6 +593,9 @@ pub(crate) fn keys<V: LineEditor>(
   window: &mut Window,
   cx: &mut Context<V>,
 ) -> KeyOutcome {
+  if editmenu::is_open(&this.line().menu, cx) {
+    return KeyOutcome::Pass;
+  }
   let ks = &event.keystroke;
   let m = &ks.modifiers;
 
@@ -632,7 +711,7 @@ fn history<V: LineEditor>(this: &mut V, undo: bool, cx: &mut Context<V>) -> KeyO
   }
 }
 
-// --- the element ------------------------------------------------------------
+// the element
 
 /// The text, caret, and selection of a single-line field.
 ///
@@ -724,7 +803,12 @@ impl<V: LineEditor> Element for Line<V> {
     let selection_color = t.selection();
     let dimmed = t.dimmed().hsla();
 
-    let focused = self.field.read(cx).line_focus().is_focused(window);
+    // The right-click menu takes focus while it is up, but the selection
+    // it acts on should stay visible under it.
+    let focused = {
+      let field = self.field.read(cx);
+      field.line_focus().is_focused(window) || editmenu::is_open(&field.line().menu, cx)
+    };
     let field = self.field.read(cx);
     let masked = field.line_masked();
     let empty = field.edit().is_empty();

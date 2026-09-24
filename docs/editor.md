@@ -162,7 +162,10 @@ movement key.
 
 ⌘Tab, read-only Tab/Enter, and any unhandled chord bubble to the host, so
 focus management keeps working. Mouse: click places the caret, ⇧-click
-extends, drag selects, double-click selects a word, triple-click the line.
+extends, drag selects, double-click selects a word, triple-click the line,
+and right-click opens a Cut / Copy / Paste / Select All menu. The editor also
+answers the [`guise::actions`](inputs.md#edit-menus) edit actions, so an app's
+Edit menu reaches it.
 Two editors in one window never react to each other's drags — the drag
 payload is tagged with the owning entity.
 

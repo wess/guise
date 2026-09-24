@@ -290,7 +290,7 @@ impl Render for TagsInput {
     let pill_h = height - 14.0;
     let pill_font = (font - 2.0).max(10.0);
 
-    let mut field = line::wire(div().id("guise-tagsinput"), &self.focus, cx)
+    let mut field = line::wire(div().id("guise-tagsinput"), &self.focus, &self.state, cx)
       .on_key_down(cx.listener(Self::on_key))
       .flex()
       .flex_row()

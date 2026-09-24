@@ -265,19 +265,24 @@ impl Render for Autocomplete {
 
     let interior = Line::new(cx.entity()).placeholder(self.placeholder.clone(), dimmed);
 
-    let trigger = line::wire(div().id("guise-autocomplete-trigger"), &self.focus, cx)
-      .on_key_down(cx.listener(Self::on_key))
-      .flex()
-      .items_center()
-      .h(px(height))
-      .px(px(pad_x))
-      .rounded(px(radius))
-      .border_1()
-      .border_color(border)
-      .bg(surface)
-      .text_size(px(font))
-      .line_height(px(font * 1.3))
-      .child(div().flex_1().min_w(px(0.0)).child(interior));
+    let trigger = line::wire(
+      div().id("guise-autocomplete-trigger"),
+      &self.focus,
+      &self.state,
+      cx,
+    )
+    .on_key_down(cx.listener(Self::on_key))
+    .flex()
+    .items_center()
+    .h(px(height))
+    .px(px(pad_x))
+    .rounded(px(radius))
+    .border_1()
+    .border_color(border)
+    .bg(surface)
+    .text_size(px(font))
+    .line_height(px(font * 1.3))
+    .child(div().flex_1().min_w(px(0.0)).child(interior));
 
     let mut wrap = div().relative().child(trigger);
 

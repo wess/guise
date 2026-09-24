@@ -2,8 +2,8 @@
 //!
 //! Owns its slots, cursor, and focus; renders N single-character boxes and
 //! emits [`PinInputEvent`] as the code changes or completes. Typing advances,
-//! backspace clears and retreats, arrows move, and Cmd+V fills the boxes from
-//! the clipboard.
+//! backspace clears and retreats, arrows move, Cmd+V fills the boxes from
+//! the clipboard, and Cmd+C copies the code (unless it is masked).
 //!
 //! ```ignore
 //! let pin = cx.new(|cx| PinInput::new(cx).length(6).mask(true));
@@ -15,11 +15,12 @@
 
 use gpui::prelude::*;
 use gpui::{
-  div, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
-  SharedString, Window,
+  div, px, App, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, IntoElement,
+  KeyDownEvent, MouseButton, SharedString, Window,
 };
 
 use super::control_metrics;
+use crate::actions;
 use crate::devtools::Probed;
 use crate::reactive::Signal;
 use crate::theme::{theme, Size};
@@ -253,6 +254,30 @@ impl PinInput {
     cx.stop_propagation();
   }
 
+  /// The whole code, since a pin has no partial selection. A masked pin
+  /// copies nothing, the way a password field refuses to.
+  fn copy(&mut self, cx: &mut Context<Self>) {
+    if !self.mask {
+      let value = self.model.value();
+      if !value.is_empty() {
+        cx.write_to_clipboard(ClipboardItem::new_string(value));
+      }
+    }
+    cx.stop_propagation();
+  }
+
+  fn paste(&mut self, cx: &mut Context<Self>) {
+    if self.disabled {
+      return;
+    }
+    if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
+      if self.model.paste(&text) {
+        self.emit_edit(cx);
+      }
+    }
+    cx.stop_propagation();
+  }
+
   fn on_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
     if self.disabled {
       return;
@@ -277,14 +302,8 @@ impl PinInput {
           cx.stop_propagation();
         }
       }
-      "v" if m.platform => {
-        if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-          if self.model.paste(&text) {
-            self.emit_edit(cx);
-          }
-        }
-        cx.stop_propagation();
-      }
+      "c" if m.platform => self.copy(cx),
+      "v" if m.platform => self.paste(cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land (same rule as TextInput).
@@ -330,6 +349,8 @@ impl Render for PinInput {
       .id("guise-pininput")
       .track_focus(&self.focus)
       .on_key_down(cx.listener(Self::on_key))
+      .on_action(cx.listener(|this, _: &actions::Copy, _, cx| this.copy(cx)))
+      .on_action(cx.listener(|this, _: &actions::Paste, _, cx| this.paste(cx)))
       .flex()
       .items_center()
       .gap(px(8.0));
