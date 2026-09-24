@@ -188,7 +188,7 @@ impl RenderOnce for Dropzone {
         let deliver = deliver.clone();
         cx.spawn(async move |cx| {
           if let Ok(Ok(Some(paths))) = receiver.await {
-            cx.update(|cx| deliver(paths, cx)).ok();
+            cx.update(|cx| deliver(paths, cx));
           }
         })
         .detach();

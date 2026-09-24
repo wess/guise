@@ -271,7 +271,7 @@ impl Render for ColorInput {
       .on_click(cx.listener(|this, _ev, window, cx| {
         if !this.disabled {
           this.open = !this.open;
-          window.focus(&this.focus);
+          window.focus(&this.focus, cx);
           cx.notify();
         }
       }));

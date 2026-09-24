@@ -348,7 +348,8 @@ pub fn declarations(style: &StyleRefinement) -> Vec<Declaration> {
     ));
   }
 
-  if let Some(text) = &style.text {
+  {
+    let text = &style.text;
     if let Some(color) = text.color {
       out.push(Declaration::colored("color", color));
     }

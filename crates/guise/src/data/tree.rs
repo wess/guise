@@ -532,7 +532,7 @@ impl Render for TreeView {
       .on_mouse_down(
         MouseButton::Left,
         cx.listener(|this, _ev, window, cx| {
-          window.focus(&this.focus);
+          window.focus(&this.focus, cx);
           cx.notify();
         }),
       )
@@ -548,7 +548,7 @@ impl Render for TreeView {
         )
         .h(px(height))
         .w_full()
-        .track_scroll(self.scroll.clone()),
+        .track_scroll(&self.scroll),
       )
     } else {
       root.gap(px(2.0)).children(self.render_rows(0..count, cx))

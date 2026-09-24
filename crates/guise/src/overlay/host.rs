@@ -126,7 +126,7 @@ impl OverlayHost {
     };
     let entry = self.modals.remove(index);
     if let Some(focus) = entry.previous_focus {
-      window.focus(&focus);
+      window.focus(&focus, cx);
     }
     cx.notify();
   }

@@ -88,9 +88,9 @@ pub(crate) fn handle_tab(event: &KeyDownEvent, window: &mut Window, cx: &mut App
   let modifiers = &event.keystroke.modifiers;
   if event.keystroke.key == "tab" && !modifiers.platform && !modifiers.control {
     if modifiers.shift {
-      window.focus_prev();
+      window.focus_prev(cx);
     } else {
-      window.focus_next();
+      window.focus_next(cx);
     }
     cx.stop_propagation();
   }

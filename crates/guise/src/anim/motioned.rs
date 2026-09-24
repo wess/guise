@@ -65,7 +65,7 @@ pub trait Motioned: IntoElement + Styled + Sized + 'static {
     clip: impl Into<Clip>,
   ) -> AnimationElement<Self> {
     let id = ElementId::NamedChild(
-      Box::new(id.into()),
+      Box::new(id.into()).into(),
       SharedString::new_static(if condition { "on" } else { "off" }),
     );
     let clip = if condition {

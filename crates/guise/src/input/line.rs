@@ -33,8 +33,8 @@ use gpui::prelude::*;
 use gpui::{
   fill, point, px, size, App, Bounds, ClipboardItem, Context, ElementInputHandler, Entity,
   FocusHandle, GlobalElementId, Hsla, KeyDownEvent, LayoutId, MouseDownEvent, MouseMoveEvent,
-  MouseUpEvent, PaintQuad, Pixels, Point, ShapedLine, SharedString, Style, TextRun, UnderlineStyle,
-  Window,
+  MouseUpEvent, PaintQuad, Pixels, Point, ShapedLine, SharedString, Style, TextAlign, TextRun,
+  UnderlineStyle, Window,
 };
 
 use super::edit::TextEdit;
@@ -408,7 +408,7 @@ pub(crate) fn mouse_down<V: LineEditor>(
   window: &mut Window,
   cx: &mut Context<V>,
 ) {
-  window.focus(this.line_focus());
+  window.focus(this.line_focus(), cx);
   let Some(index) = this.line().index_at(this.edit(), event.position) else {
     cx.notify();
     return;
@@ -436,7 +436,7 @@ pub(crate) fn context_menu<V: LineEditor>(
   window: &mut Window,
   cx: &mut Context<V>,
 ) {
-  window.focus(this.line_focus());
+  window.focus(this.line_focus(), cx);
   if let Some(index) = this.line().index_at(this.edit(), event.position) {
     let inside = this
       .edit()
@@ -605,9 +605,9 @@ pub(crate) fn keys<V: LineEditor>(
   // behaviour every HTML form gets right for free.
   if ks.key == "tab" && !m.platform && !m.control {
     if m.shift {
-      window.focus_prev();
+      window.focus_prev(cx);
     } else {
-      window.focus_next();
+      window.focus_next(cx);
     }
     cx.stop_propagation();
     return KeyOutcome::Edited;
@@ -1012,7 +1012,16 @@ impl<V: LineEditor> Element for Line<V> {
       if let Some(selection) = prepaint.selection.take() {
         window.paint_quad(selection);
       }
-      shaped.paint(origin, window.line_height(), window, cx).ok();
+      shaped
+        .paint(
+          origin,
+          window.line_height(),
+          TextAlign::default(),
+          None,
+          window,
+          cx,
+        )
+        .ok();
       if let Some(caret) = prepaint.caret.take() {
         window.paint_quad(caret);
       }

@@ -648,7 +648,7 @@ impl<T: 'static> TableView<T> {
         let count = ev.click_count;
         view
           .update(app, |this, cx| {
-            window.focus(&this.focus);
+            window.focus(&this.focus, cx);
             this.row_mouse_down(display, toggle, range, count, cx);
           })
           .ok();
@@ -693,7 +693,7 @@ impl<T: 'static> Render for TableView<T> {
       )
       .h(px(height))
       .w_full()
-      .track_scroll(self.scroll.clone())
+      .track_scroll(&self.scroll)
       .into_any_element()
     } else {
       div()

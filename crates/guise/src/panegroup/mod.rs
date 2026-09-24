@@ -16,12 +16,13 @@ mod drag;
 mod group;
 mod id;
 mod layout;
+mod motion;
 mod nav;
 mod pane;
 mod snapshot;
 mod tree;
 
-pub use drag::{DropEdge, TabDrag};
+pub use drag::{DropEdge, TabDrag, TearDrop, TearHint};
 pub use group::{PaneGroup, PaneGroupEvent};
 pub use id::{ItemId, ItemIds, PaneId, PaneIds, SplitId};
 pub use layout::{compute_layout, Layout, Rect};
