@@ -301,7 +301,7 @@ impl<T: 'static> TableView<T> {
     self
   }
 
-  // --- Entity methods ------------------------------------------------------
+  // Entity methods
 
   /// Replace the rows with a new owned snapshot (drops any signal binding).
   pub fn set_rows(&mut self, rows: Vec<T>, cx: &mut Context<Self>) {
@@ -326,7 +326,7 @@ impl<T: 'static> TableView<T> {
     self.focus.clone()
   }
 
-  // --- Internals -----------------------------------------------------------
+  // Internals
 
   fn prune_selection(&mut self, len: usize, cx: &mut Context<Self>) {
     if self.selection.retain_below(len) {
@@ -468,7 +468,7 @@ impl<T: 'static> TableView<T> {
     }
   }
 
-  // --- Rendering -----------------------------------------------------------
+  // Rendering
 
   fn render_header(&self, cx: &mut Context<Self>) -> Div {
     let t = theme(cx);

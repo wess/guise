@@ -319,7 +319,6 @@ fn appearance_page(
   section.into_any_element()
 }
 
-/// The Editor page.
 fn editor_page(autosave: &Signal<bool>, cx: &mut App) -> AnyElement {
   SettingsSection::new("Editing")
     .description("How notes behave while you write them.")
@@ -865,7 +864,7 @@ impl Gallery {
         .step("Theming", "Toggle light/dark from the header button.")
     });
 
-    // --- motion -----------------------------------------------------
+    // motion
     // A looping clip: slide out, drop and round off, then come back. The
     // tracks are geometry only, so the same animator is correct in both
     // themes — the colour half of the story is a one-shot built during
@@ -920,7 +919,7 @@ impl Gallery {
     let update_notice =
       cx.new(|cx| UpdateNotice::new(updater, UpdateOutcome::Pending("9.9.9".into()), cx));
 
-    // --- AI ---------------------------------------------------------
+    // AI
     // A canned exchange, so the section shows what a real transcript looks
     // like: a reply with reasoning, a tool call, and cited sources.
     let chat = cx.new(|cx| {
@@ -2459,7 +2458,7 @@ impl Gallery {
       cx.notify();
     }));
 
-    // --- staggered entrance ------------------------------------------
+    // staggered entrance
     // One clip per element, offset by index. Replaying is a matter of
     // handing them new ids: a mounted animation has already played.
     let words = ["Keyframes", "Springs", "Stagger", "Timelines"];
@@ -2481,7 +2480,7 @@ impl Gallery {
         .collect::<Vec<_>>(),
     );
 
-    // --- a keyframed one-shot, colours read live from the theme -------
+    // a keyframed one-shot, colours read live from the theme
     let swatch = Animated::new(("motion-keyframes", epoch))
       .motion(
         Motion::new()
@@ -2506,7 +2505,7 @@ impl Gallery {
         cx.notify();
       }));
 
-    // --- the controllable player --------------------------------------
+    // the controllable player
     let play_pause = Button::new("motion-play", if playing { "Pause" } else { "Play" })
       .variant(Variant::Light)
       .on_click(cx.listener(|this, _ev, _window, cx| {

@@ -64,7 +64,7 @@ impl Render for Demo {
     let epoch = self.epoch;
     let playing = self.player.read(cx).is_playing();
 
-    // --- keyframes: three legs, the middle one held longer -----------
+    // keyframes: three legs, the middle one held longer
     let swatch = Animated::new(("swatch", epoch))
       .motion(motion! {
           duration: 1100;
@@ -77,7 +77,7 @@ impl Render for Demo {
       })
       .child(div().w(px(56.0)).h(px(56.0)));
 
-    // --- stagger: one clip per row, offset by index -------------------
+    // stagger: one clip per row, offset by index
     let rows = ["Keyframes", "Springs", "Stagger", "Sequences", "Playheads"];
     let rise = Stagger::new(60.0).from(StaggerFrom::First);
     let list = div().flex().flex_col().gap(px(6.0)).children(
@@ -107,7 +107,7 @@ impl Render for Demo {
         .collect::<Vec<_>>(),
     );
 
-    // --- the playhead --------------------------------------------------
+    // the playhead
     let stage = div()
       .w_full()
       .h(px(120.0))

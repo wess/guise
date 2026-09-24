@@ -25,7 +25,7 @@ impl fmt::Display for CssColorError {
 
 impl std::error::Error for CssColorError {}
 
-// --- Constructors (also the macro's expansion targets) ---------------------
+// Constructors (also the macro's expansion targets)
 
 fn rgba_f(r: f32, g: f32, b: f32, a: f32) -> Hsla {
   Rgba {
@@ -62,7 +62,7 @@ pub fn hsla(h: f32, s: f32, l: f32, a: f32) -> Hsla {
   }
 }
 
-// --- Parser ----------------------------------------------------------------
+// Parser
 
 /// Parse a CSS color string into an [`Hsla`].
 pub fn css(input: &str) -> Result<Hsla, CssColorError> {

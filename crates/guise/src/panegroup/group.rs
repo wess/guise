@@ -162,7 +162,7 @@ impl PaneGroup {
     self
   }
 
-  // --- queries --------------------------------------------------------
+  // queries
 
   pub fn focused_pane(&self) -> PaneId {
     self.focused
@@ -207,7 +207,7 @@ impl PaneGroup {
       .map(|(&id, _)| id)
   }
 
-  // --- mutation -------------------------------------------------------
+  // mutation
 
   /// Add `item` as a new tab in `pane` and activate it.
   pub fn add_item(&mut self, pane: PaneId, item: ItemId, cx: &mut Context<Self>) {
@@ -379,7 +379,7 @@ impl PaneGroup {
     cx.notify();
   }
 
-  // --- navigation -----------------------------------------------------
+  // navigation
 
   /// Focus the pane in `dir` from the focused one (via layout geometry).
   pub fn focus_direction(&mut self, dir: Direction, cx: &mut Context<Self>) {
@@ -411,7 +411,7 @@ impl PaneGroup {
     }
   }
 
-  // --- split management -----------------------------------------------
+  // split management
 
   /// Reset every divider to an even split.
   pub fn equalize(&mut self, cx: &mut Context<Self>) {
@@ -447,7 +447,7 @@ impl PaneGroup {
     self.zoomed
   }
 
-  // --- close / tear-off -----------------------------------------------
+  // close / tear-off
 
   /// Ask the host to close the focused pane's active item (it drops the
   /// content, then calls [`close_item`](Self::close_item)).
@@ -479,7 +479,7 @@ impl PaneGroup {
     cx.notify();
   }
 
-  // --- persistence accessors ------------------------------------------
+  // persistence accessors
 
   /// The split tree (for serializing the layout).
   /// Capture the current split/tab arrangement (see

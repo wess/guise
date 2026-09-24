@@ -87,7 +87,7 @@ pub(crate) fn series_color(t: &Theme, overrides: &[ColorValue], index: usize) ->
   }
 }
 
-// --- pure geometry ----------------------------------------------------------
+// pure geometry
 
 /// `(min, max)` of a series, skipping non-finite values. `None` when the
 /// series is empty or has no finite values.
@@ -222,7 +222,7 @@ pub(crate) fn arc_point(center: (f32, f32), radius: f32, fraction: f32) -> (f32,
   )
 }
 
-// --- shared painting --------------------------------------------------------
+// shared painting
 
 /// Stroke a min/max-normalized polyline across `bounds`, optionally filling
 /// the area between the line and the bottom edge first. Paint-phase only:

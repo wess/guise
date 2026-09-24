@@ -648,7 +648,7 @@ impl DevToolsState {
     id
   }
 
-  // --- logs ---------------------------------------------------------------
+  // logs
 
   /// Append a line, coalescing it into the previous one when identical.
   pub fn push_log(&mut self, mut record: LogRecord) {
@@ -690,7 +690,7 @@ impl DevToolsState {
     (warnings, errors)
   }
 
-  // --- network -----------------------------------------------------------
+  // network
 
   /// Record a request that has started. Returns its id, which the host keeps
   /// to settle the request later.
@@ -749,7 +749,7 @@ impl DevToolsState {
     (self.network.len(), transfer, resource)
   }
 
-  // --- storage -----------------------------------------------------------
+  // storage
 
   /// Register a domain, replacing any existing one with the same id. Hosts
   /// call this whenever their store changes; the panel always shows the
@@ -771,7 +771,7 @@ impl DevToolsState {
     &self.storage
   }
 
-  // --- timelines ---------------------------------------------------------
+  // timelines
 
   pub fn push_timeline(&mut self, mut event: TimelineEvent) {
     event.id = self.tick();

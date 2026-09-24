@@ -128,7 +128,7 @@ macro_rules! modal {
     }};
 }
 
-// --- Component shorthands --------------------------------------------------
+// Component shorthands
 //
 // Content components also accept `format!` args; e.g. `text!("Hi {}", name)`.
 // All of these return the underlying builder, so `.variant(..)`, `.color(..)`,
@@ -261,7 +261,7 @@ macro_rules! style {
 macro_rules! __style {
     (@m $el:expr ;) => { $el };
 
-    // --- color-valued (string literal → css; else any Into<Hsla> expr) ---
+    // color-valued (string literal → css; else any Into<Hsla> expr)
     (@m $el:expr ; background : $v:literal ; $($r:tt)*) => {
         $crate::__style!(@m $el.bg($crate::theme::css($v).expect("style!: invalid color")) ; $($r)*)
     };
@@ -281,7 +281,7 @@ macro_rules! __style {
         $crate::__style!(@m $el.border_1().border_color($v) ; $($r)*)
     };
 
-    // --- keyword-valued (must precede the numeric arms for the same name) ---
+    // keyword-valued (must precede the numeric arms for the same name)
     (@m $el:expr ; display : flex ; $($r:tt)*) => { $crate::__style!(@m $el.flex() ; $($r)*) };
 
     (@m $el:expr ; direction : row ; $($r:tt)*) => { $crate::__style!(@m $el.flex_row() ; $($r)*) };
@@ -311,7 +311,7 @@ macro_rules! __style {
     (@m $el:expr ; width : full ; $($r:tt)*) => { $crate::__style!(@m $el.w_full() ; $($r)*) };
     (@m $el:expr ; height : full ; $($r:tt)*) => { $crate::__style!(@m $el.h_full() ; $($r)*) };
 
-    // --- numeric (px) ---
+    // numeric (px)
     (@m $el:expr ; width : $v:expr ; $($r:tt)*) => { $crate::__style!(@m $el.w($crate::gpui::px($v as f32)) ; $($r)*) };
     (@m $el:expr ; height : $v:expr ; $($r:tt)*) => { $crate::__style!(@m $el.h($crate::gpui::px($v as f32)) ; $($r)*) };
     (@m $el:expr ; size : $v:expr ; $($r:tt)*) => { $crate::__style!(@m $el.w($crate::gpui::px($v as f32)).h($crate::gpui::px($v as f32)) ; $($r)*) };

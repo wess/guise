@@ -128,7 +128,7 @@ impl Theme {
     cx.set_global(self);
   }
 
-  // --- CSS-color overrides (builder) -------------------------------------
+  // CSS-color overrides (builder)
   //
   // Each accepts anything convertible to an `Hsla` — notably the `color!`
   // macro and `css(..)` output, but also a palette `Color`. Alpha is dropped
@@ -201,7 +201,7 @@ impl Theme {
     self
   }
 
-  // --- Token lookups -----------------------------------------------------
+  // Token lookups
 
   pub fn spacing(&self, size: Size) -> f32 {
     self.spacing.get(size)
@@ -215,7 +215,7 @@ impl Theme {
     self.font_size.get(size)
   }
 
-  // --- Color resolution --------------------------------------------------
+  // Color resolution
 
   /// A single shade of a named color.
   pub fn color(&self, name: ColorName, shade: usize) -> Color {
@@ -238,7 +238,7 @@ impl Theme {
       .unwrap_or_else(|| self.color(self.primary_color, self.primary_shade()))
   }
 
-  // --- Semantic colors (scheme-aware) ------------------------------------
+  // Semantic colors (scheme-aware)
 
   /// The app/window background.
   pub fn body(&self) -> Color {
@@ -299,7 +299,7 @@ impl Theme {
     self.primary().alpha(0.30)
   }
 
-  // --- Feedback accents (scheme-aware) ------------------------------------
+  // Feedback accents (scheme-aware)
 
   /// Success / positive accent (confirmations, valid states).
   pub fn success(&self) -> Color {

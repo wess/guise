@@ -140,7 +140,7 @@ pub fn token_color(kind: TokenKind, t: &Theme) -> Hsla {
   }
 }
 
-// ---- scanner ---------------------------------------------------------------
+// scanner
 
 /// How a quoted string escapes its own quote char.
 #[derive(Clone, Copy)]

@@ -654,7 +654,7 @@ impl Drop for DevTools {
   }
 }
 
-// --- the host-facing feed ---------------------------------------------------
+// the host-facing feed
 //
 // Every one of these is a no-op when `DevToolsState` was never installed, so
 // instrumentation can be left in place unconditionally. They are

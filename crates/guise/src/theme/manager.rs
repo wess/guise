@@ -262,7 +262,7 @@ impl ThemeManager {
     self
   }
 
-  // --- registry ----------------------------------------------------------
+  // registry
 
   /// Add a theme, replacing any entry with the same id.
   pub fn register(&mut self, entry: ThemeEntry) {
@@ -340,7 +340,7 @@ impl ThemeManager {
     self.entries.iter().find(|e| e.id == id)
   }
 
-  // --- selection ---------------------------------------------------------
+  // selection
 
   /// The active choice. Persist it with `to_string()`.
   pub fn selection(&self) -> &ThemeChoice {
@@ -383,7 +383,7 @@ impl ThemeManager {
     }
   }
 
-  // --- installed-global operations ---------------------------------------
+  // installed-global operations
 
   /// Install as the global and apply the resolved theme.
   pub fn install(self, cx: &mut App) {

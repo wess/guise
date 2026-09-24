@@ -124,7 +124,7 @@ macro_rules! sequence {
 macro_rules! __motion {
     (@m $m:expr ;) => { $m };
 
-    // --- timing ---
+    // timing
     (@m $m:expr ; duration : $v:expr ; $($r:tt)*) => {
         $crate::__motion!(@m $m.duration($v as f32) ; $($r)*)
     };
@@ -159,7 +159,7 @@ macro_rules! __motion {
         $crate::__motion!(@m $m.ease($e) ; $($r)*)
     };
 
-    // --- repetition ---
+    // repetition
     (@m $m:expr ; repeat : forever ; $($r:tt)*) => {
         $crate::__motion!(@m $m.repeat_forever() ; $($r)*)
     };

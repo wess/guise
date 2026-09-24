@@ -72,7 +72,7 @@ impl EditorModel {
     }
   }
 
-  // ---- document access ----
+  // document access
 
   pub fn text(&self) -> String {
     self.lines.join("\n")
@@ -120,7 +120,7 @@ impl EditorModel {
     self.tab_size = n.max(1);
   }
 
-  // ---- editing ----
+  // editing
 
   /// Insert `s` at the cursor, replacing the selection if there is one.
   /// Embedded newlines split lines; CRLF is normalized to `\n`.
@@ -197,7 +197,7 @@ impl EditorModel {
     self.goal_col = None;
   }
 
-  // ---- movement (extend = shift held: grow the selection) ----
+  // movement (extend = shift held: grow the selection)
 
   pub fn move_left(&mut self, extend: bool) {
     self.goal_col = None;
@@ -316,7 +316,7 @@ impl EditorModel {
     self.goal_col = None;
   }
 
-  // ---- mouse ----
+  // mouse
 
   /// Clamp a raw (line, col) from mouse hit-testing to a valid position:
   /// line into the document, col to that line's char length.
@@ -334,7 +334,7 @@ impl EditorModel {
     self.goal_col = None;
   }
 
-  // ---- selection ----
+  // selection
 
   /// The selection as a normalized (start, end) pair in document order, or
   /// `None` when there is no selection (or it is empty).
@@ -435,7 +435,7 @@ impl EditorModel {
     true
   }
 
-  // ---- clipboard (the entity layer talks to the OS) ----
+  // clipboard (the entity layer talks to the OS)
 
   /// Remove and return the selected text; `None` when nothing is selected.
   pub fn cut(&mut self) -> Option<String> {
@@ -451,7 +451,7 @@ impl EditorModel {
     self.selected_text()
   }
 
-  // ---- history ----
+  // history
 
   pub fn can_undo(&self) -> bool {
     !self.undo.is_empty()
@@ -496,7 +496,7 @@ impl EditorModel {
     true
   }
 
-  // ---- internals ----
+  // internals
 
   fn line_len(&self, i: usize) -> usize {
     self.lines[i].chars().count()

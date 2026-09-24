@@ -105,7 +105,6 @@ pub struct RowMetrics {
   pub pad_bottom: f32,
 }
 
-/// The metrics for a row kind.
 pub fn metrics(kind: &RowKind) -> RowMetrics {
   let m = |scale, line_height, pad_top, pad_bottom| RowMetrics {
     scale,
@@ -329,7 +328,7 @@ impl<'a> Builder<'a> {
   }
 }
 
-// ---- source ↔ visible mapping ----------------------------------------------
+// source ↔ visible mapping
 
 /// Visible byte offset for source byte `src`. Bytes inside hidden segments
 /// collapse to the point they disappeared into; offsets past the last

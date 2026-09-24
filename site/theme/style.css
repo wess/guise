@@ -67,7 +67,7 @@ code, pre { font-family: var(--mono); }
 }
 .ital { font-style: normal; }
 
-/* ---------- header ---------- */
+/* header */
 .topbar {
   position: sticky; top: 0; z-index: 50;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
@@ -84,14 +84,14 @@ code, pre { font-family: var(--mono); }
 .topnav .ext { color: var(--dim); }
 .navtoggle { display: none; background: none; border: 0; color: var(--fg); font-size: 22px; cursor: pointer; }
 
-/* ---------- buttons ---------- */
+/* buttons */
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px; font-family: var(--sans); font-weight: 600; font-size: 15px; cursor: pointer; transition: 0.16s; border: 1px solid transparent; }
 .btn-primary { background: #f1f1f4; color: #0c0c0f; }
 .btn-primary:hover { background: #fff; transform: translateY(-1px); }
 .btn-ghost { background: rgba(255, 255, 255, 0.04); color: var(--fg); border-color: var(--line2); }
 .btn-ghost:hover { background: rgba(255, 255, 255, 0.09); }
 
-/* ---------- hero ---------- */
+/* hero */
 .hero { position: relative; overflow: hidden; padding: 92px 0 40px; text-align: center; }
 .hero::before {
   content: ""; position: absolute; inset: -10% -10% auto -10%; height: 720px; z-index: 0;
@@ -120,7 +120,7 @@ code, pre { font-family: var(--mono); }
 .copybtn:hover { background: #fff; }
 .copybtn.ok { background: var(--teal3); }
 
-/* ---------- hero duo: the builder, an arrow, the components ---------- */
+/* hero duo: the builder, an arrow, the components */
 .hero-duo { display: grid; grid-template-columns: 1fr auto 1fr; gap: 26px; align-items: start;
   margin: 58px auto 0; max-width: 1120px; text-align: left; }
 .duo { margin: 0; min-width: 0; }
@@ -146,7 +146,7 @@ code, pre { font-family: var(--mono); }
   .duo-join i:last-child { background: linear-gradient(90deg, var(--line2), transparent); }
 }
 
-/* ---------- annotated hero exhibit ---------- */
+/* annotated hero exhibit */
 .exhibit { position: relative; margin: 60px auto 0; max-width: 940px; }
 .exhibit-wash { position: absolute; inset: -40px -40px -60px; z-index: 0; border-radius: 40px;
   background: radial-gradient(60% 80% at 50% 60%, rgba(121, 80, 242, 0.28), transparent 72%); filter: blur(6px); }
@@ -171,7 +171,7 @@ code, pre { font-family: var(--mono); }
 .cal-r::after { left: 2px; top: 50%; transform: scaleX(-1); }
 .cal-r::before { left: 0; top: calc(50% - 3px); }
 
-/* ---------- palette ribbon ---------- */
+/* palette ribbon */
 .ribbon { display: flex; gap: 6px; margin: 46px auto 0; max-width: 720px; }
 .ribbon .swatch { flex: 1; height: 30px; border-radius: 7px; background: var(--c); display: flex; align-items: flex-end; justify-content: center; }
 .ribbon--labelled .swatch { height: 42px; }
@@ -179,7 +179,7 @@ code, pre { font-family: var(--mono); }
 .ribbon-cap { font-family: var(--mono); font-size: 12px; color: var(--dim); text-align: center; margin-top: 14px; }
 .band .ribbon-cap { margin-bottom: 52px; }
 
-/* ---------- bands / sections ---------- */
+/* bands / sections */
 .band { position: relative; padding: 86px 0; border-top: 1px solid var(--line); overflow: hidden; }
 .band::before { content: ""; position: absolute; inset: 0; z-index: 0; opacity: 0.5;
   background: radial-gradient(50% 60% at 15% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); pointer-events: none; }
@@ -263,7 +263,7 @@ pre.code code { color: #c7c7d1; }
 .endcard h3 { font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
 .endcard p { font-size: 14.5px; color: var(--fg2); }
 
-/* ---------- footer ---------- */
+/* footer */
 .sitefooter { border-top: 1px solid var(--line); padding: 56px 0 30px; margin-top: 30px; }
 .foot-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 30px; }
 .foot-word { font-family: var(--sans); font-weight: 800; font-size: 20px; color: var(--fg); }
