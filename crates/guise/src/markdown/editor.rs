@@ -768,7 +768,7 @@ impl MarkdownEditor {
     window: &mut Window,
     cx: &mut Context<Self>,
   ) {
-    window.focus(&self.focus);
+    window.focus(&self.focus, cx);
     if self.model.selection().is_none() {
       let x = f32::from(ev.position.x) - f32::from(self.text_bounds.origin.x);
       let y = f32::from(ev.position.y) - f32::from(self.text_bounds.origin.y);
@@ -784,7 +784,7 @@ impl MarkdownEditor {
   }
 
   fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-    window.focus(&self.focus);
+    window.focus(&self.focus, cx);
     self.goal_x = None;
     let x = f32::from(ev.position.x) - f32::from(self.text_bounds.origin.x);
     let y = f32::from(ev.position.y) - f32::from(self.text_bounds.origin.y);

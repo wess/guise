@@ -315,7 +315,7 @@ impl TextArea {
     window: &mut Window,
     cx: &mut Context<Self>,
   ) {
-    window.focus(&self.focus);
+    window.focus(&self.focus, cx);
     if let Some(index) = self.index_at(event.position) {
       let inside = self
         .edit
@@ -346,7 +346,7 @@ impl TextArea {
   /// (shift extends the selection to it), two takes the word, three the
   /// line.
   fn on_mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-    window.focus(&self.focus);
+    window.focus(&self.focus, cx);
     if self.disabled {
       return;
     }
@@ -417,9 +417,9 @@ impl TextArea {
     // the host can dismiss. (Enter inserts a newline: this is multi-line.)
     if ks.key == "tab" && !m.platform && !m.control {
       if m.shift {
-        window.focus_prev();
+        window.focus_prev(cx);
       } else {
-        window.focus_next();
+        window.focus_next(cx);
       }
       cx.notify();
       cx.stop_propagation();

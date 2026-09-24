@@ -126,7 +126,7 @@ fn contrast_rule(node: &ProbeNode, out: &mut Vec<Finding>) {
   let Some(style) = node.style.as_ref() else {
     return;
   };
-  let Some(text) = style.text.as_ref().and_then(|text| text.color) else {
+  let Some(text) = style.text.color else {
     return;
   };
   let Some(background) = style
@@ -185,12 +185,7 @@ fn target_rule(node: &ProbeNode, out: &mut Vec<Finding>) {
 
 /// Text set too small to read.
 fn text_rule(node: &ProbeNode, rem_size: Pixels, out: &mut Vec<Finding>) {
-  let Some(size) = node
-    .style
-    .as_ref()
-    .and_then(|style| style.text.as_ref())
-    .and_then(|text| text.font_size)
-  else {
+  let Some(size) = node.style.as_ref().and_then(|style| style.text.font_size) else {
     return;
   };
   let pixels = f32::from(size.to_pixels(rem_size));

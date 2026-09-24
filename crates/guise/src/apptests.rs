@@ -381,7 +381,7 @@ fn buttons_move_through_the_tab_order(cx: &mut TestAppContext) {
   });
   cx.run_until_parked();
 
-  cx.update(|window, _| window.focus_next());
+  cx.update(|window, cx| window.focus_next(cx));
   cx.run_until_parked();
   cx.simulate_keystrokes("tab tab");
   let field = view.read_with(cx, |view, _| view.field.clone());
@@ -430,7 +430,7 @@ fn pair(cx: &mut TestAppContext) -> (Entity<Pair>, &mut gpui::VisualTestContext)
 /// the field's shaped line are both current.
 fn focus(field: &Entity<TextInput>, cx: &mut gpui::VisualTestContext) {
   let handle = field.read_with(cx, |field, _| field.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
 }
 
@@ -669,7 +669,7 @@ fn text_area(cx: &mut TestAppContext) -> (Entity<TextArea>, &mut gpui::VisualTes
   cx.update(|cx| Theme::light().init(cx));
   let (area, cx) = cx.add_window_view(|_window, cx| TextArea::new(cx));
   let handle = area.read_with(cx, |area, _| area.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
   (area, cx)
 }
@@ -847,7 +847,7 @@ fn text_area_arrows_move_by_visual_row(cx: &mut TestAppContext) {
   });
   let area = view.read_with(cx, |view, _| view.area.clone());
   let handle = area.read_with(cx, |area, _| area.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
 
   let first_break = "one two three four five six seven eight nine ten"
@@ -879,7 +879,7 @@ fn pin_input_copies_its_code_unless_masked(cx: &mut TestAppContext) {
   cx.update(|cx| Theme::light().init(cx));
   let (pin, cx) = cx.add_window_view(|_window, cx| PinInput::new(cx).length(4).value("1234"));
   let handle = pin.read_with(cx, |pin, _| pin.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
   cx.simulate_keystrokes("cmd-c");
   assert_eq!(
@@ -891,7 +891,7 @@ fn pin_input_copies_its_code_unless_masked(cx: &mut TestAppContext) {
   let (masked, cx) =
     cx.add_window_view(|_window, cx| PinInput::new(cx).length(4).mask(true).value("1234"));
   let handle = masked.read_with(cx, |pin, _| pin.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
   cx.simulate_keystrokes("cmd-c");
   assert_eq!(
@@ -1046,7 +1046,7 @@ fn composer_sends_on_enter_and_refuses_blank_drafts(cx: &mut TestAppContext) {
 
   let input = composer.read_with(cx, |composer, _| composer.input().clone());
   let handle = input.read_with(cx, |input, _| input.focus_handle());
-  cx.update(|window, _| window.focus(&handle));
+  cx.update(|window, cx| window.focus(&handle, cx));
   cx.run_until_parked();
 
   // Whitespace is not a prompt.

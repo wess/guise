@@ -40,18 +40,14 @@ impl TextOverflowExt for Div {
   }
 }
 
-/// Flex helpers that reach into gpui's [`StyleRefinement`] for what the
-/// crates.io 0.2.2 `Styled` trait doesn't expose: arbitrary grow/shrink
-/// factors, `align-items: stretch`, and `justify-content: space-evenly`.
+/// Flex helpers that reach into gpui's [`StyleRefinement`] for arbitrary
+/// grow/shrink factors. The pinned zed gpui already exposes the alignment
+/// helpers through [`Styled`].
 pub(crate) trait FlexExt: Sized {
   /// Set an arbitrary `flex-grow` factor.
   fn grow(self, factor: f32) -> Self;
   /// Set an arbitrary `flex-shrink` factor.
   fn shrink(self, factor: f32) -> Self;
-  /// `align-items: stretch`.
-  fn items_stretch(self) -> Self;
-  /// `justify-content: space-evenly`.
-  fn justify_evenly(self) -> Self;
 }
 
 impl FlexExt for Div {
@@ -62,16 +58,6 @@ impl FlexExt for Div {
 
   fn shrink(mut self, factor: f32) -> Self {
     self.style().flex_shrink = Some(factor);
-    self
-  }
-
-  fn items_stretch(mut self) -> Self {
-    self.style().align_items = Some(gpui::AlignItems::Stretch);
-    self
-  }
-
-  fn justify_evenly(mut self) -> Self {
-    self.style().justify_content = Some(gpui::JustifyContent::SpaceEvenly);
     self
   }
 }

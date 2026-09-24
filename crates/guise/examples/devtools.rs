@@ -379,7 +379,7 @@ fn starting_tab() -> DevToolsTab {
 }
 
 fn main() {
-  gpui::Application::new().run(|cx: &mut App| {
+  gpui_platform::application().run(|cx: &mut App| {
     Theme::dark().init(cx);
     DevToolsState::new().init(cx);
 

@@ -37,7 +37,7 @@ const NEWLINE_WIDTH: f32 = 4.0;
 #[derive(Default)]
 pub(crate) struct AreaState {
   /// Each logical line with the byte offset into the value where it starts.
-  lines: Vec<(usize, WrappedLine)>,
+  lines: Rc<Vec<(usize, WrappedLine)>>,
   bounds: Option<Bounds<Pixels>>,
   line_height: Pixels,
   /// Whether the last paint showed the placeholder rather than a value.
@@ -175,7 +175,9 @@ struct Shaped {
   font_size: Pixels,
   line_height: Pixels,
   wrap_width: Option<Pixels>,
-  lines: Vec<(usize, WrappedLine)>,
+  /// Shared with the field's [`AreaState`] after paint: this gpui's
+  /// `WrappedLine` isn't `Clone`.
+  lines: Rc<Vec<(usize, WrappedLine)>>,
   height: Pixels,
 }
 
@@ -193,15 +195,17 @@ impl Shaped {
       .unwrap_or_default();
     let mut start = 0;
     let mut height = px(0.0);
-    self.lines = shaped
-      .into_iter()
-      .map(|line| {
-        let at = start;
-        start += line.len() + 1;
-        height += line.size(self.line_height).height;
-        (at, line)
-      })
-      .collect();
+    self.lines = Rc::new(
+      shaped
+        .into_iter()
+        .map(|line| {
+          let at = start;
+          start += line.len() + 1;
+          height += line.size(self.line_height).height;
+          (at, line)
+        })
+        .collect(),
+    );
     self.height = height.max(self.line_height);
     self.wrap_width = wrap_width;
   }
@@ -313,7 +317,7 @@ impl gpui::Element for AreaText {
       font_size,
       line_height,
       wrap_width: None,
-      lines: Vec::new(),
+      lines: Rc::default(),
       height: line_height,
     }));
 
@@ -391,7 +395,7 @@ impl gpui::Element for AreaText {
       Some((start, end)) => {
         let (start, end) = (edit.byte_of(start), edit.byte_of(end));
         let mut y = px(0.0);
-        for (line_start, line) in &shaped.lines {
+        for (line_start, line) in shaped.lines.iter() {
           let newline = line_start + line.len();
           if newline >= start && newline < end {
             if let Some(end_at) = line.position_for_index(line.len(), lh) {
@@ -448,7 +452,7 @@ impl gpui::Element for AreaText {
     let shaped = layout.shaped.borrow();
     let lh = shaped.line_height;
     let mut y = px(0.0);
-    for (_, line) in &shaped.lines {
+    for (_, line) in shaped.lines.iter() {
       let origin = bounds.origin + point(px(0.0), y);
       line
         .paint_background(origin, lh, TextAlign::Left, None, window, cx)
@@ -459,7 +463,7 @@ impl gpui::Element for AreaText {
       window.paint_quad(quad);
     }
     let mut y = px(0.0);
-    for (_, line) in &shaped.lines {
+    for (_, line) in shaped.lines.iter() {
       let origin = bounds.origin + point(px(0.0), y);
       line
         .paint(origin, lh, TextAlign::Left, None, window, cx)
@@ -516,7 +520,7 @@ fn reveal_caret(scroll: &ScrollHandle, at: Point<Pixels>, lh: Pixels) -> bool {
   } else {
     return false;
   };
-  let max = scroll.max_offset().height;
+  let max = scroll.max_offset().y;
   let y = (offset.y + shift).min(px(0.0)).max(-max);
   if y == offset.y {
     return false;

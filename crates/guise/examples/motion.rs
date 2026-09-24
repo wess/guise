@@ -179,7 +179,7 @@ impl Render for Demo {
 }
 
 fn main() {
-  gpui::Application::new().run(|cx: &mut App| {
+  gpui_platform::application().run(|cx: &mut App| {
     Theme::dark().init(cx);
     let bounds = Bounds::centered(None, size(px(720.0), px(560.0)), cx);
     cx.open_window(

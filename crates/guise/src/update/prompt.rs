@@ -338,7 +338,7 @@ impl UpdatePrompt {
           // new version on disk for the next launch instead. A dead
           // entity is how that close reaches us here.
           let dismissed = this.update(cx, |_, _| ()).is_err();
-          let _ = cx.update(|cx| set_installing(false, cx));
+          cx.update(|cx| set_installing(false, cx));
           if dismissed {
             updater.notify(
               "Update installed",
@@ -356,7 +356,7 @@ impl UpdatePrompt {
             })
             .unwrap_or(false);
           if restart {
-            let _ = cx.update(|cx| {
+            cx.update(|cx| {
               updater.run_before_restart(cx);
               // `Relaunch::Current` restarts with no explicit path
               // on purpose: gpui reopens the running bundle via
@@ -371,7 +371,7 @@ impl UpdatePrompt {
           }
         }
         Err(e) => {
-          let _ = cx.update(|cx| set_installing(false, cx));
+          cx.update(|cx| set_installing(false, cx));
           updater.notify("Update failed", &e);
           // Show the reason in the prompt and let the user retry it. A
           // failure that lands only in a notification leaves the prompt

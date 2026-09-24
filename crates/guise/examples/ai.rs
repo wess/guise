@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use gpui::{
-  div, prelude::*, px, size, App, Application, Bounds, Context, Entity, Task, Window, WindowBounds,
+  div, prelude::*, px, size, App, Bounds, Context, Entity, Task, Window, WindowBounds,
   WindowOptions,
 };
 use guise::prelude::*;
@@ -101,13 +101,10 @@ impl Demo {
     let composer = self.composer.clone();
     self.stream = Some(cx.spawn(async move |this, cx| {
       cx.background_executor().timer(TICK * 24).await;
-      let opened = chat.update(cx, |chat, cx| {
+      chat.update(cx, |chat, cx| {
         chat.set_pending(None::<&str>, cx);
         chat.begin_reply(cx);
       });
-      if opened.is_err() {
-        return;
-      }
       // Chunked by bytes, on char boundaries: a delta that split a
       // multi-byte character would panic on the join.
       let mut at = 0;
@@ -118,16 +115,11 @@ impl Demo {
         }
         let chunk = &REPLY[at..end];
         at = end;
-        if chat
-          .update(cx, |chat, cx| chat.push_delta(chunk, cx))
-          .is_err()
-        {
-          return;
-        }
+        chat.update(cx, |chat, cx| chat.push_delta(chunk, cx));
         cx.background_executor().timer(TICK).await;
       }
-      let _ = chat.update(cx, |chat, cx| chat.end_reply(cx));
-      let _ = composer.update(cx, |composer, cx| composer.set_busy(false, cx));
+      chat.update(cx, |chat, cx| chat.end_reply(cx));
+      composer.update(cx, |composer, cx| composer.set_busy(false, cx));
       let _ = this.update(cx, |this, cx| {
         this.usage = this.usage + AIUsage::new(0, REPLY.len() as u64 / 4);
         this.stream = None;
@@ -210,7 +202,7 @@ impl Render for Demo {
 }
 
 fn main() {
-  Application::new().run(|cx: &mut App| {
+  gpui_platform::application().run(|cx: &mut App| {
     Theme::light().init(cx);
     let bounds = Bounds::centered(None, size(px(1060.0), px(700.0)), cx);
     cx.open_window(
@@ -221,7 +213,7 @@ fn main() {
       |window, cx| {
         let demo = cx.new(Demo::new);
         let focus = demo.read(cx).composer.read(cx).focus_handle(cx);
-        window.focus(&focus);
+        window.focus(&focus, cx);
         demo
       },
     )

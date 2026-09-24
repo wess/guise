@@ -108,6 +108,18 @@ impl Pane {
     false
   }
 
+  /// Move `item` into the gap at `index`, counted in the strip as it looks
+  /// now (`0..=len`, the boundaries a tab can be dropped between). Lifting the
+  /// item out from the left of the gap slides everything after it down one, so
+  /// that is where the two indices part company. `false` if `item` is absent.
+  pub fn move_to_gap(&mut self, item: ItemId, index: usize) -> bool {
+    let Some(from) = self.index_of(item) else {
+      return false;
+    };
+    let to = if from < index { index - 1 } else { index };
+    self.reorder(from, to)
+  }
+
   /// Move the item at `from` to `to` (both clamped), keeping the active item
   /// active. `false` if `from` is out of range.
   pub fn reorder(&mut self, from: usize, to: usize) -> bool {
@@ -147,6 +159,31 @@ mod tests {
     assert!(p.reorder(0, 2));
     assert_eq!(p.items(), &[it[0], it[1], it[2]]);
     assert_eq!(p.active(), it[2]); // active item preserved
+  }
+
+  #[test]
+  fn gap_drop_lands_where_the_insertion_line_pointed() {
+    let it = items(3); // [0, 1, 2]
+    let mut p = Pane::new(it[0]);
+    p.add(it[1], None);
+    p.add(it[2], None);
+
+    let mut a = p.clone();
+    assert!(a.move_to_gap(it[0], 2)); // between 1 and 2
+    assert_eq!(a.items(), &[it[1], it[0], it[2]]);
+
+    let mut b = p.clone();
+    assert!(b.move_to_gap(it[2], 0)); // before 0
+    assert_eq!(b.items(), &[it[2], it[0], it[1]]);
+
+    let mut c = p.clone();
+    assert!(c.move_to_gap(it[0], 3)); // past the last tab
+    assert_eq!(c.items(), &[it[1], it[2], it[0]]);
+
+    // Both gaps touching a tab leave it exactly where it is.
+    let mut d = p.clone();
+    assert!(d.move_to_gap(it[1], 1) && d.move_to_gap(it[1], 2));
+    assert_eq!(d.items(), p.items());
   }
 
   #[test]

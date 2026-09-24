@@ -46,7 +46,7 @@ pub fn start(updater: Updater, cx: &mut App) {
   cx.spawn(async move |cx| loop {
     let config = updater.config().clone();
     let found = executor.spawn(async move { config.check() }).await;
-    let _ = cx.update(|cx| apply(&updater, found, false, cx));
+    cx.update(|cx| apply(&updater, found, false, cx));
     executor.timer(every).await;
   })
   .detach();
@@ -59,7 +59,7 @@ pub fn check_now(updater: Updater, cx: &mut App) {
   cx.spawn(async move |cx| {
     let config = updater.config().clone();
     let found = executor.spawn(async move { config.check() }).await;
-    let _ = cx.update(|cx| apply(&updater, found, true, cx));
+    cx.update(|cx| apply(&updater, found, true, cx));
   })
   .detach();
 }

@@ -43,6 +43,7 @@ wry = { version = "0.55", optional = true }
 # Entity-level tests (`#[gpui::test]` + `TestAppContext`) — the same harness
 # zed's own tests run on.
 gpui = { version = "0.2.2", features = ["test-support"] }
+gpui_platform.workspace = true
 # The tree-sitter adapter compiles under `cfg(any(test, feature))`, so plain
 # `cargo test` exercises it against a real grammar without the feature.
 tree-sitter = "0.25"

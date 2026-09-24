@@ -81,7 +81,7 @@ impl Spotlight {
     self.open = true;
     self.query = TextEdit::new("");
     self.selected = 0;
-    window.focus(&self.focus);
+    window.focus(&self.focus, cx);
     cx.notify();
   }
 
