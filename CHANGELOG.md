@@ -5,6 +5,36 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.7.0 — 2026-09-24
+
+### Selection and the clipboard in every text field
+
+Every text surface now selects, cuts, copies, and pastes the way a native field
+does, with the mouse, the keyboard, a right-click, or an app's Edit menu.
+
+- `TextArea` supports mouse selection: click to place the caret, drag to
+  select, Shift+click to extend, double-click for a word, triple-click for a
+  line. Before this, a click only focused it. Its text is now shaped and
+  wrapped by the text system instead of drawn as divs, and it registers a
+  platform input handler, so IME, dead keys, and press-and-hold work there as
+  they already did in single-line fields.
+- ↑/↓ in `TextArea` move by the rows on screen, not by line break, and keep
+  their column across short rows. A long wrapped line used to be crossed in a
+  single press.
+- Right-click opens a Cut / Copy / Paste / Select All menu in every
+  single-line field, `TextArea`, `Editor`, and `MarkdownEditor`. It offers only
+  what applies: no Cut or Copy without a selection or in a password field, no
+  Cut or Paste when read-only. A right-click outside the selection moves the
+  caret there first, and the selection stays visible while the menu is up.
+- New `guise::actions`: `Copy`, `Cut`, `Paste`, `SelectAll`, `Undo`, `Redo`,
+  plus `key_bindings()`. Every text surface handles them. gpui matches key
+  bindings before any key handler runs, so an app that bound cmd-c for its
+  Edit menu used to take the key away from every field; binding these instead
+  routes the key, and a click on the menu item, to the focused field. They are
+  not in the prelude, because a glob import of `Copy` would shadow the std
+  trait.
+- `PinInput` copies its code with Cmd+C, except when masked.
+
 ## 1.6.1 — 2026-09-04
 
 ### Tailor moved out
