@@ -65,6 +65,7 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 | `anim/` | The animation system: `Easing`/`Curve`, `Spring`, keyframed `Motion`, `Sequence`, `Stagger`, the `Animated`/`.animate(..)` one-shots, the `Animator` playhead, `Presence` (exit animations), and the `motion!` / `sequence!` macros |
 | `dnd/` | `Draggable`, `DropTarget`, `SortableList` — typed drag payloads |
 | `transition.rs` | `Transition` / `Collapse` (true height) animations |
+| `video/` | `VideoView`, `VideoFrame` (RGBA/BGRA/I420), `VideoFeed` (one-slot mailbox for decoder threads), `VideoFit` — transport-agnostic; the host decodes |
 | `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
 | root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Scrollbar`, `Carousel`, `ThemePicker` |
 

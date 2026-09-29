@@ -50,9 +50,10 @@ pub(crate) fn offset_for(pos: f32, max: f32, track: f32, len: f32) -> f32 {
   (pos / travel).clamp(0.0, 1.0) * max
 }
 
-/// The drag payload. Only its type matters: `on_drag_move::<ScrollDrag>` is
-/// what keeps the events coming when the pointer leaves the thumb.
-struct ScrollDrag;
+/// The drag payload. `on_drag_move::<ScrollDrag>` is what keeps the events
+/// coming when the pointer leaves the thumb, but it fires for every bar on the
+/// page — so the payload names the bar being dragged and the others ignore it.
+struct ScrollDrag(ElementId);
 
 /// gpui shows the entity a drag constructs under the pointer; an empty one.
 struct Ghost;
@@ -230,7 +231,11 @@ impl RenderOnce for Scrollbar {
     let on_move = {
       let handle = handle.clone();
       let grab = grab.clone();
+      let id = self.id.clone();
       move |ev: &gpui::DragMoveEvent<ScrollDrag>, window: &mut Window, cx: &mut gpui::App| {
+        if ev.drag(cx).0 != id {
+          return;
+        }
         let held = *grab.read(cx);
         let to = offset_for(pos(ev.event.position) - held, max, viewport, len);
         set(&handle, axis, to);
@@ -253,7 +258,7 @@ impl RenderOnce for Scrollbar {
         let source = handle.clone();
         move |_, _, _| source.drag(false)
       })
-      .on_drag(ScrollDrag, |_, _, _, cx| cx.new(|_| Ghost));
+      .on_drag(ScrollDrag(self.id.clone()), |_, _, _, cx| cx.new(|_| Ghost));
     thumb = if vertical {
       thumb
         .left(px(inset))

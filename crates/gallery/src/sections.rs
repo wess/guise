@@ -448,3 +448,30 @@ pub fn themes(cx: &App) -> impl IntoElement {
         ),
     )
 }
+
+/// A capped `ScrollArea` (which draws a `Scrollbar` while it overflows) beside
+/// the same list with the bar turned off.
+pub fn scrollbar() -> impl IntoElement {
+  let rows = || (1..=40).map(|i| Text::new(format!("Row {i}")).size(Size::Sm));
+  let pane = |label: &'static str, area: ScrollArea| {
+    Stack::new()
+      .gap(Size::Xs)
+      .child(Text::new(label).size(Size::Xs).dimmed())
+      .child(div().w(px(240.0)).child(Paper::new().child(area)))
+  };
+  Group::new()
+    .gap(Size::Lg)
+    .child(pane(
+      "Default",
+      ScrollArea::new("scrollbar-demo")
+        .max_height(180.0)
+        .children(rows()),
+    ))
+    .child(pane(
+      ".scrollbar(false)",
+      ScrollArea::new("scrollbar-off")
+        .max_height(180.0)
+        .scrollbar(false)
+        .children(rows()),
+    ))
+}

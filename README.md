@@ -57,7 +57,7 @@ Full docs live in [`docs/`](docs/readme.md) (also rendered at
 - **[App walkthrough](docs/appguide.md)** — a project tracker wired the way a real guise app fits together
 - **[Motion tutorial](docs/motiontutorial.md)** — one animated panel, nine chapters ([web version](https://wess.github.io/guise/motiontutorial.html))
 - [Getting started](docs/gettingstarted.md) · [Theming](docs/theming.md) · [Component model](docs/components.md)
-- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Dates & times](docs/dates.md) · [File handling](docs/files.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [GPU View](docs/gpuview.md) · [Editor](docs/editor.md) · [Markdown editor](docs/markdowneditor.md) · [AI](docs/ai.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
+- Components: [Buttons](docs/buttons.md) · [Icons](docs/icons.md) · [Inputs](docs/inputs.md) · [Dates & times](docs/dates.md) · [File handling](docs/files.md) · [Typography](docs/typography.md) · [Layout](docs/layout.md) · [Panels](docs/panels.md) · [Feedback](docs/feedback.md) · [Data](docs/data.md) · [Charts](docs/charts.md) · [GPU View](docs/gpuview.md) · [Video](docs/video.md) · [Editor](docs/editor.md) · [Markdown editor](docs/markdowneditor.md) · [AI](docs/ai.md) · [Overlays](docs/overlays.md) · [Navigation](docs/navigation.md)
 - Systems: [Flex layout](docs/flex.md) · [Macros](docs/macros.md) · [Motion & transitions](docs/transitions.md) · [Drag & drop](docs/dnd.md) · [Reactive state](docs/reactive.md) · [Software update](docs/update.md) · [Settings](docs/settings.md) · [DevTools](docs/devtools.md) · [Window menu & chrome](docs/windowmenu.md) · [Architecture](docs/architecture.md) · [Size & performance](docs/performance.md)
 - **Tailor** lives at [github.com/wess/tailor](https://github.com/wess/tailor), documentation included
 - [Releasing](docs/release.md) · [Changelog](CHANGELOG.md)
@@ -161,6 +161,7 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 | Workspace | `PaneGroup` — Zed-style splits-with-tabs, drag-to-split, and layout snapshots that persist |
 | Charts  | `Sparkline`, `LineChart`, `AreaChart`, `BarChart`, `ScatterChart`, `PieChart` — with optional axes, legends, and hover readouts |
 | Scenes  | `GpuView`, `GpuScene`, `GpuTexture` — retained native GPU surfaces for maps, simulations, and sprite-heavy status worlds |
+| Video   | `VideoView`, `VideoFrame`, `VideoFeed` — a surface for frames your decoder produces (RGBA/BGRA/I420), latest-frame-wins from any thread |
 | Navigation | `Breadcrumbs`, `NavLink`, `NavigationMenu`, `Stepper`, `Pagination`, `StatusBar` |
 | Drag & drop | `Draggable`, `DropTarget`, `SortableList` — typed payloads |
 | Motion  | `Transition`, `Collapse` (true height animation), `Presence` (exit animations), `Easing` curves + `Spring` physics |

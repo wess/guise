@@ -1814,3 +1814,69 @@ fn text_in_an_unsized_column_measures_its_content(cx: &mut TestAppContext) {
     "the paragraph laid out {body}px wide, so it wrapped per character"
   );
 }
+
+// video
+
+fn video_frame(w: u32, h: u32, v: u8) -> crate::VideoFrame {
+  crate::VideoFrame::bgra(w, h, vec![v; (w * h * 4) as usize]).unwrap()
+}
+
+/// The first frame sizes the view and announces it; a same-sized one after it
+/// stays quiet; clearing brings the placeholder back.
+#[gpui::test]
+fn video_view_reports_its_frame_size_once_per_change(cx: &mut TestAppContext) {
+  cx.update(|cx| Theme::light().init(cx));
+  let (view, cx) = cx.add_window_view(|_window, cx| crate::VideoView::new(cx));
+  let events = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+  let sink = events.clone();
+  cx.update(|_window, cx| {
+    cx.subscribe(&view, move |_, event: &crate::VideoEvent, _| {
+      sink.borrow_mut().push(*event)
+    })
+    .detach();
+  });
+  assert_eq!(view.read_with(cx, |v, _| v.frame_size()), None);
+  view.update(cx, |v, cx| v.push_frame(video_frame(4, 2, 1), cx));
+  view.update(cx, |v, cx| v.push_frame(video_frame(4, 2, 2), cx));
+  view.update(cx, |v, cx| v.push_frame(video_frame(8, 4, 3), cx));
+  cx.run_until_parked();
+  assert_eq!(view.read_with(cx, |v, _| v.frame_size()), Some((8, 4)));
+  assert_eq!(view.read_with(cx, |v, _| v.stats().shown), 3);
+  assert_eq!(
+    *events.borrow(),
+    vec![
+      crate::VideoEvent::Resized {
+        width: 4,
+        height: 2
+      },
+      crate::VideoEvent::Resized {
+        width: 8,
+        height: 4
+      },
+    ]
+  );
+  view.update(cx, |v, cx| v.clear(cx));
+  assert_eq!(view.read_with(cx, |v, _| v.frame_size()), None);
+}
+
+/// A frame sent from another thread reaches the view, and the newest of a burst
+/// is the one shown.
+#[gpui::test]
+fn video_feed_delivers_the_newest_frame(cx: &mut TestAppContext) {
+  cx.update(|cx| Theme::light().init(cx));
+  let (view, cx) = cx.add_window_view(|_window, cx| crate::VideoView::new(cx));
+  let feed = view.update(cx, |v, cx| v.feed(cx));
+  let sender = feed.clone();
+  std::thread::spawn(move || {
+    sender.send(video_frame(2, 2, 1));
+    sender.send(video_frame(6, 3, 2));
+  })
+  .join()
+  .unwrap();
+  cx.executor()
+    .advance_clock(std::time::Duration::from_millis(50));
+  cx.run_until_parked();
+  assert_eq!(view.read_with(cx, |v, _| v.frame_size()), Some((6, 3)));
+  let stats = view.read_with(cx, |v, _| v.stats());
+  assert_eq!((stats.shown, stats.dropped), (1, 1));
+}

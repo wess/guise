@@ -36,6 +36,9 @@ treesitter = ["dep:tree-sitter", "dep:tree-sitter-highlight"]
 
 [dependencies]
 gpui.workspace = true
+# Frames for `VideoView` are built as `image::Frame`s, which is what gpui's
+# `RenderImage` takes. Already in the tree through gpui; no decoders wanted.
+image = { version = "0.25", default-features = false }
 tree-sitter = { version = "0.25", optional = true }
 tree-sitter-highlight = { version = "0.25", optional = true }
 

@@ -59,6 +59,7 @@ pub mod overlay;
 pub mod reactive;
 pub mod settings;
 pub mod update;
+pub mod video;
 
 mod about;
 mod actionicon;
@@ -190,6 +191,7 @@ pub use theme::{
   CssColorError, Palette, Scale, Shades, Size, Theme, ThemeChoice, ThemeEntry, ThemeJsonError,
   ThemeLoadError, ThemeManager, ThemeSource, PRESET_NAMES,
 };
+pub use video::{fit_rect, VideoEvent, VideoFeed, VideoFit, VideoFrame, VideoStats, VideoView};
 // The free functions (`start`, `check_now`, `detect`, `is_newer`, …) stay behind
 // `update::` — their names only read clearly next to the module.
 pub use update::{
@@ -266,6 +268,7 @@ pub mod prelude {
     UpdateNoticeEvent, UpdateOutcome, UpdatePrompt, UpdatePromptEvent, UpdateSource, UpdateStage,
     Updater,
   };
+  pub use crate::video::{VideoEvent, VideoFeed, VideoFit, VideoFrame, VideoStats, VideoView};
   pub use crate::{badge, button, code, kbd, text, title};
   pub use crate::{card, center, col, hstack, modal, paper, row, vstack, wrap, zstack};
   pub use crate::{color, motion, sequence, style};

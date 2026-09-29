@@ -40,6 +40,7 @@ export const groups: DocGroup[] = [
       { slug: "data", title: "Data display" },
       { slug: "charts", title: "Charts" },
       { slug: "gpuview", title: "GPU View" },
+      { slug: "video", title: "Video" },
       { slug: "overlays", title: "Overlays" },
       { slug: "navigation", title: "Navigation" },
       { slug: "webview", title: "WebView" },

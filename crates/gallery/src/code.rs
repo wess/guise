@@ -1135,3 +1135,46 @@ vstack![
     button!("toggle", "Toggle").on_click(|_, _, cx| ThemeManager::toggle(cx)),
 ];"#,
 };
+
+pub const SCROLLBAR: Snippet = Snippet {
+  plain: r#"// ScrollArea draws one whenever the content overflows.
+ScrollArea::new("log").max_height(180.0).children(rows);
+ScrollArea::new("quiet").max_height(180.0).scrollbar(false).children(rows);
+
+// A container you scroll yourself: track it, then lay a bar over its parent.
+let handle = ScrollHandle::new();
+div().relative().h(px(300.0))
+    .child(div().id("feed").overflow_y_scroll().track_scroll(&handle).children(rows))
+    .child(Scrollbar::new("feed-bar", &handle));
+
+// A virtualized list scrolls by its ListState.
+div().relative().flex_1()
+    .child(list(state.clone(), render_row).size_full())
+    .child(Scrollbar::for_list("page-bar", &state));"#,
+  macros: r#"ScrollArea::new("log").max_height(180.0).children(rows);
+ScrollArea::new("quiet").max_height(180.0).scrollbar(false).children(rows);"#,
+};
+
+pub const VIDEO: Snippet = Snippet {
+  plain: r#"let video = cx.new(|cx| VideoView::new(cx).height(240.0).fit(VideoFit::Contain));
+
+// A decoder thread sends frames; only the newest is ever shown.
+let feed = video.update(cx, |v, cx| v.feed(cx));
+std::thread::spawn(move || {
+    for (w, h, rgba) in decoder {
+        if let Some(frame) = VideoFrame::rgba(w, h, rgba) {
+            feed.send(frame);
+        }
+    }
+});
+
+// Or push from the UI thread.
+video.update(cx, |v, cx| v.push_frame(frame, cx));
+
+cx.subscribe(&video, |_this, _v, event: &VideoEvent, _cx| {
+    let VideoEvent::Resized { width, height } = event;
+});"#,
+  macros: r#"// VideoView is an entity; there is no macro form.
+let video = cx.new(|cx| VideoView::new(cx).height(240.0));
+video.update(cx, |v, cx| v.push_frame(frame, cx));"#,
+};

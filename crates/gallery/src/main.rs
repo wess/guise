@@ -18,6 +18,7 @@ use std::time::Duration;
 
 mod code;
 mod sections;
+mod videodemo;
 
 /// A "view source" panel: the example's code in a monospace block.
 fn code_block(cx: &App, source: &str) -> impl IntoElement {
@@ -195,6 +196,7 @@ struct Gallery {
   code_style: Entity<SegmentedControl>,
   use_macros: bool,
   sections: ListState,
+  video: Entity<VideoView>,
 }
 
 /// Every section's `(key, snippet)` — drives the copy buttons and code panels.
@@ -236,6 +238,8 @@ const SECTION_SOURCES: &[(&str, code::Snippet)] = &[
   ("media", code::MEDIA),
   ("palette", code::PALETTE),
   ("themes", code::THEMES),
+  ("scrollbar", code::SCROLLBAR),
+  ("video", code::VIDEO),
 ];
 
 /// Inline page rendered by the WebView demo — keeps the showcase offline.
@@ -478,6 +482,11 @@ impl Gallery {
       }
     })
     .detach();
+
+    // No decoder here, so the "stream" is a generated test pattern on a thread.
+    let video = cx.new(|cx| VideoView::new(cx).height(240.0).radius(Size::Md));
+    let video_feed = video.update(cx, |v, cx| v.feed(cx));
+    videodemo::run(video_feed);
 
     let sections = ListState::new(SECTION_SOURCES.len() + 1, ListAlignment::Top, px(240.0));
     let native_webview = webview.downgrade();
@@ -1134,7 +1143,27 @@ impl Gallery {
       code_style,
       use_macros: false,
       sections,
+      video,
     }
+  }
+
+  /// `VideoView` showing a live generated stream, with its own stats line.
+  fn video_demo(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
+    let stats = self.video.read(cx).stats();
+    let size = self
+      .video
+      .read(cx)
+      .frame_size()
+      .map(|(w, h)| format!("{w}×{h}"))
+      .unwrap_or_else(|| "—".into());
+    Stack::new().gap(Size::Sm).child(self.video.clone()).child(
+      Text::new(format!(
+        "{size} · {} frames shown · {} dropped",
+        stats.shown, stats.dropped
+      ))
+      .size(Size::Xs)
+      .dimmed(),
+    )
   }
 
   /// Software update: the prompt in each of its states, beside the notice a
@@ -1645,6 +1674,15 @@ impl Gallery {
         let body = sections::themes(cx);
         self
           .section(cx, "themes", "Theme manager", body)
+          .into_any_element()
+      }
+      37 => self
+        .section(cx, "scrollbar", "Scrollbar", sections::scrollbar())
+        .into_any_element(),
+      38 => {
+        let body = self.video_demo(cx);
+        self
+          .section(cx, "video", "VideoView", body)
           .into_any_element()
       }
       _ => unreachable!("gallery list requested an unknown item"),
@@ -2666,6 +2704,19 @@ impl Render for Gallery {
     let text = t.text().hsla();
     let font = t.font_family.clone();
     let is_dark = t.scheme.is_dark();
+
+    // The native web view paints outside gpui, so it has to be hidden by hand
+    // when its section leaves the viewport. The list's scroll handler covers
+    // the wheel, but a scrollbar drag jumps the list without firing it — so
+    // settle it here, on every frame, from where the section actually is.
+    let view = self.sections.viewport_bounds();
+    let shown = self
+      .sections
+      .bounds_for_item(3)
+      .is_some_and(|b| b.bottom() > view.top() && b.top() < view.bottom());
+    self
+      .webview
+      .update(cx, |webview, _| webview.set_visible(shown));
 
     let gallery = cx.weak_entity();
     let main = list(self.sections.clone(), move |index, _window, cx| {

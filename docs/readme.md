@@ -38,6 +38,7 @@ crates.io.
 - [Feedback](feedback.md) — `Alert`, `Loader`, `Progress`, `RingProgress`, `Notification`, `ToastStack`, `Skeleton`
 - [Data display](data.md) — `Avatar`, `AvatarGroup`, `Badge`, `Indicator`, `Image`, `List`, `VirtualList`, `Table`, `TableView`, `DataView`, `TreeView`, `TabBar`, `Timeline`, `Tabs`, `Accordion`, `Carousel`
 - [Charts](charts.md) — `Sparkline`, `LineChart`, `AreaChart`, `BarChart`, `ScatterChart`, `PieChart` — with optional axes, legends, and hover readouts
+- [Video](video.md) — `VideoView`, `VideoFrame`, and `VideoFeed`: show frames your app decodes, from any thread
 - [GPU View](gpuview.md) — `GpuView`, `GpuScene`, and `GpuTexture` for native scene, map, and simulation surfaces
 - [Editor](editor.md) — `Editor`, a code editor entity with 10-language highlighting and a diagnostics API
 - [AI](ai.md) — `AIChatView`, `AIComposer`, streaming text, reasoning, tool calls, citations and cost meters — transport-agnostic

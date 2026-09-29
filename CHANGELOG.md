@@ -5,6 +5,31 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.9.0 — 2026-09-29
+
+### `VideoView` (#3)
+
+- New `video/` module: `VideoView` shows frames the host decodes, through
+  gpui's GPU image path. `VideoFrame` builds from RGBA, BGRA or planar I420
+  (BT.601), refusing a wrong-sized buffer instead of panicking at paint.
+  `VideoView::feed` hands out a `Send` `VideoFeed` for a decoder thread — a
+  one-slot mailbox where the newest frame wins — and `stats()` counts the ones
+  it overwrote. `VideoFit` is `Contain`/`Cover`/`Stretch`; `VideoEvent::Resized`
+  fires when the picture's size changes. Replaced frames are retired so a long
+  stream does not fill gpui's atlas. Like `ai/`, it links no codec and opens no
+  socket. See `docs/video.md`.
+- guise-ui now depends directly on `image` (already in the tree through gpui,
+  no decoders enabled) to build frames.
+
+### Scrollbar fixes
+
+- Dragging one `Scrollbar` also moved every other bar on the page, because
+  they shared a drag type. The drag now names its bar and the others ignore it.
+- The gallery gets Scrollbar and VideoView sections, and hides its native
+  `WebView` from where the section really is: a scrollbar drag jumps a `list`
+  without firing its scroll handler, which had left the web view painted over
+  other content.
+
 ## 1.8.0 — 2026-09-29
 
 Four open issues closed.
