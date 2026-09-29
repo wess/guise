@@ -82,8 +82,15 @@ impl Source {
 
   fn max_offset(&self) -> gpui::Size<Pixels> {
     match self {
-      Source::Handle(h) => h.max_offset(),
-      Source::List(l) => l.max_offset_for_scrollbar(),
+      // zed's gpui (sinclair's rev) reports the extent as a Point
+      Source::Handle(h) => {
+        let m = h.max_offset();
+        gpui::size(m.x, m.y)
+      }
+      Source::List(l) => {
+        let m = l.max_offset_for_scrollbar();
+        gpui::size(m.x, m.y)
+      }
     }
   }
 
