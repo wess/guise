@@ -35,6 +35,23 @@ What each one is worth here:
 | `panic = "abort"` | ~1.5 MB | None in practice — gpui only catches panics in its test harness, and Cargo forces unwinding back on for tests |
 | `lto = "fat"` + `codegen-units = 1` | ~1.7 MB | Slower release builds (~2 min for the gallery) |
 
+## Debug builds
+
+`cargo run` on an app built from guise feels slow in debug and fine in release,
+because gpui does layout, text shaping and scene building every frame and
+opt-level 0 makes all of it slow. Optimise the dependencies and leave your own
+crates at 0:
+
+```toml
+[profile.dev.package."*"]
+opt-level = 2
+```
+
+This repo's workspace does it, so the gallery is smooth under `cargo run`. The
+cost is a slower first build; dependencies only rebuild when the lockfile
+changes, so your edit loop is unaffected. Like the release profile above it is
+read from the top-level workspace, so an app has to add it itself.
+
 ## What guise itself contributes
 
 Of the 7.8 MB, gpui and its dependency tree (image decoding, SVG, text shaping,

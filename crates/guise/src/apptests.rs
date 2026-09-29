@@ -1696,6 +1696,39 @@ fn a_filling_scrollarea_takes_the_height_of_a_block_parent(cx: &mut TestAppConte
   assert_eq!(pane, window, "the pane should be the full window height");
 }
 
+/// The laid-out width of the named component, or 0 if it was not recorded.
+fn filled_width(view: &Entity<Filled>, name: &str, cx: &mut gpui::VisualTestContext) -> f32 {
+  view.read_with(cx, |this, cx| {
+    this
+      .devtools
+      .read(cx)
+      .tree()
+      .nodes
+      .iter()
+      .find(|node| node.name == name)
+      .map(|node| node.bounds.size.width.to_f64() as f32)
+      .unwrap_or(0.0)
+  })
+}
+
+/// A `ScrollArea` over 2000px of rows draws its scrollbar, as a strip on the
+/// pane's edge rather than a second pane.
+#[gpui::test]
+fn an_overflowing_scrollarea_draws_a_scrollbar(cx: &mut TestAppContext) {
+  let (view, cx) = filled(true, cx);
+  // The handle learns its size from the frame after the first, and the bar
+  // from the one after that.
+  for _ in 0..3 {
+    view.update(cx, |_this, cx| cx.notify());
+    cx.run_until_parked();
+  }
+  assert!(
+    filled_width(&view, "Scrollbar", cx) > 0.0,
+    "no scrollbar was drawn over overflowing content"
+  );
+  assert!(filled_width(&view, "Scrollbar", cx) < filled_width(&view, "ScrollArea", cx));
+}
+
 /// A heading and a paragraph in a column that nothing gives a width to, beside
 /// a sibling that will not shrink — the shape of every page header guise draws
 /// for. The probe recorder reports what they were laid out at.

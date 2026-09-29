@@ -5,6 +5,44 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.8.0 — 2026-09-29
+
+Four open issues closed.
+
+### Scrollbars (#5)
+
+- New `Scrollbar`: a draggable thumb that follows a `ScrollHandle`, or a
+  virtualized `list` through `Scrollbar::for_list`. It draws nothing while the
+  content fits.
+- `ScrollArea` draws one by default, floating over its edge; `.scrollbar(false)`
+  turns it off. `ScrollArea` is now two boxes (the parent-facing one and the
+  scroller), which the layout tests still pin for `fill` and `max_height`.
+- The gallery's page scrolls with a bar.
+
+### Keybindings on every platform (#8)
+
+- Text fields keyed off `Cmd` only, so on Linux and Windows Ctrl+A/C/X/V/Z did
+  nothing unless the host bound the `guise::actions` set. The shortcut key is
+  now Cmd on macOS and Ctrl elsewhere in `TextInput`, `TextArea`, `PinInput`,
+  `Editor`, `MarkdownEditor` and `TableView` (Ctrl+click toggles a row).
+- Word movement and deletion is Ctrl+←/→/Backspace/Delete off macOS, Home/End
+  reach the line edges, and Ctrl+Home/End the document ends. Ctrl+A/E/K stay
+  Emacs-style on macOS only, where Ctrl+A no longer competes with select-all.
+
+### `WebView` on Linux (#6)
+
+- `wry` can only parent onto an Xlib window handle, and gpui offers none on
+  Linux (Wayland hands over the wrong kind, X11 has no handle at all), so the
+  default `webview` feature failed at runtime there. It is now a no-op on
+  Linux: `wry` is not built, WebKitGTK is not needed, and `WebView` renders the
+  placeholder with the same API.
+
+### Faster debug builds (#7)
+
+- The workspace builds dependencies at `opt-level = 2` in the dev profile, so
+  `cargo run -p gallery` is smooth in debug. `docs/performance.md` has the
+  two-line recipe for an app's own `Cargo.toml`.
+
 ## 1.7.0 — 2026-09-24
 
 ### Selection and the clipboard in every text field

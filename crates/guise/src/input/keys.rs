@@ -6,6 +6,7 @@
 //! macOS/Linux conventions: Option = word-wise, Cmd = line-wise, plus the
 //! Emacs-style Ctrl+A / Ctrl+E / Ctrl+K.
 
+use crate::chord::Chord;
 use gpui::Keystroke;
 
 use super::edit::TextEdit;
@@ -61,18 +62,18 @@ pub fn apply_nav(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
     "enter" => return KeyOutcome::Submit,
     "escape" => return KeyOutcome::Cancel,
     // Cmd/Super+A selects the whole field (Ctrl+A stays Emacs line-start).
-    "a" if m.platform => {
+    "a" if m.cmd() => {
       edit.select_all();
       return KeyOutcome::Edited;
     }
     "left" => {
-      if !m.shift && !m.platform && !m.alt && edit.collapse_selection_start() {
+      if !m.shift && !m.line() && !m.word() && edit.collapse_selection_start() {
         return KeyOutcome::Edited;
       }
       edit.pre_move(m.shift);
-      if m.platform {
+      if m.line() {
         edit.home();
-      } else if m.alt {
+      } else if m.word() {
         edit.word_left();
       } else {
         edit.left();
@@ -80,13 +81,13 @@ pub fn apply_nav(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
       return KeyOutcome::Edited;
     }
     "right" => {
-      if !m.shift && !m.platform && !m.alt && edit.collapse_selection_end() {
+      if !m.shift && !m.line() && !m.word() && edit.collapse_selection_end() {
         return KeyOutcome::Edited;
       }
       edit.pre_move(m.shift);
-      if m.platform {
+      if m.line() {
         edit.end();
-      } else if m.alt {
+      } else if m.word() {
         edit.word_right();
       } else {
         edit.right();
@@ -105,9 +106,9 @@ pub fn apply_nav(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
       return KeyOutcome::Edited;
     }
     "backspace" => {
-      if m.platform {
+      if m.line() {
         edit.delete_to_start();
-      } else if m.alt {
+      } else if m.word() {
         edit.delete_word_back();
       } else {
         edit.backspace();
@@ -115,24 +116,24 @@ pub fn apply_nav(edit: &mut TextEdit, ks: &Keystroke) -> KeyOutcome {
       return KeyOutcome::Edited;
     }
     "delete" => {
-      if m.platform {
+      if m.line() {
         edit.delete_to_end();
-      } else if m.alt {
+      } else if m.word() {
         edit.delete_word_forward();
       } else {
         edit.delete();
       }
       return KeyOutcome::Edited;
     }
-    "k" if m.control => {
+    "k" if m.emacs() => {
       edit.delete_to_end();
       return KeyOutcome::Edited;
     }
-    "a" if m.control => {
+    "a" if m.emacs() => {
       edit.home();
       return KeyOutcome::Edited;
     }
-    "e" if m.control => {
+    "e" if m.emacs() => {
       edit.end();
       return KeyOutcome::Edited;
     }

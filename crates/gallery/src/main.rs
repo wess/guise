@@ -2673,10 +2673,17 @@ impl Render for Gallery {
         .update(cx, |gallery, cx| gallery.gallery_item(index, cx))
         .unwrap_or_else(|_| div().into_any_element())
     })
-    .flex_1()
-    .min_h(px(0.0))
+    .size_full()
     .px(px(48.0))
     .pt(px(40.0));
+    // The list is virtualized, so it has no `ScrollHandle`; the bar reads its
+    // `ListState`. A relative box holds both so the bar floats over the edge.
+    let main = div()
+      .relative()
+      .flex_1()
+      .min_h(px(0.0))
+      .child(main)
+      .child(Scrollbar::for_list("gallery-scroll", &self.sections));
 
     let status = StatusBar::new()
       .left(Text::new("guise gallery").size(Size::Xs))

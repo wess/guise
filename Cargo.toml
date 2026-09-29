@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.7.0"
+version = "1.8.0"
 edition = "2021"
 license = "MIT"
 authors = ["Wess Cope <opensource@wess.io>"]
@@ -22,6 +22,14 @@ guise-ui = { path = "crates/guise" }
 
 [profile.dev]
 debug = "limited"
+
+# Dependencies at opt-level 2, our own crates still at 0. gpui's layout, text
+# shaping and scene building run every frame, and at opt-level 0 they make
+# `cargo run -p gallery` visibly sluggish while release is fine. Dependencies
+# rebuild only when the lockfile changes, so it costs one slower first build
+# and nothing after; edits to guise itself keep the fast debug loop.
+[profile.dev.package."*"]
+opt-level = 2
 
 # What this repo's own binaries are built with. A library's profile does not
 # reach its consumers — Cargo only reads the one in the final crate's workspace

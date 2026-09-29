@@ -25,6 +25,7 @@
 //! A field opts in by implementing [`LineEditor`] and calling
 //! [`line_input_handler!`] to get the platform trait for free.
 
+use crate::chord::Chord;
 use std::ops::Range;
 use std::time::Duration;
 
@@ -612,7 +613,7 @@ pub(crate) fn keys<V: LineEditor>(
     return KeyOutcome::Edited;
   }
 
-  if m.platform && !m.alt && !m.control {
+  if m.shortcut() {
     match ks.key.as_str() {
       "c" => return copy(this, cx),
       "x" => return cut(this, cx),

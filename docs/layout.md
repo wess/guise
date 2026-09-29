@@ -142,6 +142,36 @@ div().flex().flex_col().size_full()
     .child(ScrollArea::new("settings").fill().children(sections))
 ```
 
+### Scrollbar
+
+A `ScrollArea` draws a scrollbar over its edge whenever the content overflows —
+a draggable thumb, a click-to-jump track, and nothing at all while the content
+fits. It floats rather than taking layout space, so `.scrollbar(false)` changes
+nothing about where the content sits.
+
+```rust
+ScrollArea::new("log").max_height(240.0).scrollbar(false).children(rows)
+```
+
+For a container you scroll yourself, use `Scrollbar` directly: track the
+container with a `ScrollHandle`, put it in a `.relative()` parent, and add the
+bar beside it. A virtualized `list(state, ..)` has no handle, so
+`Scrollbar::for_list` reads its `ListState` instead — the gallery does this for
+its own page.
+
+```rust
+let handle = ScrollHandle::new();
+div().relative().h(px(300.0))
+    .child(div().id("feed").overflow_y_scroll().track_scroll(&handle).children(rows))
+    .child(Scrollbar::new("feed-bar", &handle))
+
+div().relative().flex_1()
+    .child(list(state.clone(), render_row).size_full())
+    .child(Scrollbar::for_list("page-bar", &state))
+```
+
+`.horizontal(true)` runs the bar along the bottom edge.
+
 It works both as a flex child (it grows into the leftover main axis) and inside
 a plain block parent, which is what a route body usually is. The parent still
 has to be bounded itself — filling an unbounded parent sizes to the content, and

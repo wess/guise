@@ -197,9 +197,24 @@ shares one editing core, so they all behave the way an `<input>` does:
 | **Clipboard** | Cmd/Ctrl+C, X, V; a multi-line paste is flattened to one line, the way `<input>` flattens it |
 | **Right-click** | a Cut / Copy / Paste / Select All menu, offering only what applies (nothing to copy in a password field, nothing to cut or paste when read-only) |
 | **Undo** | Cmd/Ctrl+Z and Shift+Z, coalesced by word rather than by keystroke |
-| **Navigation** | Option+←/→ by word, Cmd+←/→ to the line edges, Option+Backspace, Cmd+Backspace / Cmd+Delete, and Ctrl+A / Ctrl+E / Ctrl+K |
+| **Navigation** | word-wise and line-wise movement and deletion, Home/End, and on macOS the Emacs Ctrl+A / Ctrl+E / Ctrl+K — see the platform table below |
 | **Long values** | scroll horizontally to keep the caret in view instead of clipping |
 | **IME** | dead keys, press-and-hold accents, CJK composition, and the macOS character palette |
+
+The shortcut key follows the platform, so nothing here is macOS-only:
+
+| | macOS | Linux / Windows |
+| --- | --- | --- |
+| Select all, copy, cut, paste, undo | Cmd+A / C / X / V / Z | Ctrl+A / C / X / V / Z |
+| Redo | Cmd+Shift+Z | Ctrl+Shift+Z, Ctrl+Y |
+| By word | Option+←/→, Option+Backspace / Delete | Ctrl+←/→, Ctrl+Backspace / Delete |
+| To the line edges | Cmd+←/→, Cmd+Backspace / Delete | Home / End |
+| Start / end of document (`Editor`, `MarkdownEditor`) | Cmd+↑/↓ | Ctrl+Home / End |
+| Emacs line-start / end / kill | Ctrl+A / E / K | — (Ctrl+A is select all) |
+
+The mapping lives in one crate-private place (`chord.rs`), so a new text surface
+asks for the gesture (`cmd`, `word`, `line`, `emacs`) rather than reading
+`platform` or `alt` off the keystroke.
 
 The last one is why text entry does not run through key handling: the field
 registers a platform input handler, and the OS delivers composed text to it

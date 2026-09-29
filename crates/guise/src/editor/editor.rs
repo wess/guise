@@ -22,6 +22,7 @@
 //! .detach();
 //! ```
 
+use crate::chord::Chord;
 use std::ops::Range;
 
 use crate::actions;
@@ -394,9 +395,9 @@ impl Editor {
     let shift = m.shift;
     match ks.key.as_str() {
       "left" => {
-        if m.platform {
+        if m.line() {
           self.model.home(shift);
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_left(shift);
         } else {
           self.model.move_left(shift);
@@ -404,9 +405,9 @@ impl Editor {
         self.after_move(window, cx);
       }
       "right" => {
-        if m.platform {
+        if m.line() {
           self.model.end(shift);
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_right(shift);
         } else {
           self.model.move_right(shift);
@@ -414,7 +415,7 @@ impl Editor {
         self.after_move(window, cx);
       }
       "up" => {
-        if m.platform {
+        if m.line() {
           self.model.doc_start(shift);
         } else {
           self.model.move_up(shift);
@@ -422,7 +423,7 @@ impl Editor {
         self.after_move(window, cx);
       }
       "down" => {
-        if m.platform {
+        if m.line() {
           self.model.doc_end(shift);
         } else {
           self.model.move_down(shift);
@@ -430,7 +431,7 @@ impl Editor {
         self.after_move(window, cx);
       }
       "home" => {
-        if m.platform {
+        if m.cmd() {
           self.model.doc_start(shift);
         } else {
           self.model.home(shift);
@@ -438,7 +439,7 @@ impl Editor {
         self.after_move(window, cx);
       }
       "end" => {
-        if m.platform {
+        if m.cmd() {
           self.model.doc_end(shift);
         } else {
           self.model.end(shift);
@@ -451,10 +452,10 @@ impl Editor {
         }
         let changed = if self.model.selection().is_some() {
           self.model.delete_selection()
-        } else if m.platform {
+        } else if m.line() {
           self.model.home(true);
           self.model.delete_selection()
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_left(true);
           self.model.delete_selection()
         } else {
@@ -472,10 +473,10 @@ impl Editor {
         }
         let changed = if self.model.selection().is_some() {
           self.model.delete_selection()
-        } else if m.platform {
+        } else if m.line() {
           self.model.end(true);
           self.model.delete_selection()
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_right(true);
           self.model.delete_selection()
         } else {
@@ -487,7 +488,7 @@ impl Editor {
           cx.stop_propagation();
         }
       }
-      "enter" if m.platform => {
+      "enter" if m.cmd() => {
         cx.emit(EditorEvent::Run(self.model.text()));
         cx.stop_propagation();
       }
@@ -500,7 +501,7 @@ impl Editor {
       }
       "tab" => {
         // Cmd+Tab (and read-only Tab) bubbles so hosts keep focus moves.
-        if m.platform || self.read_only {
+        if m.cmd() || self.read_only {
           return;
         }
         self.model.tab();
@@ -513,11 +514,11 @@ impl Editor {
           cx.notify();
         }
       }
-      "a" if m.platform => self.select_all(cx),
-      "c" if m.platform => self.copy(cx),
-      "x" if m.platform => self.cut(window, cx),
-      "v" if m.platform => self.paste(window, cx),
-      "z" if m.platform => self.history(m.shift, window, cx),
+      "a" if m.cmd() => self.select_all(cx),
+      "c" if m.cmd() => self.copy(cx),
+      "x" if m.cmd() => self.cut(window, cx),
+      "v" if m.cmd() => self.paste(window, cx),
+      "z" if m.cmd() => self.history(m.shift, window, cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land (matches `input::apply_key`).

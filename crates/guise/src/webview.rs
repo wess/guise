@@ -1,7 +1,7 @@
 //! `WebView` — a native web view embedded in a gpui window (stateful entity).
 //!
 //! Backed by [`wry`](https://crates.io/crates/wry), which parents a real OS
-//! web view (WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux) as a
+//! web view (WKWebView on macOS, WebView2 on Windows) as a
 //! child of the gpui window. The native view is positioned every frame to track
 //! the bounds of this component, so it composes inside normal `guise` layout.
 //!
@@ -9,9 +9,11 @@
 //! subscribe for [`WebViewEvent`]s. Because the underlying view owns OS
 //! resources, it is built lazily on first render (when a window handle exists).
 //!
-//! The native backend lives behind the default-on `webview` feature. Disable it
-//! (`default-features = false`) for headless or docs-only builds; the component
-//! then renders a themed placeholder while keeping the same public API.
+//! The native backend lives behind the default-on `webview` feature, and is
+//! never built on Linux, where gpui hands wry no window handle it accepts.
+//! Disable the feature (`default-features = false`) for headless or docs-only
+//! builds; without a backend the component renders a themed placeholder while
+//! keeping the same public API.
 
 use gpui::prelude::*;
 use gpui::{div, px, Context, EventEmitter, FocusHandle, IntoElement, SharedString, Window};
@@ -19,7 +21,7 @@ use gpui::{div, px, Context, EventEmitter, FocusHandle, IntoElement, SharedStrin
 use crate::devtools::Probed;
 use crate::theme::{theme, Size};
 
-#[cfg(feature = "webview")]
+#[cfg(native)]
 use {
   gpui::{canvas, Bounds, Pixels},
   std::{cell::RefCell, rc::Rc, time::Duration},
@@ -69,17 +71,17 @@ pub struct WebView {
   /// use it to expose a native API the page can call via
   /// `window.ipc.postMessage(...)`. Only applied when the `webview` feature is
   /// on; the placeholder ignores it.
-  #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+  #[cfg_attr(not(native), allow(dead_code))]
   init_script: Option<SharedString>,
   /// A directory served over an internal `guise://` origin (see [`WebView::serve`]).
-  #[cfg_attr(not(feature = "webview"), allow(dead_code))]
+  #[cfg_attr(not(native), allow(dead_code))]
   serve_dir: Option<std::path::PathBuf>,
 
-  #[cfg(feature = "webview")]
+  #[cfg(native)]
   inner: Option<Rc<wry::WebView>>,
-  #[cfg(feature = "webview")]
+  #[cfg(native)]
   queue: Rc<RefCell<Vec<WebViewEvent>>>,
-  #[cfg(feature = "webview")]
+  #[cfg(native)]
   draining: bool,
 }
 
@@ -98,11 +100,11 @@ impl WebView {
       init_script: None,
       serve_dir: None,
 
-      #[cfg(feature = "webview")]
+      #[cfg(native)]
       inner: None,
-      #[cfg(feature = "webview")]
+      #[cfg(native)]
       queue: Rc::new(RefCell::new(Vec::new())),
-      #[cfg(feature = "webview")]
+      #[cfg(native)]
       draining: false,
     }
   }
@@ -178,7 +180,7 @@ impl WebView {
   /// Navigate the live view to `url`, updating the stored source.
   pub fn load_url(&mut self, url: impl Into<SharedString>, cx: &mut Context<Self>) {
     let url = url.into();
-    #[cfg(feature = "webview")]
+    #[cfg(native)]
     if let Some(inner) = &self.inner {
       let _ = inner.load_url(&url);
     }
@@ -189,7 +191,7 @@ impl WebView {
   /// Replace the live view with inline HTML, updating the stored source.
   pub fn load_html(&mut self, html: impl Into<SharedString>, cx: &mut Context<Self>) {
     let html = html.into();
-    #[cfg(feature = "webview")]
+    #[cfg(native)]
     if let Some(inner) = &self.inner {
       let _ = inner.load_html(&html);
     }
@@ -199,7 +201,7 @@ impl WebView {
 
   /// Run JavaScript in the live view. No-op until the view exists.
   pub fn evaluate_script(&self, _js: &str) {
-    #[cfg(feature = "webview")]
+    #[cfg(native)]
     if let Some(inner) = &self.inner {
       let _ = inner.evaluate_script(_js);
     }
@@ -211,7 +213,7 @@ impl WebView {
   /// OS view lingers on screen at its last position. A painted view re-shows
   /// itself. No-op until the view exists.
   pub fn set_visible(&mut self, _visible: bool) {
-    #[cfg(feature = "webview")]
+    #[cfg(native)]
     if let Some(inner) = &self.inner {
       let _ = inner.set_visible(_visible);
     }
@@ -219,7 +221,7 @@ impl WebView {
 
   /// Build the native view once a window handle is available, then start the
   /// loop that drains events from the wry handlers back onto the entity.
-  #[cfg(feature = "webview")]
+  #[cfg(native)]
   fn ensure_view(&mut self, window: &mut Window, cx: &mut Context<Self>, bounds: Bounds<Pixels>) {
     if self.inner.is_some() {
       return;
@@ -306,7 +308,7 @@ impl WebView {
   }
 }
 
-#[cfg(feature = "webview")]
+#[cfg(native)]
 fn rect_from(bounds: Bounds<Pixels>) -> Rect {
   Rect {
     position: LogicalPosition::new(bounds.origin.x.to_f64(), bounds.origin.y.to_f64()).into(),
@@ -315,7 +317,7 @@ fn rect_from(bounds: Bounds<Pixels>) -> Rect {
 }
 
 impl Render for WebView {
-  #[cfg(feature = "webview")]
+  #[cfg(native)]
   fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
     // Build the native view on the first frame that has a window handle.
     // It is created at a best-guess size; the `canvas` paint below snaps it
@@ -357,7 +359,7 @@ impl Render for WebView {
       .probe("WebView")
   }
 
-  #[cfg(not(feature = "webview"))]
+  #[cfg(not(native))]
   fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
     let t = theme(cx);
     let radius = t.radius(self.radius.unwrap_or(t.default_radius));
@@ -375,7 +377,9 @@ impl Render for WebView {
       .items_center()
       .justify_center()
       .text_color(dimmed)
-      .child(SharedString::from(format!("WebView (disabled): {label}")))
+      .child(SharedString::from(format!(
+        "WebView (no native backend): {label}"
+      )))
       .probe("WebView")
       .attr("source", label)
   }
@@ -407,7 +411,7 @@ fn frame(
 
 /// Serve a file from `dir` for a `guise://localhost/<path>` request. Rejects
 /// paths that try to escape `dir`; unknown files return 404.
-#[cfg(feature = "webview")]
+#[cfg(native)]
 fn serve_local(
   dir: &std::path::Path,
   url_path: &str,
@@ -454,7 +458,7 @@ fn serve_local(
 }
 
 /// A best-effort content type from a file's extension.
-#[cfg(feature = "webview")]
+#[cfg(native)]
 fn content_type(rel: &str) -> &'static str {
   match rel.rsplit('.').next() {
     Some("html" | "htm") => "text/html; charset=utf-8",

@@ -9,6 +9,7 @@
 //! So, as in a single-line field, typing arrives through
 //! `replace_text_in_range` rather than the key handler.
 
+use crate::chord::Chord;
 use std::ops::Range;
 
 use gpui::prelude::*;
@@ -401,7 +402,7 @@ impl TextArea {
     if !matches!(ks.key.as_str(), "up" | "down") {
       self.area.goal_x = None;
     }
-    if m.platform && !m.alt && !m.control {
+    if m.shortcut() {
       match ks.key.as_str() {
         "a" => return self.select_all(cx),
         "c" => return self.copy(cx),
@@ -440,13 +441,13 @@ impl TextArea {
         true
       }
       "left" => {
-        if !m.shift && !m.platform && !m.alt && self.edit.collapse_selection_start() {
+        if !m.shift && !m.line() && !m.word() && self.edit.collapse_selection_start() {
           true
         } else {
           self.edit.pre_move(m.shift);
-          if m.platform {
+          if m.line() {
             self.edit.line_home();
-          } else if m.alt {
+          } else if m.word() {
             self.edit.word_left();
           } else {
             self.edit.left();
@@ -455,13 +456,13 @@ impl TextArea {
         }
       }
       "right" => {
-        if !m.shift && !m.platform && !m.alt && self.edit.collapse_selection_end() {
+        if !m.shift && !m.line() && !m.word() && self.edit.collapse_selection_end() {
           true
         } else {
           self.edit.pre_move(m.shift);
-          if m.platform {
+          if m.line() {
             self.edit.line_end();
-          } else if m.alt {
+          } else if m.word() {
             self.edit.word_right();
           } else {
             self.edit.right();
@@ -469,7 +470,7 @@ impl TextArea {
           true
         }
       }
-      "up" | "down" if m.platform => {
+      "up" | "down" if m.line() => {
         self.edit.pre_move(m.shift);
         if ks.key == "up" {
           self.edit.home();
@@ -493,9 +494,9 @@ impl TextArea {
         true
       }
       "backspace" => {
-        if m.platform {
+        if m.line() {
           self.edit.delete_to_start();
-        } else if m.alt {
+        } else if m.word() {
           self.edit.delete_word_back();
         } else {
           self.edit.backspace();
@@ -503,24 +504,24 @@ impl TextArea {
         true
       }
       "delete" => {
-        if m.platform {
+        if m.line() {
           self.edit.delete_to_end();
-        } else if m.alt {
+        } else if m.word() {
           self.edit.delete_word_forward();
         } else {
           self.edit.delete();
         }
         true
       }
-      "k" if m.control => {
+      "k" if m.emacs() => {
         self.edit.delete_to_end();
         true
       }
-      "a" if m.control => {
+      "a" if m.emacs() => {
         self.edit.home();
         true
       }
-      "e" if m.control => {
+      "e" if m.emacs() => {
         self.edit.end();
         true
       }

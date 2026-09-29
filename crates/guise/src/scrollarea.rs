@@ -6,10 +6,16 @@
 //! `max_height` for a list that occupies a fixed slice of a larger layout, and
 //! `fill` for a pane that should be as tall as whatever the window gives it.
 //! Each instance needs a unique id so gpui can track its scroll offset.
+//!
+//! It draws a [`Scrollbar`] over its edge whenever the content overflows, so a
+//! long list says how long it is; `.scrollbar(false)` leaves it bare.
 
 use crate::devtools::Probed;
+use crate::scrollbar::Scrollbar;
 use gpui::prelude::*;
-use gpui::{div, px, AnyElement, App, ElementId, IntoElement, SharedString, Window};
+use gpui::{
+  div, px, AnyElement, App, ElementId, Entity, IntoElement, ScrollHandle, SharedString, Window,
+};
 
 /// A scrollable region. `ScrollArea::new("id").max_height(240.0)`, or
 /// `ScrollArea::new("id").fill()` to take the space the parent has left.
@@ -20,6 +26,7 @@ pub struct ScrollArea {
   max_height: Option<f32>,
   fill: bool,
   horizontal: bool,
+  scrollbar: bool,
 }
 
 impl ScrollArea {
@@ -30,6 +37,7 @@ impl ScrollArea {
       max_height: None,
       fill: false,
       horizontal: false,
+      scrollbar: true,
     }
   }
 
@@ -50,6 +58,14 @@ impl ScrollArea {
     self
   }
 
+  /// Draw a scrollbar while the content overflows (on by default). It floats
+  /// over the edge rather than taking layout space, so turning it off changes
+  /// nothing about where the content sits.
+  pub fn scrollbar(mut self, show: bool) -> Self {
+    self.scrollbar = show;
+    self
+  }
+
   /// Scroll horizontally instead of vertically.
   pub fn horizontal(mut self, horizontal: bool) -> Self {
     self.horizontal = horizontal;
@@ -64,15 +80,26 @@ impl ParentElement for ScrollArea {
 }
 
 impl RenderOnce for ScrollArea {
-  fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+  fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
     let bound: SharedString = match (self.fill, self.max_height) {
       (true, _) => "fill".into(),
       (false, Some(height)) => format!("{height}px").into(),
       (false, None) => "none".into(),
     };
-    let mut el = div().id(self.id).flex();
-    el = if self.horizontal {
-      let el = el.flex_row().overflow_x_scroll();
+    // The scrollbar needs the offset, so the scroller tracks a handle we own.
+    // It lives in element state under this area's id, across frames.
+    let state: Entity<ScrollHandle> =
+      window.use_keyed_state((self.id.clone(), "handle"), cx, |_, _| ScrollHandle::new());
+    let handle = state.read(cx).clone();
+
+    // Two boxes: the outer one is what the parent lays out (so it takes the
+    // fill/cap rules the scroller used to), the inner one scrolls and the bar
+    // floats over the outer one — an absolute child of the scroller itself
+    // would scroll away with the content.
+    let mut outer = div().relative().flex();
+    let mut inner = div().id(self.id.clone()).flex().track_scroll(&handle);
+    if self.horizontal {
+      inner = inner.flex_row().overflow_x_scroll().min_w_0();
       if self.fill {
         // Three settings for three parents: `flex_1` claims the leftover
         // main axis under a flex parent, the relative size does the same
@@ -80,26 +107,32 @@ impl RenderOnce for ScrollArea {
         // flex basis would win anyway if both applied), and the zero
         // minimum is what lets the box shrink under its content instead
         // of pushing the parent open.
-        el.flex_1().w_full().min_w_0()
-      } else {
-        el
+        outer = outer.flex_1().w_full().min_w_0();
       }
+      inner = inner.w_full();
     } else {
-      let el = el.flex_col().overflow_y_scroll();
+      inner = inner.flex_col().overflow_y_scroll().min_h_0();
       if self.fill {
-        el.flex_1().h_full().min_h_0()
-      } else {
-        el
+        outer = outer.flex_1().h_full().min_h_0();
       }
-    };
-    // A cap still applies while filling: grow into the window, but never
-    // past this.
-    if let Some(height) = self.max_height {
-      el = el.max_h(px(height));
+      inner = inner.h_full().w_full();
     }
-    el.children(self.children)
+    // A cap still applies while filling: grow into the window, but never
+    // past this. Both boxes carry it — the outer so it stops growing, the
+    // inner so it is the one that scrolls.
+    if let Some(height) = self.max_height {
+      outer = outer.max_h(px(height));
+      inner = inner.max_h(px(height));
+    }
+    let bar = self
+      .scrollbar
+      .then(|| Scrollbar::new((self.id.clone(), "bar"), &handle).horizontal(self.horizontal));
+    outer
+      .child(inner.children(self.children))
+      .children(bar)
       .probe("ScrollArea")
       .attr("axis", if self.horizontal { "x" } else { "y" })
       .attr("bound", bound)
+      .attr("scrollbar", if self.scrollbar { "on" } else { "off" })
   }
 }

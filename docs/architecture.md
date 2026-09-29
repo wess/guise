@@ -66,7 +66,7 @@ crates.io — with `[lib] name = "guise"`. Cargo commands address the package as
 | `dnd/` | `Draggable`, `DropTarget`, `SortableList` — typed drag payloads |
 | `transition.rs` | `Transition` / `Collapse` (true height) animations |
 | `webview.rs` | `WebView` — native embedded web view via `wry` (default-on `webview` feature) |
-| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Carousel`, `ThemePicker` |
+| root files | `Button`, `Badge`, `Card`, `Paper`, `Panel`, `SplitPanel`, `Image`, `Mark`, `Blockquote`, `Spoiler`, `Text`, `Title`, `Anchor`, `Code`, `Kbd`, `Icon`, `ActionIcon`, `ThemeIcon`, `CloseButton`, `CopyButton`, `Chip`, `Indicator`, `Skeleton`, `Divider`, `ScrollArea`, `Scrollbar`, `Carousel`, `ThemePicker` |
 
 ## Conventions
 

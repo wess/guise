@@ -17,16 +17,17 @@ readme = "README.md"
 [lib]
 name = "guise"
 
-# docs.rs builds on Linux, where the default `webview` feature would need system
-# WebKitGTK. Build the docs without it (the WebView API still appears).
+# docs.rs builds on Linux, where `webview` is a no-op anyway; the WebView API
+# appears either way.
 [package.metadata.docs.rs]
 no-default-features = true
 
 [features]
 default = ["webview"]
-# Embed a native OS web view via `wry`. On Linux this needs the system
-# WebKitGTK dev libs (`libwebkit2gtk-4.1-dev`). Disable for headless/docs-only
-# builds; `WebView` then renders a themed placeholder with the same API.
+# Embed a native OS web view via `wry` (macOS and Windows). Linux is not
+# supported — gpui gives wry no window handle it accepts — so there the feature
+# is a no-op: `wry` is not built, no WebKitGTK is needed, and `WebView` renders
+# the themed placeholder with the same API, as it does with the feature off.
 webview = ["dep:wry"]
 # Tree-sitter syntax highlighting for `Editor` (`TreeSitterHighlighter`).
 # Ships no grammars — pass a grammar crate's `LANGUAGE` and highlight query,
@@ -37,6 +38,8 @@ treesitter = ["dep:tree-sitter", "dep:tree-sitter-highlight"]
 gpui.workspace = true
 tree-sitter = { version = "0.25", optional = true }
 tree-sitter-highlight = { version = "0.25", optional = true }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
 wry = { version = "0.55", optional = true }
 
 [dev-dependencies]

@@ -148,7 +148,7 @@ string (hex must be a string — `#228be6` isn't a Rust token). Component
 
 | Group   | Components                                              |
 | ------- | ------------------------------------------------------- |
-| Layout  | `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`, `AppShell`, `Container`, `Space`, `Panel`, `SplitPanel`, `Breakpoint`/`Responsive` |
+| Layout  | `Stack`, `Group`, `Center`, `SimpleGrid`, `ScrollArea`, `Scrollbar`, `AppShell`, `Container`, `Space`, `Panel`, `SplitPanel`, `Breakpoint`/`Responsive` |
 | Surface | `Paper`, `Card`                                         |
 | Typography | `Text`, `Title`, `Mark`, `Blockquote`, `Spoiler`    |
 | Inputs  | `Button`, `TextInput`, `TextArea`, `NumberInput`, `PasswordInput`, `PinInput`, `Checkbox`, `Switch`, `Radio`, `RadioGroup`, `CheckboxGroup`, `Select`, `Combobox`, `Autocomplete`, `Slider`, `RangeSlider`, `Rating`, `ColorInput`, `TagsInput`, `Transfer`, `Field` |

@@ -1,8 +1,9 @@
 # WebView
 
 `WebView` embeds a real operating-system web view inside a gpui window —
-WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux — using
-[`wry`](https://crates.io/crates/wry). The native view is parented to the gpui
+WKWebView on macOS, WebView2 on Windows — using
+[`wry`](https://crates.io/crates/wry). **Linux has no native backend** (see
+[below](#the-webview-feature)); there `WebView` renders a themed placeholder. The native view is parented to the gpui
 window and repositioned every frame to track the component's layout bounds, so
 it sits inside normal `guise` layout like any other element.
 
@@ -90,8 +91,11 @@ small drain loop, so you always receive them inside the normal gpui update cycle
 The native backend lives behind the **default-on** `webview` Cargo feature,
 which pulls in `wry`. Two things to know:
 
-- **Linux** needs the system WebKitGTK dev libraries at build time
-  (`libwebkit2gtk-4.1-dev` on Debian/Ubuntu).
+- **Linux is a placeholder, not a webview.** wry can only parent onto an Xlib
+  window handle; gpui's Wayland backend hands it a Wayland handle (rejected) and
+  its X11 backend does not implement `HasWindowHandle` at all. So on Linux
+  `wry` is not compiled, no WebKitGTK is needed, and `WebView` renders the same
+  themed placeholder you get with the feature off — same API, no runtime error.
 - For **headless or docs-only builds**, disable it:
 
   ```toml

@@ -13,6 +13,7 @@
 //! .detach();
 //! ```
 
+use crate::chord::Chord;
 use gpui::prelude::*;
 use gpui::{
   div, px, App, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, IntoElement,
@@ -302,8 +303,8 @@ impl PinInput {
           cx.stop_propagation();
         }
       }
-      "c" if m.platform => self.copy(cx),
-      "v" if m.platform => self.paste(cx),
+      "c" if m.cmd() => self.copy(cx),
+      "v" if m.cmd() => self.paste(cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land (same rule as TextInput).

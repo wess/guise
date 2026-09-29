@@ -38,6 +38,7 @@ mod state;
 
 pub use state::{SelectionMode, SortDir};
 
+use crate::chord::Chord;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -642,7 +643,7 @@ impl<T: 'static> TableView<T> {
     tr = tr.on_mouse_down(
       MouseButton::Left,
       move |ev: &MouseDownEvent, window, app| {
-        let toggle = ev.modifiers.platform;
+        let toggle = ev.modifiers.cmd();
         let range = ev.modifiers.shift;
         let count = ev.click_count;
         view

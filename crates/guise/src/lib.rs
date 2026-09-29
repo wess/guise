@@ -20,6 +20,7 @@
 //! guise::theme::Theme::dark().init(cx);
 //! ```
 
+mod chord;
 #[macro_use]
 mod macros;
 
@@ -82,6 +83,7 @@ pub mod panegroup;
 mod panel;
 mod paper;
 mod scrollarea;
+mod scrollbar;
 mod skeleton;
 mod splitpanel;
 mod spoiler;
@@ -127,6 +129,7 @@ pub use panegroup::{PaneGroup, PaneGroupEvent};
 pub use panel::Panel;
 pub use paper::Paper;
 pub use scrollarea::ScrollArea;
+pub use scrollbar::Scrollbar;
 pub use skeleton::Skeleton;
 pub use splitpanel::{SplitDirection, SplitPanel, SplitPanelEvent};
 pub use spoiler::Spoiler;
@@ -269,7 +272,7 @@ pub mod prelude {
   pub use crate::{About, BuildKind, ResizeHandles, WindowControls};
   pub use crate::{
     ActionIcon, Anchor, Chip, CloseButton, Code, CopyButton, Glyph, Icon, IconName, Indicator, Kbd,
-    ScrollArea, Skeleton, ThemeIcon, ThemePicker, ThemePickerLayout,
+    ScrollArea, Scrollbar, Skeleton, ThemeIcon, ThemePicker, ThemePickerLayout,
   };
   pub use crate::{
     AnimValue, Animated, Animator, AnimatorEvent, At, Clip, Curve, Easing, Frame, IntoKeyframe,

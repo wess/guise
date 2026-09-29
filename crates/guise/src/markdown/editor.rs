@@ -22,6 +22,7 @@
 //! ```
 
 use crate::actions;
+use crate::chord::Chord;
 use crate::input::editmenu::{self, EditMenu};
 use crate::overlay::ContextMenu;
 use gpui::prelude::*;
@@ -551,9 +552,9 @@ impl MarkdownEditor {
     }
     match ks.key.as_str() {
       "left" => {
-        if m.platform {
+        if m.line() {
           self.model.home(shift);
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_left(shift);
         } else {
           self.model.move_left(shift);
@@ -561,9 +562,9 @@ impl MarkdownEditor {
         self.after_move(cx);
       }
       "right" => {
-        if m.platform {
+        if m.line() {
           self.model.end(shift);
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_right(shift);
         } else {
           self.model.move_right(shift);
@@ -571,7 +572,7 @@ impl MarkdownEditor {
         self.after_move(cx);
       }
       "up" => {
-        if m.platform {
+        if m.line() {
           self.model.doc_start(shift);
           self.after_move(cx);
         } else {
@@ -579,7 +580,7 @@ impl MarkdownEditor {
         }
       }
       "down" => {
-        if m.platform {
+        if m.line() {
           self.model.doc_end(shift);
           self.after_move(cx);
         } else {
@@ -587,7 +588,7 @@ impl MarkdownEditor {
         }
       }
       "home" => {
-        if m.platform {
+        if m.cmd() {
           self.model.doc_start(shift);
         } else {
           self.model.home(shift);
@@ -595,7 +596,7 @@ impl MarkdownEditor {
         self.after_move(cx);
       }
       "end" => {
-        if m.platform {
+        if m.cmd() {
           self.model.doc_end(shift);
         } else {
           self.model.end(shift);
@@ -606,16 +607,16 @@ impl MarkdownEditor {
         if self.read_only {
           return;
         }
-        if self.model.selection().is_none() && !m.platform && !m.alt && self.backspace_marker(cx) {
+        if self.model.selection().is_none() && !m.line() && !m.word() && self.backspace_marker(cx) {
           cx.stop_propagation();
           return;
         }
         let changed = if self.model.selection().is_some() {
           self.model.delete_selection()
-        } else if m.platform {
+        } else if m.line() {
           self.model.home(true);
           self.model.delete_selection()
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_left(true);
           self.model.delete_selection()
         } else {
@@ -633,10 +634,10 @@ impl MarkdownEditor {
         }
         let changed = if self.model.selection().is_some() {
           self.model.delete_selection()
-        } else if m.platform {
+        } else if m.line() {
           self.model.end(true);
           self.model.delete_selection()
-        } else if m.alt {
+        } else if m.word() {
           self.model.word_right(true);
           self.model.delete_selection()
         } else {
@@ -648,7 +649,7 @@ impl MarkdownEditor {
           cx.stop_propagation();
         }
       }
-      "enter" if m.platform => {
+      "enter" if m.cmd() => {
         if !self.read_only && self.toggle_task(self.model.cursor().line, cx) {
           cx.stop_propagation();
         }
@@ -661,7 +662,7 @@ impl MarkdownEditor {
         cx.stop_propagation();
       }
       "tab" => {
-        if m.platform || self.read_only {
+        if m.cmd() || self.read_only {
           return;
         }
         self.on_tab(shift, cx);
@@ -674,23 +675,23 @@ impl MarkdownEditor {
           cx.notify();
         }
       }
-      "a" if m.platform => self.select_all(cx),
-      "b" if m.platform => {
+      "a" if m.cmd() => self.select_all(cx),
+      "b" if m.cmd() => {
         self.toggle_wrap("**", cx);
         cx.stop_propagation();
       }
-      "i" if m.platform => {
+      "i" if m.cmd() => {
         self.toggle_wrap("*", cx);
         cx.stop_propagation();
       }
-      "k" if m.platform => {
+      "k" if m.cmd() => {
         self.insert_link(cx);
         cx.stop_propagation();
       }
-      "c" if m.platform => self.copy(cx),
-      "x" if m.platform => self.cut(cx),
-      "v" if m.platform => self.paste(cx),
-      "z" if m.platform => self.history(m.shift, cx),
+      "c" if m.cmd() => self.copy(cx),
+      "x" if m.cmd() => self.cut(cx),
+      "v" if m.cmd() => self.paste(cx),
+      "z" if m.cmd() => self.history(m.shift, cx),
       _ => {
         // Printable input: never on Cmd/Ctrl chords; Option+key is
         // allowed so composed glyphs land.
@@ -803,7 +804,7 @@ impl MarkdownEditor {
       }
     }
     // Cmd+click (plain click when read-only) follows links.
-    if ev.modifiers.platform || self.read_only {
+    if ev.modifiers.cmd() || self.read_only {
       if let (Some(row), Some(text)) = (self.layout.get(line), self.model.line(line)) {
         if let Some(target) = row.plan.link_at(byte_for_col(text, col)) {
           cx.emit(MarkdownEditorEvent::LinkClick(target.to_string()));
