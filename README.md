@@ -95,7 +95,7 @@ of July 2026:
 | Motion | easing curves, spring physics, exit animations | basic easing | large effects library |
 | Drag & drop | typed payloads, sortable lists | panel docking | draggable + sortable |
 | Date/time pickers | yes | yes (incl. range presets) | yes |
-| Tests | 520+ incl. gpui entity harness | ~580 incl. render tests | minimal |
+| Tests | 640+ incl. gpui entity harness | ~580 incl. render tests | minimal |
 | gpui dependency | crates.io releases | crates.io releases; dev tracks zed main | a custom gpui fork |
 | License | MIT | Apache-2.0 | MIT |
 

@@ -5,6 +5,10 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.9.1 — 2026-09-29
+
+Docs only: the test count in the README and CLAUDE.md said 520+; it is 640+.
+
 ## 1.9.0 — 2026-09-29
 
 ### `VideoView` (#3)
