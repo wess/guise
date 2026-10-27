@@ -119,16 +119,17 @@ fn contains_token(name: &str, token: &str) -> bool {
   })
 }
 
-/// The first asset whose name contains `needle`, optionally restricted to assets
-/// built for `arch`.
+/// The first asset whose name ends in `suffix`, optionally restricted to assets
+/// built for `arch`. A checksum sidecar contains the artifact extension too,
+/// but must never be selected as the artifact itself.
 fn pick<'a>(
   assets: &'a [ReleaseAsset],
-  needle: &str,
+  suffix: &str,
   arch: Option<&str>,
 ) -> Option<&'a ReleaseAsset> {
   assets
     .iter()
-    .find(|a| a.name.contains(needle) && arch.is_none_or(|x| matches_arch(&a.name, x)))
+    .find(|a| a.name.ends_with(suffix) && arch.is_none_or(|x| matches_arch(&a.name, x)))
 }
 
 impl Release {
@@ -136,7 +137,9 @@ impl Release {
   /// `None` for [`InstallKind::Unknown`], which has no in-place path at all.
   pub fn asset_for(&self, kind: &InstallKind) -> Option<&ReleaseAsset> {
     match kind {
-      InstallKind::MacApp(_) => pick(&self.assets, ".dmg", None),
+      InstallKind::MacApp(_) => {
+        pick(&self.assets, ".dmg", None).or_else(|| pick(&self.assets, ".zip", None))
+      }
       InstallKind::AppImage(_) => pick(&self.assets, ".AppImage", Some(std::env::consts::ARCH)),
       InstallKind::Unknown => None,
     }
@@ -157,13 +160,7 @@ impl Release {
     if let Some(found) = self.assets.iter().find(|a| per_asset.contains(&a.name)) {
       return Some(found);
     }
-    self.assets.iter().find(|a| {
-      let name = a.name.to_ascii_lowercase();
-      matches!(
-        name.as_str(),
-        "sha256sums" | "sha256sums.txt" | "checksums.txt" | "checksums.sha256"
-      )
-    })
+    self.assets.iter().find(|a| is_generic_checksum(&a.name))
   }
 
   /// Whether this release has finished publishing what this machine needs.
@@ -181,6 +178,13 @@ impl Release {
       _ => self.asset_for(kind).is_some(),
     }
   }
+}
+
+pub(crate) fn is_generic_checksum(name: &str) -> bool {
+  matches!(
+    name.to_ascii_lowercase().as_str(),
+    "sha256sums" | "sha256sums.txt" | "checksums.txt" | "checksums.sha256"
+  )
 }
 
 /// Parse a release feed body into a [`Release`].
@@ -311,6 +315,56 @@ mod tests {
   fn mac_installs_take_the_universal_dmg() {
     let release = parse(BODY.as_bytes()).unwrap();
     assert_eq!(release.asset_for(&mac()).unwrap().url, "https://d/Acme.dmg");
+  }
+
+  #[test]
+  fn mac_installs_fall_back_to_a_zip() {
+    let release = Release {
+      version: "1.26.0".to_string(),
+      url: String::new(),
+      assets: vec![ReleaseAsset {
+        name: "Acme.zip".to_string(),
+        url: "https://d/Acme.zip".to_string(),
+        size: 1,
+      }],
+    };
+    assert_eq!(release.asset_for(&mac()).unwrap().url, "https://d/Acme.zip");
+    assert!(release.ready_for(&mac()));
+  }
+
+  #[test]
+  fn mac_installs_prefer_a_dmg_over_a_zip() {
+    let release = Release {
+      version: "1.26.0".to_string(),
+      url: String::new(),
+      assets: vec![
+        ReleaseAsset {
+          name: "Acme.zip".to_string(),
+          url: "https://d/Acme.zip".to_string(),
+          size: 1,
+        },
+        ReleaseAsset {
+          name: "Acme.dmg".to_string(),
+          url: "https://d/Acme.dmg".to_string(),
+          size: 1,
+        },
+      ],
+    };
+    assert_eq!(release.asset_for(&mac()).unwrap().url, "https://d/Acme.dmg");
+  }
+
+  #[test]
+  fn checksum_sidecars_are_not_install_assets() {
+    let release = Release {
+      version: "1.26.0".to_string(),
+      url: String::new(),
+      assets: vec![ReleaseAsset {
+        name: "Acme.zip.sha256".to_string(),
+        url: "https://d/Acme.zip.sha256".to_string(),
+        size: 1,
+      }],
+    };
+    assert!(release.asset_for(&mac()).is_none());
   }
 
   #[test]

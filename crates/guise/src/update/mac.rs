@@ -1,5 +1,6 @@
-//! macOS: mount the release `.dmg` and rsync the new bundle's contents onto the
-//! installed `.app` — never replace the bundle directory itself.
+//! macOS: prepare the release `.dmg` or `.zip` and rsync the new bundle's
+//! contents onto the installed `.app` — never replace the bundle directory
+//! itself.
 //!
 //! The "in place" is the point: the installed bundle keeps its path *and* its
 //! directory inode, so LaunchServices' registration stays valid and the running
@@ -47,11 +48,15 @@ pub(crate) fn install(
     .asset_for(&InstallKind::MacApp(app.to_path_buf()))
     .ok_or("this release hasn't published a macOS build yet")?;
   let dir = std::env::temp_dir().join(format!("{}-update-{}", config.slug, release.version));
+  if dir.exists() {
+    std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
+  }
   std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-  let dmg = dir.join("update.dmg");
+  let is_zip = asset.name.to_ascii_lowercase().ends_with(".zip");
+  let archive = dir.join(if is_zip { "update.zip" } else { "update.dmg" });
   let total = asset.size;
   on_stage(UpdateStage::Downloading { done: 0, total });
-  super::fetch::file(&asset.url, &dmg, total, &config.user_agent, &|done| {
+  super::fetch::file(&asset.url, &archive, total, &config.user_agent, &|done| {
     on_stage(UpdateStage::Downloading { done, total })
   })?;
 
@@ -59,28 +64,43 @@ pub(crate) fn install(
   // swapped asset before the image is even mounted, and `hdiutil` parsing an
   // attacker-chosen file is a larger surface than a hash of it.
   on_stage(UpdateStage::Verifying);
-  config.verify_checksum(release, asset, &dmg)?;
+  config.verify_checksum(release, asset, &archive)?;
 
   on_stage(UpdateStage::Preparing);
-  let mount = dir.join("mnt");
-  std::fs::create_dir_all(&mount).map_err(|e| e.to_string())?;
-  let attach = Command::new("hdiutil")
-    .args(["attach", "-nobrowse", "-quiet", "-mountpoint"])
-    .arg(&mount)
-    .arg(&dmg)
-    .status()
-    .map_err(|e| format!("hdiutil attach: {e}"))?;
-  if !attach.success() {
-    return Err("could not mount the update image".to_string());
-  }
-  let unmount = Unmount(mount.clone());
+  let (prepared, unmount) = if is_zip {
+    let extracted = dir.join("extracted");
+    std::fs::create_dir_all(&extracted).map_err(|e| e.to_string())?;
+    let expanded = Command::new("ditto")
+      .args(["-x", "-k", "--sequesterRsrc", "--rsrc"])
+      .arg(&archive)
+      .arg(&extracted)
+      .status()
+      .map_err(|e| format!("ditto: {e}"))?;
+    if !expanded.success() {
+      return Err("could not expand the update archive".to_string());
+    }
+    (extracted, None)
+  } else {
+    let mount = dir.join("mnt");
+    std::fs::create_dir_all(&mount).map_err(|e| e.to_string())?;
+    let attach = Command::new("hdiutil")
+      .args(["attach", "-nobrowse", "-quiet", "-mountpoint"])
+      .arg(&mount)
+      .arg(&archive)
+      .status()
+      .map_err(|e| format!("hdiutil attach: {e}"))?;
+    if !attach.success() {
+      return Err("could not mount the update image".to_string());
+    }
+    (mount.clone(), Some(Unmount(mount)))
+  };
 
-  // Verify the payload on the *mounted image*, before a byte of it reaches the
+  // Verify the payload in the prepared archive, before a byte of it reaches the
   // installed bundle. Verifying only afterwards means a bad update is already
   // committed by the time you find out — there is no rollback, and the next
   // launch runs it.
   on_stage(UpdateStage::Verifying);
-  let src = app_in(&mount)?;
+  let src = app_in(&prepared)?;
   let trusted = Command::new("codesign")
     .args(["--verify", "--deep"])
     .arg(format!("-R={requirement}"))
@@ -94,7 +114,7 @@ pub(crate) fn install(
     ));
   }
 
-  // rsync the mounted bundle's *contents* (trailing slash) onto the installed
+  // rsync the prepared bundle's *contents* (trailing slash) onto the installed
   // bundle; --delete drops files the new version no longer ships.
   // --delay-updates stages every changed file inside the bundle (per-directory
   // `.~tmp~` folders) and promotes it by rename only at the end, so a sync that
@@ -153,7 +173,7 @@ fn scrub_staging(dir: &std::path::Path) {
   }
 }
 
-/// The first `.app` bundle inside `dir` (the mounted update image).
+/// The first `.app` bundle inside a mounted image or expanded archive.
 #[cfg(any(target_os = "macos", test))]
 fn app_in(dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
   std::fs::read_dir(dir)
@@ -166,7 +186,7 @@ fn app_in(dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
           .filter(|p| p.extension().is_some_and(|x| x == "app"))
       })
     })
-    .ok_or_else(|| "no .app in the update image".to_string())
+    .ok_or_else(|| "no .app in the update archive".to_string())
 }
 
 #[cfg(not(target_os = "macos"))]

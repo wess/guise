@@ -357,6 +357,19 @@ impl UpdatePrompt {
             .unwrap_or(false);
           if restart {
             let _ = cx.update(|cx| {
+              if !updater.can_restart(cx) {
+                updater.notify(
+                  "Update installed",
+                  &format!(
+                    "{} will finish updating the next time you open it.",
+                    updater.app()
+                  ),
+                );
+                let _ = this.update(cx, |_view, cx| {
+                  cx.emit(UpdatePromptEvent::Dismissed);
+                });
+                return;
+              }
               updater.run_before_restart(cx);
               // `Relaunch::Current` restarts with no explicit path
               // on purpose: gpui reopens the running bundle via

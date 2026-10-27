@@ -325,20 +325,22 @@ release feed, installs the new version **in place**, and restarts into it.
 ```rust
 let updater = Updater::github("Acme", env!("CARGO_PKG_VERSION"), "acme/acme")
     .codesign_requirement("anchor apple generic and certificate leaf[subject.OU] = TEAMID")
+    .restart_guard(|cx| can_restart_without_losing_work(cx))
     .before_restart(|cx| save_session(cx));
 
 guise::update::start(updater.clone(), cx);      // at launch, then hourly
 guise::update::check_now(updater, cx);          // "Check for Updates…"
 ```
 
-On macOS the release `.dmg` is mounted and rsynced onto the installed `.app`, so
-the bundle keeps its path *and* inode and LaunchServices never sees a stale
-registration; a Linux AppImage is renamed over itself. Everything else opens the
-release page — and the prompt's button says so rather than promising an install it
-can't perform. Updates are verified against your `codesign` requirement before
-anything touches the installed app. `UpdatePrompt` and `UpdateNotice` are ordinary
-entities, so they work embedded in a window you own as readily as in the ones
-`update::open` creates. See [Software update](docs/update.md).
+On macOS a release `.dmg` is mounted, or a `.zip` is expanded, and the signed
+bundle is rsynced onto the installed `.app`, so the bundle keeps its path *and*
+inode and LaunchServices never sees a stale registration; a Linux AppImage is
+renamed over itself. Everything else opens the release page — and the prompt's
+button says so rather than promising an install it can't perform. Updates are
+verified against your `codesign` requirement before anything touches the
+installed app. `UpdatePrompt` and `UpdateNotice` are ordinary entities, so they
+work embedded in a window you own as readily as in the ones `update::open`
+creates. See [Software update](docs/update.md).
 
 ## DevTools
 

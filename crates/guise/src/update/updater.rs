@@ -3,8 +3,8 @@
 //!
 //! The split is not decoration: the check and the install are blocking work that
 //! runs on gpui's background executor, which requires everything it captures to
-//! be `Send`. [`Updater`] carries `Rc` callbacks (notifications, a pre-restart
-//! hook) and so can never cross that boundary; [`UpdateConfig`] is the plain-data
+//! be `Send`. [`Updater`] carries `Rc` callbacks (notifications and restart
+//! hooks) and so can never cross that boundary; [`UpdateConfig`] is the plain-data
 //! half that can, and it is what the background task actually gets a copy of.
 
 use std::rc::Rc;
@@ -120,12 +120,19 @@ impl UpdateConfig {
     let body = super::fetch::bytes(&published.url, &self.user_agent)
       .map_err(|e| format!("could not fetch the published checksum: {e}"))?;
     let body = String::from_utf8_lossy(&body);
-    let expected = super::checksum::find(&body, &asset.name).ok_or_else(|| {
-      format!(
+    let Some(expected) = super::checksum::find(&body, &asset.name) else {
+      // A release-wide listing may legitimately cover only some artifacts.
+      // Treat that exactly like a missing checksum unless the app opted into
+      // strict checks. A per-asset sidecar, on the other hand, made an explicit
+      // promise about this download, so malformed contents always fail.
+      if !self.require_checksum && super::release::is_generic_checksum(&published.name) {
+        return Ok(());
+      }
+      return Err(format!(
         "{} does not record a SHA-256 for {}",
         published.name, asset.name
-      )
-    })?;
+      ));
+    };
     let actual = super::checksum::of_file(file)?;
     if !super::checksum::matches(&expected, &actual) {
       return Err(format!(
@@ -215,11 +222,13 @@ impl UpdateConfig {
 
 /// The app-level updater: an [`UpdateConfig`] plus the parts only the UI side
 /// needs — the poll cadence, the update window's title, and hooks for posting a
-/// notification and for saving state before the app restarts.
+/// notification, deciding whether a restart is currently safe, and saving
+/// state before the app restarts.
 ///
 /// ```ignore
 /// let updater = Updater::github("Acme", env!("CARGO_PKG_VERSION"), "acme/acme")
 ///     .codesign_requirement("anchor apple generic and certificate leaf[subject.OU] = XJDC46F35X")
+///     .restart_guard(|cx| can_quit_without_losing_work(cx))
 ///     .before_restart(|cx| save_session(cx));
 /// guise::update::start(updater, cx);
 /// ```
@@ -229,11 +238,15 @@ pub struct Updater {
   poll: Duration,
   title: SharedString,
   notify: Option<NotifyHook>,
+  restart_guard: Option<RestartGuard>,
   before_restart: Option<RestartHook>,
 }
 
 /// The app's notification hook, called with `(title, body)`.
 type NotifyHook = Rc<dyn Fn(&str, &str)>;
+
+/// The app's final say over whether an installed update may restart it now.
+type RestartGuard = Rc<dyn Fn(&mut App) -> bool>;
 
 /// The app's hook for the moment before the restart.
 type RestartHook = Rc<dyn Fn(&mut App)>;
@@ -260,6 +273,7 @@ impl Updater {
       poll: POLL,
       title: "Software Update".into(),
       notify: None,
+      restart_guard: None,
       before_restart: None,
     }
   }
@@ -310,6 +324,18 @@ impl Updater {
     self
   }
 
+  /// Called after the update is installed but before any pre-restart work.
+  /// Return `false` when restarting would discard work. The prompt closes, the
+  /// update stays installed, and it takes effect on the next normal launch.
+  ///
+  /// This is deliberately separate from [`before_restart`](Self::before_restart):
+  /// the guard decides whether a restart may happen; the hook persists state
+  /// only when it will.
+  pub fn restart_guard(mut self, guard: impl Fn(&mut App) -> bool + 'static) -> Self {
+    self.restart_guard = Some(Rc::new(guard));
+    self
+  }
+
   /// Called immediately before the app restarts into the new version — the
   /// place to persist a session, since the restart never goes through the
   /// normal quit path where an app would usually save.
@@ -355,6 +381,11 @@ impl Updater {
     if let Some(hook) = &self.before_restart {
       hook(cx);
     }
+  }
+
+  /// Whether the app permits an immediate restart.
+  pub(crate) fn can_restart(&self, cx: &mut App) -> bool {
+    self.restart_guard.as_ref().is_none_or(|guard| guard(cx))
   }
 }
 

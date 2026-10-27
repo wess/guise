@@ -9,6 +9,7 @@ use guise::update::{check_now, start, Updater};
 let updater = Updater::github("Acme", env!("CARGO_PKG_VERSION"), "acme/acme")
     .codesign_requirement("anchor apple generic and certificate leaf[subject.OU] = TEAMID")
     .on_notify(|title, body| post_os_notification(title, body))
+    .restart_guard(|cx| can_restart_without_losing_work(cx))
     .before_restart(|cx| save_session(cx));
 
 start(updater.clone(), cx);   // at launch, then hourly
@@ -109,12 +110,14 @@ uploading to it, and "still building" is the truth where "up to date" is a lie.
 | `user_agent(into)` | `"<slug>-updater"` | GitHub rejects requests without one. |
 | `slug(into)` | derived from the app name | Filesystem-safe name for staging paths. |
 | `on_notify(f)` | none | `(title, body)` when an install starts, finishes unattended, or fails. |
+| `restart_guard(f)` | allow | Return `false` to defer activation until the next normal launch. |
 | `before_restart(f)` | none | Called just before the restart — persist your session here. |
 
 guise never posts an OS notification itself: that needs the app's own bundle
-identity and permission state. Same for the session — the update restart doesn't
-go through the normal quit path where an app would usually save, which is exactly
-why `before_restart` exists.
+identity and permission state. `restart_guard` is for unsaved work or any other
+condition that makes an immediate restart unsafe. A veto leaves the installed
+update ready for the next launch and does not run `before_restart`; an allowed
+restart runs that hook because it does not go through the app's normal quit path.
 
 ## Release sources
 
@@ -136,10 +139,12 @@ escape `$TMPDIR`.
 
 An install is never *replaced*, only *rewritten in place*.
 
-**macOS.** The release `.dmg` is mounted and the new bundle's contents are
-`rsync --delete`d onto the installed `.app`. The bundle directory keeps its path
-*and* its inode, so LaunchServices' registration stays valid and the relaunch is
-`Relaunch::Current` — gpui reopens the running bundle via `NSBundle`. A
+**macOS.** A release `.dmg` is mounted, or a `.zip` is expanded, and the new
+bundle's contents are `rsync --delete`d onto the installed `.app`. If both
+formats are published, Guise prefers the DMG. The bundle directory keeps its
+path *and* its inode, so LaunchServices' registration stays valid and the
+relaunch is `Relaunch::Current` — gpui reopens the running bundle via
+`NSBundle`. A
 rename-swap instead hands `open` a brand-new directory inode while deleting the
 running executable; when LaunchServices resolves the stale registration it can
 fall back to running the inner Mach-O as a plain executable, inside a terminal,
@@ -160,8 +165,9 @@ the release page instead — and says so on its button.
 
 Downloads run through `curl`: https only (on redirects too), a size cap on
 in-memory bodies, and a finished download whose length doesn't match what the
-feed reported is treated as a failure. A truncated `.dmg` fails to mount; a
-truncated AppImage would be renamed over a working install.
+feed reported is treated as a failure. A truncated `.dmg` fails to mount, a
+truncated `.zip` fails to expand, and a truncated AppImage would otherwise be
+renamed over a working install.
 
 ## macOS installs need a codesign requirement
 
@@ -216,7 +222,9 @@ SHA256SUMS                       # or checksums.txt — a listing works too
 ```
 
 A listing has to *name* the asset. Falling back to "the only digest in the
-file" would happily verify the wrong one.
+file" would happily verify the wrong one. A generic listing that covers other
+artifacts but not this one counts as missing: lenient mode proceeds, while
+`require_checksum(true)` refuses it. A malformed per-asset sidecar always fails.
 
 The hash comes from whichever of `shasum`, `sha256sum`, or `openssl` is on the
 machine, the same way the rest of this module shells out rather than growing a

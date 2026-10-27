@@ -7,6 +7,7 @@
 //! let updater = Updater::github("Acme", env!("CARGO_PKG_VERSION"), "acme/acme")
 //!     .codesign_requirement("anchor apple generic and certificate leaf[subject.OU] = TEAMID")
 //!     .on_notify(|title, body| post_os_notification(title, body))
+//!     .restart_guard(|cx| can_restart_without_losing_work(cx))
 //!     .before_restart(|cx| save_session(cx));
 //!
 //! start(updater.clone(), cx);          // at launch, then hourly

@@ -245,6 +245,25 @@ fn update_prompt_tracks_the_stages_a_host_drives(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn updater_restart_guard_has_the_final_say(cx: &mut TestAppContext) {
+  use std::cell::Cell;
+  use std::rc::Rc;
+
+  let called = Rc::new(Cell::new(0));
+  let observed = called.clone();
+  let blocked = Updater::github("Acme", "1.0.0", "acme/acme").restart_guard(move |_| {
+    observed.set(observed.get() + 1);
+    false
+  });
+
+  cx.update(|cx| assert!(!blocked.can_restart(cx)));
+  assert_eq!(called.get(), 1);
+
+  let allowed = Updater::github("Acme", "1.0.0", "acme/acme");
+  cx.update(|cx| assert!(allowed.can_restart(cx)));
+}
+
+#[gpui::test]
 fn update_notice_answers_a_check_and_dismisses(cx: &mut TestAppContext) {
   use std::cell::RefCell;
   use std::rc::Rc;
