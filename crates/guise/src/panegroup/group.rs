@@ -39,6 +39,10 @@ type ItemTitle = Rc<dyn Fn(ItemId, &App) -> SharedString>;
 /// host surface a state indicator (e.g. an agent's working/blocked state) in the
 /// tab strip without the group knowing what the color means.
 type ItemDot = Rc<dyn Fn(ItemId, &App) -> Option<gpui::Hsla>>;
+/// Optional per-item status mark for its tab: an element the host builds
+/// (a glyph, a spinner, a percentage) drawn where the dot would sit. When it
+/// returns `Some` it replaces the dot for that tab.
+type ItemMark = Rc<dyn Fn(ItemId, &App) -> Option<AnyElement>>;
 
 /// Interactions the host reacts to. The component owns layout; the host owns
 /// items (creating/destroying their real content) and window management.
@@ -286,6 +290,7 @@ pub struct PaneGroup {
   render_item: Option<RenderItem>,
   item_title: Option<ItemTitle>,
   item_dot: Option<ItemDot>,
+  item_mark: Option<ItemMark>,
   /// The pane a tab is dragged over + the edge the drop would take (`None` =
   /// center = add as a tab). Drives the drop overlay; cleared on drop.
   drag_over: Option<(PaneId, Option<DropEdge>)>,
@@ -347,6 +352,7 @@ impl PaneGroup {
       render_item: None,
       item_title: None,
       item_dot: None,
+      item_mark: None,
       drag_over: None,
       tab_drop: None,
       dragging: None,
@@ -416,6 +422,13 @@ impl PaneGroup {
   /// re-invoked every render. The host decides what a color means.
   pub fn on_item_dot(mut self, f: impl Fn(ItemId, &App) -> Option<gpui::Hsla> + 'static) -> Self {
     self.item_dot = Some(Rc::new(f));
+    self
+  }
+
+  /// Supply each item's optional tab status mark, re-invoked every render.
+  /// A `Some` element is drawn in place of the dot; `None` falls back to it.
+  pub fn on_item_mark(mut self, f: impl Fn(ItemId, &App) -> Option<AnyElement> + 'static) -> Self {
+    self.item_mark = Some(Rc::new(f));
     self
   }
 
@@ -1393,6 +1406,8 @@ impl PaneGroup {
         .unwrap_or_else(|| SharedString::from("untitled"));
       self.motion.borrow_mut().label(item, &title);
       let dot = item_dot.as_ref().and_then(|f| f(item, cx));
+      let mark = self.item_mark.as_ref().and_then(|f| f(item, cx));
+      let has_mark = mark.is_some();
       let is_active = item == active;
       // The item is on its way out of the window, so its slot fades to
       // the gap it would leave rather than claiming it is still here.
@@ -1487,7 +1502,8 @@ impl PaneGroup {
             }
           }),
         )
-        .when_some(dot, |d, color| {
+        .when_some(mark, |d, mark| d.child(div().flex_none().child(mark)))
+        .when_some(dot.filter(|_| !has_mark), |d, color| {
           d.child(
             div()
               .flex_none()
