@@ -1899,3 +1899,54 @@ fn video_feed_delivers_the_newest_frame(cx: &mut TestAppContext) {
   let stats = view.read_with(cx, |v, _| v.stats());
   assert_eq!((stats.shown, stats.dropped), (1, 1));
 }
+
+struct MarkedTabs {
+  group: Entity<crate::panegroup::PaneGroup>,
+}
+
+impl Render for MarkedTabs {
+  fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    div().size_full().child(self.group.clone())
+  }
+}
+
+#[gpui::test]
+fn pane_group_draws_the_host_mark_in_place_of_the_dot(cx: &mut TestAppContext) {
+  use crate::panegroup::{ItemIds, PaneGroup};
+  use std::cell::RefCell;
+  use std::rc::Rc;
+
+  cx.update(|cx| Theme::light().init(cx));
+  let mut ids = ItemIds::new();
+  let (marked, plain) = (ids.next(), ids.next());
+  // Which items each callback was asked about, last frame wins.
+  let marks: Rc<RefCell<Vec<_>>> = Rc::default();
+  let dots: Rc<RefCell<Vec<_>>> = Rc::default();
+  let (view, cx) = cx.add_window_view(|_window, cx| {
+    let (marks, dots) = (marks.clone(), dots.clone());
+    let group = cx.new(|cx| {
+      let mut g = PaneGroup::new(marked, cx)
+        .on_item_title(|_, _| "tab".into())
+        .on_render_item(|_, _, _| div().into_any_element())
+        .on_item_dot(move |item, _| {
+          dots.borrow_mut().push(item);
+          Some(gpui::red())
+        })
+        .on_item_mark(move |item, _| {
+          marks.borrow_mut().push(item);
+          (item == marked).then(|| div().child("!").into_any_element())
+        });
+      g.add_to_focused(plain, cx);
+      g
+    });
+    MarkedTabs { group }
+  });
+  cx.run_until_parked();
+  view.update(cx, |_, cx| cx.notify());
+  cx.run_until_parked();
+
+  // Both tabs are offered to the mark callback; a `None` falls back to
+  // the dot, so the dot callback is still consulted for every tab too.
+  assert!(marks.borrow().contains(&marked) && marks.borrow().contains(&plain));
+  assert!(dots.borrow().contains(&plain));
+}

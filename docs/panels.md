@@ -134,6 +134,8 @@ div().size_full().child(self.group.clone())
 | `new(first_item, cx)` | one pane holding `first_item` |
 | `on_render_item(closure)` | `Fn(ItemId, &mut Window, &mut App) -> AnyElement`, per item, each frame |
 | `on_item_title(closure)` | `Fn(ItemId, &App) -> SharedString`, the tab title |
+| `on_item_dot(closure)` | `Fn(ItemId, &App) -> Option<Hsla>`, a status dot on the tab |
+| `on_item_mark(closure)` | `Fn(ItemId, &App) -> Option<AnyElement>`, a status element (glyph, pulse, percentage) drawn in place of the dot; `None` falls back to the dot |
 | `add_item(pane, item, cx)` | add a tab to a pane and activate it |
 | `add_to_focused(item, cx)` | add a tab to the focused pane |
 | `split(pane, dir, first, item, cx)` | split a pane, put `item` in the new pane |

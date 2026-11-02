@@ -5,6 +5,15 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.11.0 — 2026-11-02
+
+### Tab status marks
+
+- `PaneGroup::on_item_mark` lets the host draw its own element in a tab where
+  the status dot sits — a glyph, a pulsing dot, a percentage — instead of a
+  single color. It is asked about every tab each frame; returning `None` for a
+  tab falls back to `on_item_dot`, so the two can be used together.
+
 ## 1.10.0 — 2026-10-27
 
 ### Self-update policies and ZIP releases
