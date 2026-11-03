@@ -5,6 +5,11 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.11.2 — 2026-11-03
+
+- Pin `libc` below 0.2.191 until GPUI's transitive `xattr` dependency is
+  compatible with the removed Linux `ENOATTR` alias.
+
 ## 1.11.1 — 2026-11-03
 
 - Refresh compatible locked dependencies and pin every GitHub Action to an
