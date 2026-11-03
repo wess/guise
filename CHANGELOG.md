@@ -5,6 +5,11 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.11.1 — 2026-11-03
+
+- Refresh compatible locked dependencies and pin every GitHub Action to an
+  immutable commit, with weekly dependency tracking for future action updates.
+
 ## 1.11.0 — 2026-11-02
 
 ### Tab status marks
