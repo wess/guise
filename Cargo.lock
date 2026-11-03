@@ -2162,7 +2162,7 @@ dependencies = [
 
 [[package]]
 name = "gallery"
-version = "1.11.2"
+version = "1.11.3"
 dependencies = [
  "gpui",
  "guise-ui",
@@ -2828,10 +2828,11 @@ dependencies = [
 
 [[package]]
 name = "guise-ui"
-version = "1.11.2"
+version = "1.11.3"
 dependencies = [
  "gpui",
  "image",
+ "libc",
  "tree-sitter",
  "tree-sitter-highlight",
  "tree-sitter-rust",
