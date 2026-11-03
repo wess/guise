@@ -5,6 +5,11 @@ follow [semver](https://semver.org): from 1.0 on, a breaking change means a
 major release, and is called out under **Breaking**. Releases before 1.0 landed
 breaking changes in minor versions.
 
+## 1.11.4 — 2026-11-03
+
+- Tighten the temporary Linux compatibility constraint to `libc` 0.2.189,
+  which retains `ENOATTR` on both x86-64 and ARM64.
+
 ## 1.11.3 — 2026-11-03
 
 - Carry the temporary Linux `libc` compatibility constraint in the published

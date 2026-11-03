@@ -46,7 +46,7 @@ tree-sitter-highlight = { version = "0.25", optional = true }
 # zed-async-tar still resolves xattr 0.2.3, which needs the ENOATTR alias
 # removed from libc 0.2.191. Keep downstream Linux builds on the compatible
 # release until that GPUI dependency is updated.
-libc = "=0.2.190"
+libc = "=0.2.189"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 wry = { version = "0.55", optional = true }
